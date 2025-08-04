@@ -21,6 +21,52 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
   const [uploadFileStates, setUploadFileStates] = useState<UploadFile[]>([]);
   const { toast } = useToast();
 
+  // Helper function to ensure user is authenticated
+  const ensureAuthenticated = useCallback(async (retryCount = 0): Promise<{ user: any; error?: string }> => {
+    const maxRetries = 3;
+    
+    try {
+      // First, try to get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error('Auth error:', userError);
+        throw new Error(`Authentication error: ${userError.message}`);
+      }
+      
+      if (!user) {
+        // Try to refresh the session
+        console.log('No user found, attempting session refresh...');
+        const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+        
+        if (sessionError) {
+          console.error('Session refresh error:', sessionError);
+          throw new Error('Session expired. Please log in again.');
+        }
+        
+        if (!session?.user) {
+          throw new Error('Authentication required. Please log in again.');
+        }
+        
+        console.log('Session refreshed successfully');
+        return { user: session.user };
+      }
+      
+      console.log('User authenticated:', user.id);
+      return { user };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+      
+      if (retryCount < maxRetries) {
+        console.log(`Auth retry ${retryCount + 1}/${maxRetries}`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+        return ensureAuthenticated(retryCount + 1);
+      }
+      
+      return { user: null, error: errorMessage };
+    }
+  }, []);
+
   const uploadFiles = useCallback(async (
     files: File[],
     reportType: string,
@@ -28,6 +74,21 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
     additionalData: Record<string, any> = {}
   ) => {
     if (files.length === 0) return;
+
+    // Pre-flight authentication check
+    console.log('Starting upload process, checking authentication...');
+    const authResult = await ensureAuthenticated();
+    if (authResult.error || !authResult.user) {
+      toast({
+        title: 'Authentication Required',
+        description: authResult.error || 'Please log in to upload files',
+        variant: 'destructive',
+      });
+      options.onUploadError?.(authResult.error || 'Authentication required');
+      return;
+    }
+
+    console.log('Authentication verified, proceeding with upload...');
 
     setIsUploading(true);
     setUploadProgress(0);
@@ -79,10 +140,11 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
             idx === i ? { ...f, progress: 50 } : f
           ));
 
-          // Get current user
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          if (userError || !user) {
-            throw new Error('User not authenticated');
+          // Ensure authentication before database insert with retry logic
+          console.log(`Ensuring auth before DB insert for file ${i + 1}/${files.length}`);
+          const dbAuthResult = await ensureAuthenticated();
+          if (dbAuthResult.error || !dbAuthResult.user) {
+            throw new Error(`Authentication failed for database operation: ${dbAuthResult.error || 'User not found'}`);
           }
 
           // Create report record
@@ -97,7 +159,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
               file_size: file.size,
               report_date: new Date().toISOString().split('T')[0],
               ocr_status: 'pending',
-              user_id: user.id,
+              user_id: dbAuthResult.user.id,
               ...additionalData
             })
             .select()
@@ -189,7 +251,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
     } finally {
       setIsUploading(false);
     }
-  }, [toast, options]);
+  }, [toast, options, ensureAuthenticated]);
 
   const resetUpload = useCallback(() => {
     setUploadFileStates([]);
