@@ -11,6 +11,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  let reportId: string | null = null
+
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -18,7 +20,8 @@ serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
 
-    const { reportId } = await req.json()
+    const requestBody = await req.json()
+    reportId = requestBody.reportId
     console.log('Processing OCR for report:', reportId)
 
     // Get the report details
@@ -47,9 +50,25 @@ serve(async (req) => {
       throw new Error('Failed to download file')
     }
 
-    // Convert file to base64
+    // Convert file to base64 using chunked approach for large files
     const arrayBuffer = await fileData.arrayBuffer()
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+    const bytes = new Uint8Array(arrayBuffer)
+    
+    console.log(`Processing file of size: ${bytes.length} bytes`)
+    
+    // Check file size limit (Google Vision API has 20MB limit)
+    if (bytes.length > 20 * 1024 * 1024) {
+      throw new Error('File size exceeds 20MB limit for OCR processing')
+    }
+    
+    // Convert to base64 in chunks to avoid call stack overflow
+    let base64 = ''
+    const chunkSize = 8192 // Process 8KB chunks
+    
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.slice(i, i + chunkSize)
+      base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)))
+    }
 
     // Call Google Vision API
     const visionApiKey = Deno.env.get('GOOGLE_VISION_API_KEY')
@@ -125,9 +144,8 @@ serve(async (req) => {
     console.error('OCR processing error:', error)
     
     // Try to update report with error status if we have reportId
-    try {
-      const { reportId } = await req.json()
-      if (reportId) {
+    if (reportId) {
+      try {
         const supabaseClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -141,9 +159,9 @@ serve(async (req) => {
             processing_error: error.message
           })
           .eq('id', reportId)
+      } catch (updateError) {
+        console.error('Failed to update error status:', updateError)
       }
-    } catch (updateError) {
-      console.error('Failed to update error status:', updateError)
     }
 
     return new Response(
