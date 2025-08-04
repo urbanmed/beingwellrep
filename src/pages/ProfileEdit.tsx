@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -34,11 +34,13 @@ const accessibilityOptions = [
 
 export default function ProfileEdit() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "basic");
 
   const form = useForm<CompleteProfileFormData>({
     resolver: zodResolver(completeProfileSchema),
@@ -192,7 +194,7 @@ export default function ProfileEdit() {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            <Tabs defaultValue="basic" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="medical">Medical</TabsTrigger>

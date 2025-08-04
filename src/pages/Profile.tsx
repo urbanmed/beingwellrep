@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings, FileText, Activity, LogOut, User, Phone, Mail, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { ProfileCompletionBanner } from "@/components/profile/ProfileCompletionBanner";
 
 export default function Profile() {
   const { user, signOut } = useAuth();
@@ -58,6 +59,9 @@ export default function Profile() {
 
   return (
     <div className="p-4 space-y-6">
+      {/* Profile Completion Banner */}
+      <ProfileCompletionBanner />
+
       {/* Profile Header */}
       <Card>
         <CardContent className="pt-6">

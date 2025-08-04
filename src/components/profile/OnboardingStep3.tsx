@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TooltipInfo } from "@/components/ui/tooltip-info";
 
 interface OnboardingStep3Props {
   data: Partial<EmergencyContactFormData>;
@@ -73,7 +74,10 @@ export function OnboardingStep3({ data, onNext, onBack }: OnboardingStep3Props) 
             name="emergency_contact_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Emergency Contact Name</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  Emergency Contact Name
+                  <TooltipInfo content="This person will be contacted in case of medical emergencies. Make sure they are someone who can make decisions on your behalf if needed." />
+                </FormLabel>
                 <FormControl>
                   <Input placeholder="Enter full name" {...field} />
                 </FormControl>
@@ -90,7 +94,10 @@ export function OnboardingStep3({ data, onNext, onBack }: OnboardingStep3Props) 
             name="emergency_contact_phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Emergency Contact Phone</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  Emergency Contact Phone
+                  <TooltipInfo content="Provide a reliable phone number where this person can be reached 24/7. This information is encrypted and only used for emergencies." />
+                </FormLabel>
                 <FormControl>
                   <Input placeholder="+91 98765 43210" {...field} />
                 </FormControl>
