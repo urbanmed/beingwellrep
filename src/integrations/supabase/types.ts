@@ -14,7 +14,206 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activities: {
+        Row: {
+          activity_type: string
+          calories_burned: number | null
+          completed_at: string
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          name: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          calories_burned?: number | null
+          completed_at?: string
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          name: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          calories_burned?: number | null
+          completed_at?: string
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      goals: {
+        Row: {
+          created_at: string
+          current_value: number | null
+          description: string | null
+          goal_type: string
+          id: string
+          status: string
+          target_date: string | null
+          target_unit: string | null
+          target_value: number | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number | null
+          description?: string | null
+          goal_type: string
+          id?: string
+          status?: string
+          target_date?: string | null
+          target_unit?: string | null
+          target_value?: number | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: number | null
+          description?: string | null
+          goal_type?: string
+          id?: string
+          status?: string
+          target_date?: string | null
+          target_unit?: string | null
+          target_value?: number | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      health_metrics: {
+        Row: {
+          created_at: string
+          id: string
+          metric_type: string
+          notes: string | null
+          recorded_at: string
+          unit: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metric_type: string
+          notes?: string | null
+          recorded_at?: string
+          unit: string
+          user_id: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metric_type?: string
+          notes?: string | null
+          recorded_at?: string
+          unit?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          activity_level: string | null
+          created_at: string
+          date_of_birth: string | null
+          first_name: string | null
+          gender: string | null
+          height_cm: number | null
+          id: string
+          last_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_level?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          first_name?: string | null
+          gender?: string | null
+          height_cm?: number | null
+          id?: string
+          last_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_level?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          first_name?: string | null
+          gender?: string | null
+          height_cm?: number | null
+          id?: string
+          last_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      progress_logs: {
+        Row: {
+          created_at: string
+          description: string | null
+          goal_id: string | null
+          id: string
+          log_type: string
+          logged_at: string
+          title: string
+          unit: string | null
+          user_id: string
+          value: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          goal_id?: string | null
+          id?: string
+          log_type: string
+          logged_at?: string
+          title: string
+          unit?: string | null
+          user_id: string
+          value?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          goal_id?: string | null
+          id?: string
+          log_type?: string
+          logged_at?: string
+          title?: string
+          unit?: string | null
+          user_id?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "progress_logs_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
