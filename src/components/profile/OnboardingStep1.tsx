@@ -181,7 +181,7 @@ export function OnboardingStep1({ data, onNext }: OnboardingStep1Props) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Preferred Language</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value || "english"}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select language" />
