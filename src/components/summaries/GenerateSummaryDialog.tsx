@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,9 +76,11 @@ export function GenerateSummaryDialog({
   const [selectedType, setSelectedType] = useState<Summary['summary_type']>('comprehensive');
   const [customPrompt, setCustomPrompt] = useState('');
   const [loadingReports, setLoadingReports] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     setLoadingReports(true);
+    setFetchError(null);
     try {
       const { data, error } = await supabase
         .from('reports')
@@ -90,17 +92,25 @@ export function GenerateSummaryDialog({
       setReports(data || []);
     } catch (error) {
       console.error('Error fetching reports:', error);
+      setFetchError('Failed to load reports. Please try again.');
     } finally {
       setLoadingReports(false);
     }
-  };
+  }, []);
 
+  // Handle dialog opening
   useEffect(() => {
     if (isOpen) {
       fetchReports();
+    }
+  }, [isOpen, fetchReports]);
+
+  // Handle preselected reports (separate effect to avoid dependency issues)
+  useEffect(() => {
+    if (isOpen && preSelectedReportIds && preSelectedReportIds.length > 0) {
       setSelectedReports(preSelectedReportIds);
     }
-  }, [isOpen, preSelectedReportIds]);
+  }, [isOpen, preSelectedReportIds?.length]);
 
   const handleReportToggle = (reportId: string) => {
     setSelectedReports(prev => 
@@ -186,6 +196,16 @@ export function GenerateSummaryDialog({
                 <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
                 <p className="text-muted-foreground">Loading your reports...</p>
               </div>
+            ) : fetchError ? (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                  <p className="text-destructive mb-3">{fetchError}</p>
+                  <Button onClick={fetchReports} variant="outline" size="sm">
+                    Try Again
+                  </Button>
+                </CardContent>
+              </Card>
             ) : reports.length === 0 ? (
               <Card>
                 <CardContent className="text-center py-8">

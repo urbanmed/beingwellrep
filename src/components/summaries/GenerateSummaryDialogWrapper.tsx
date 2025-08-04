@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { GenerateSummaryDialog } from './GenerateSummaryDialog';
 import { useSummaries } from '@/hooks/useSummaries';
 
@@ -14,13 +15,18 @@ export function GenerateSummaryDialogWrapper({
 }: GenerateSummaryDialogWrapperProps) {
   const { generateSummary, loading } = useSummaries();
 
+  // Memoize preSelectedReportIds to prevent unnecessary re-renders
+  const memoizedPreSelectedReportIds = useMemo(() => {
+    return preSelectedReportIds || [];
+  }, [preSelectedReportIds]);
+
   return (
     <GenerateSummaryDialog
       isOpen={isOpen}
       onClose={onClose}
       onGenerate={generateSummary}
       loading={loading}
-      preSelectedReportIds={preSelectedReportIds}
+      preSelectedReportIds={memoizedPreSelectedReportIds}
     />
   );
 }
