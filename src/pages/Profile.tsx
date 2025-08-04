@@ -1,0 +1,149 @@
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Settings, FileText, Activity, LogOut, User, Phone, Mail } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+export default function Profile() {
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
+      });
+    } catch (error) {
+      toast({
+        title: "Sign out failed",
+        description: "An error occurred while signing out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getInitials = (email: string) => {
+    return email.split('@')[0].slice(0, 2).toUpperCase();
+  };
+
+  return (
+    <div className="p-4 space-y-6">
+      {/* Profile Header */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center space-x-4">
+            <Avatar className="h-16 w-16">
+              <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+                {user?.email ? getInitials(user.email) : <User className="h-8 w-8" />}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold">
+                {user?.email?.split('@')[0] || 'User'}
+              </h2>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                {user?.email && (
+                  <div className="flex items-center">
+                    <Mail className="h-4 w-4 mr-2" />
+                    {user.email}
+                  </div>
+                )}
+                {user?.phone && (
+                  <div className="flex items-center">
+                    <Phone className="h-4 w-4 mr-2" />
+                    {user.phone}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <FileText className="h-5 w-5 mr-2 text-primary" />
+              Documents
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-muted-foreground text-sm">Uploaded files</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <Activity className="h-5 w-5 mr-2 text-primary" />
+              Reports
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-muted-foreground text-sm">AI analyses</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Menu Options */}
+      <div className="space-y-2">
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+          <CardHeader className="py-4">
+            <CardTitle className="text-base flex items-center justify-between">
+              <div className="flex items-center">
+                <Settings className="h-5 w-5 mr-3 text-primary" />
+                Account Settings
+              </div>
+              <span className="text-muted-foreground">→</span>
+            </CardTitle>
+          </CardHeader>
+        </Card>
+
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+          <CardHeader className="py-4">
+            <CardTitle className="text-base flex items-center justify-between">
+              <div className="flex items-center">
+                <FileText className="h-5 w-5 mr-3 text-primary" />
+                My Documents
+              </div>
+              <span className="text-muted-foreground">→</span>
+            </CardTitle>
+          </CardHeader>
+        </Card>
+
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+          <CardHeader className="py-4">
+            <CardTitle className="text-base flex items-center justify-between">
+              <div className="flex items-center">
+                <Activity className="h-5 w-5 mr-3 text-primary" />
+                Health Analytics
+              </div>
+              <span className="text-muted-foreground">→</span>
+            </CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+
+      {/* Sign Out */}
+      <Card>
+        <CardContent className="pt-6">
+          <Button 
+            variant="destructive" 
+            onClick={handleSignOut}
+            className="w-full"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

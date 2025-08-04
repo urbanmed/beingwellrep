@@ -5,7 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { MobileLayout } from "@/components/layout/MobileLayout";
 import Index from "./pages/Index";
+import Upload from "./pages/Upload";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import { LoginPage } from "./pages/auth/LoginPage";
 import { SignupPage } from "./pages/auth/SignupPage";
@@ -35,7 +38,23 @@ const App = () => (
             {/* Protected Routes */}
             <Route path="/" element={
               <ProtectedRoute>
-                <Index />
+                <MobileLayout>
+                  <Index />
+                </MobileLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/upload" element={
+              <ProtectedRoute>
+                <MobileLayout>
+                  <Upload />
+                </MobileLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <MobileLayout>
+                  <Profile />
+                </MobileLayout>
               </ProtectedRoute>
             } />
             

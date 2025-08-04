@@ -1,66 +1,92 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { FileText, Brain, TrendingUp, Plus } from "lucide-react";
 
 const Index = () => {
-  const { user, signOut } = useAuth();
-  const { toast } = useToast();
-
-  const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Signed out",
-        description: "You have been successfully signed out.",
-      });
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center justify-between">
-          <h1 className="text-xl font-semibold">Health Buddy</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              Welcome, {user?.user_metadata?.first_name || user?.email}
-            </span>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              Sign out
+    <div className="p-4 space-y-6">
+      {/* Welcome Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-2xl font-bold text-foreground">Health Buddy</h1>
+        <p className="text-muted-foreground">
+          Your AI-powered health companion
+        </p>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+          <CardContent className="pt-6 text-center">
+            <Plus className="h-8 w-8 text-primary mx-auto mb-2" />
+            <h3 className="font-semibold">Upload</h3>
+            <p className="text-sm text-muted-foreground">Add documents</p>
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+          <CardContent className="pt-6 text-center">
+            <Brain className="h-8 w-8 text-primary mx-auto mb-2" />
+            <h3 className="font-semibold">AI Insights</h3>
+            <p className="text-sm text-muted-foreground">View analysis</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Features */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Features</h2>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <FileText className="h-5 w-5 mr-2 text-primary" />
+              Medical Reports
+            </CardTitle>
+            <CardDescription>
+              Upload and organize your medical documents for easy access
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full">
+              Upload Your First Report
             </Button>
-          </div>
-        </div>
-      </header>
-      
-      <main className="container py-8">
-        <div className="text-center">
-          <h2 className="text-4xl font-bold text-foreground mb-4">Welcome to Health Buddy</h2>
-          <p className="text-lg text-muted-foreground mb-8">Your personal health companion</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <div className="p-6 rounded-lg border bg-card">
-              <h3 className="text-xl font-semibold mb-2">Medical Reports</h3>
-              <p className="text-muted-foreground">Upload and manage your medical documents</p>
-            </div>
-            
-            <div className="p-6 rounded-lg border bg-card">
-              <h3 className="text-xl font-semibold mb-2">AI Summaries</h3>
-              <p className="text-muted-foreground">Get intelligent summaries of your health data</p>
-            </div>
-            
-            <div className="p-6 rounded-lg border bg-card">
-              <h3 className="text-xl font-semibold mb-2">Health Analytics</h3>
-              <p className="text-muted-foreground">Track and analyze your health trends</p>
-            </div>
-          </div>
-        </div>
-      </main>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Brain className="h-5 w-5 mr-2 text-primary" />
+              AI Analysis
+            </CardTitle>
+            <CardDescription>
+              Get intelligent insights and summaries from your health data
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="secondary" className="w-full">
+              View AI Summaries
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <TrendingUp className="h-5 w-5 mr-2 text-primary" />
+              Health Trends
+            </CardTitle>
+            <CardDescription>
+              Track patterns and changes in your health over time
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="secondary" className="w-full">
+              View Health Analytics
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
