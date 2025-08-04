@@ -146,7 +146,11 @@ export type Database = {
           id: string
           is_critical: boolean | null
           notes: string | null
+          ocr_confidence: number | null
+          ocr_status: string | null
+          ocr_text: string | null
           physician_name: string | null
+          processing_error: string | null
           report_date: string
           report_type: string
           tags: string[] | null
@@ -165,7 +169,11 @@ export type Database = {
           id?: string
           is_critical?: boolean | null
           notes?: string | null
+          ocr_confidence?: number | null
+          ocr_status?: string | null
+          ocr_text?: string | null
           physician_name?: string | null
+          processing_error?: string | null
           report_date: string
           report_type: string
           tags?: string[] | null
@@ -184,7 +192,11 @@ export type Database = {
           id?: string
           is_critical?: boolean | null
           notes?: string | null
+          ocr_confidence?: number | null
+          ocr_status?: string | null
+          ocr_text?: string | null
           physician_name?: string | null
+          processing_error?: string | null
           report_date?: string
           report_type?: string
           tags?: string[] | null
