@@ -19,8 +19,6 @@ import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
 import { VerifyPage } from "./pages/auth/VerifyPage";
 import { PhoneVerifyPage } from "./pages/auth/PhoneVerifyPage";
 
-const queryClient = new QueryClient();
-
 const AuthRedirect = () => {
   const { user, loading } = useAuth();
   
@@ -29,63 +27,67 @@ const AuthRedirect = () => {
   return user ? <Navigate to="/" replace /> : <Navigate to="/auth/login" replace />;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Protected Routes */}
-            <Route path="/" element={
-              <ProtectedRoute>
-                <MobileLayout>
-                  <Index />
-                </MobileLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/upload" element={
-              <ProtectedRoute>
-                <MobileLayout>
-                  <Upload />
-                </MobileLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <MobileLayout>
-                  <Profile />
-                </MobileLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/profile/edit" element={
-              <ProtectedRoute>
-                <ProfileEdit />
-              </ProtectedRoute>
-            } />
-            
-            {/* Auth Routes */}
-            <Route path="/auth" element={<AuthRedirect />} />
-            <Route path="/auth/login" element={<LoginPage />} />
-            <Route path="/auth/signup" element={<SignupPage />} />
-            <Route path="/auth/onboarding" element={
-              <ProtectedRoute>
-                <OnboardingPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/auth/verify" element={<VerifyPage />} />
-            <Route path="/auth/phone-verify" element={<PhoneVerifyPage />} />
-            
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+function App() {
+  const queryClient = new QueryClient();
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Protected Routes */}
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <MobileLayout>
+                    <Index />
+                  </MobileLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/upload" element={
+                <ProtectedRoute>
+                  <MobileLayout>
+                    <Upload />
+                  </MobileLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <MobileLayout>
+                    <Profile />
+                  </MobileLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/profile/edit" element={
+                <ProtectedRoute>
+                  <ProfileEdit />
+                </ProtectedRoute>
+              } />
+              
+              {/* Auth Routes */}
+              <Route path="/auth" element={<AuthRedirect />} />
+              <Route path="/auth/login" element={<LoginPage />} />
+              <Route path="/auth/signup" element={<SignupPage />} />
+              <Route path="/auth/onboarding" element={
+                <ProtectedRoute>
+                  <OnboardingPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/auth/verify" element={<VerifyPage />} />
+              <Route path="/auth/phone-verify" element={<PhoneVerifyPage />} />
+              
+              {/* Catch-all route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
