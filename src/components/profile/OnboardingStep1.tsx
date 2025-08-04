@@ -189,9 +189,9 @@ export function OnboardingStep1({ data, onNext }: OnboardingStep1Props) {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="english">English</SelectItem>
-                    <SelectItem value="hindi">Hindi</SelectItem>
-                    <SelectItem value="telugu">Telugu</SelectItem>
-                    <SelectItem value="tamil">Tamil</SelectItem>
+                    <SelectItem value="hindi">Hindi (हिंदी)</SelectItem>
+                    <SelectItem value="telugu">Telugu (తెలుగు)</SelectItem>
+                    <SelectItem value="tamil">Tamil (தமிழ்)</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
