@@ -8,16 +8,16 @@ interface ReportTypeSelectorProps {
 }
 
 const reportTypes = [
-  { value: 'blood_test', label: 'Blood Test' },
+  { value: 'lab_result', label: 'Blood Test / Lab Results' },
   { value: 'imaging', label: 'Imaging (X-ray, MRI, CT)' },
-  { value: 'cardiology', label: 'Cardiology Report' },
-  { value: 'pathology', label: 'Pathology Report' },
+  { value: 'procedure', label: 'Cardiology / Procedure Report' },
+  { value: 'lab_result', label: 'Pathology Report' },
   { value: 'consultation', label: 'Consultation Notes' },
   { value: 'prescription', label: 'Prescription' },
   { value: 'vaccination', label: 'Vaccination Record' },
-  { value: 'discharge', label: 'Discharge Summary' },
-  { value: 'allergy_test', label: 'Allergy Test' },
-  { value: 'mental_health', label: 'Mental Health Report' },
+  { value: 'other', label: 'Discharge Summary' },
+  { value: 'lab_result', label: 'Allergy Test' },
+  { value: 'consultation', label: 'Mental Health Report' },
   { value: 'other', label: 'Other' }
 ];
 
