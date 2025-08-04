@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { FileText, Calendar, User, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { FileText, Calendar, User, AlertCircle, CheckCircle, Clock, Brain, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { GenerateSummaryDialogWrapper } from '@/components/summaries/GenerateSummaryDialogWrapper';
 
 interface Report {
   id: string;
@@ -23,6 +24,8 @@ interface Report {
 export function RecentUploads() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+  const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -193,6 +196,7 @@ export function RecentUploads() {
                 </span>
               </div>
 
+            <div className="flex items-center space-x-2">
               {report.ocr_status === 'failed' && (
                 <Button
                   variant="outline"
@@ -202,6 +206,22 @@ export function RecentUploads() {
                   Retry OCR
                 </Button>
               )}
+              
+              {report.ocr_status === 'completed' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedReportIds([report.id]);
+                    setShowGenerateDialog(true);
+                  }}
+                  className="text-primary hover:text-primary"
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Generate Summary
+                </Button>
+              )}
+            </div>
             </div>
 
             {report.processing_error && (
@@ -214,6 +234,15 @@ export function RecentUploads() {
           </div>
         ))}
       </CardContent>
+      
+      <GenerateSummaryDialogWrapper
+        isOpen={showGenerateDialog}
+        onClose={() => {
+          setShowGenerateDialog(false);
+          setSelectedReportIds([]);
+        }}
+        preSelectedReportIds={selectedReportIds}
+      />
     </Card>
   );
 }

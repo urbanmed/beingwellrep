@@ -28,8 +28,9 @@ interface Report {
 interface GenerateSummaryDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onGenerate: (reportIds: string[], summaryType: Summary['summary_type'], customPrompt?: string) => Promise<any>;
-  loading: boolean;
+  onGenerate?: (reportIds: string[], summaryType: Summary['summary_type'], customPrompt?: string) => Promise<any>;
+  loading?: boolean;
+  preSelectedReportIds?: string[];
 }
 
 const summaryTypes = [
@@ -67,7 +68,8 @@ export function GenerateSummaryDialog({
   isOpen, 
   onClose, 
   onGenerate, 
-  loading 
+  loading = false,
+  preSelectedReportIds = []
 }: GenerateSummaryDialogProps) {
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReports, setSelectedReports] = useState<string[]>([]);
@@ -96,8 +98,9 @@ export function GenerateSummaryDialog({
   useEffect(() => {
     if (isOpen) {
       fetchReports();
+      setSelectedReports(preSelectedReportIds);
     }
-  }, [isOpen]);
+  }, [isOpen, preSelectedReportIds]);
 
   const handleReportToggle = (reportId: string) => {
     setSelectedReports(prev => 
@@ -108,7 +111,7 @@ export function GenerateSummaryDialog({
   };
 
   const handleGenerate = async () => {
-    if (selectedReports.length === 0) return;
+    if (selectedReports.length === 0 || !onGenerate) return;
     
     try {
       await onGenerate(selectedReports, selectedType, customPrompt || undefined);
@@ -241,7 +244,7 @@ export function GenerateSummaryDialog({
             </Button>
             <Button
               onClick={handleGenerate}
-              disabled={selectedReports.length === 0 || loading}
+              disabled={selectedReports.length === 0 || loading || !onGenerate}
             >
               {loading ? (
                 <>

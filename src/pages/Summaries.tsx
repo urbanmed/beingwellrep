@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SummaryCard } from "@/components/summaries/SummaryCard";
 import { SummaryViewer } from "@/components/summaries/SummaryViewer";
-import { GenerateSummaryDialog } from "@/components/summaries/GenerateSummaryDialog";
+import { GenerateSummaryDialogWrapper } from "@/components/summaries/GenerateSummaryDialogWrapper";
 import { useSummaries } from "@/hooks/useSummaries";
 import { Summary } from "@/types/summary";
 import { Plus, Brain, Filter, Search } from "lucide-react";
@@ -190,11 +190,9 @@ export default function Summaries() {
       />
 
       {/* Generate Summary Dialog */}
-      <GenerateSummaryDialog
+      <GenerateSummaryDialogWrapper
         isOpen={isGenerateDialogOpen}
         onClose={() => setIsGenerateDialogOpen(false)}
-        onGenerate={generateSummary}
-        loading={loading}
       />
     </div>
   );

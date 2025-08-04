@@ -67,7 +67,7 @@ const Index = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="secondary" className="w-full">
+            <Button variant="secondary" className="w-full" onClick={() => navigate("/summaries")}>
               View AI Summaries
             </Button>
           </CardContent>
