@@ -1,3 +1,4 @@
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +20,8 @@ import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
 import { VerifyPage } from "./pages/auth/VerifyPage";
 import { PhoneVerifyPage } from "./pages/auth/PhoneVerifyPage";
 
+const queryClient = new QueryClient();
+
 const AuthRedirect = () => {
   const { user, loading } = useAuth();
   
@@ -28,7 +31,6 @@ const AuthRedirect = () => {
 };
 
 function App() {
-  const queryClient = new QueryClient();
 
   return (
     <QueryClientProvider client={queryClient}>
