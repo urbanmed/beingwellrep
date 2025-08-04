@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { Upload as UploadIcon, FileText, X, CheckCircle } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Upload as UploadIcon, FileText, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -22,7 +22,10 @@ export function FileUploadArea({
 }: FileUploadAreaProps) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [dragValidation, setDragValidation] = useState<{ valid: boolean; message: string } | null>(null);
   const { toast } = useToast();
+  const dragCounterRef = useRef(0);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const validateFile = (file: File): string | null => {
     // Check file type
@@ -71,21 +74,99 @@ export function FileUploadArea({
     onFileSelect(newFiles);
   }, [selectedFiles, maxFiles, acceptedTypes, onFileSelect, toast]);
 
-  const handleDrag = useCallback((e: React.DragEvent) => {
+  // Validate files during drag for immediate feedback
+  const validateDraggedFiles = useCallback((files: FileList) => {
+    const fileArray = Array.from(files);
+    const errors: string[] = [];
+    let validCount = 0;
+
+    for (const file of fileArray) {
+      const error = validateFile(file);
+      if (error) {
+        errors.push(error);
+      } else {
+        validCount++;
+      }
+    }
+
+    // Check total file count
+    if (selectedFiles.length + validCount > maxFiles) {
+      errors.push(`You can only upload up to ${maxFiles} files at once`);
+    }
+
+    if (errors.length > 0) {
+      return { valid: false, message: `Invalid files detected: ${errors.slice(0, 2).join(', ')}${errors.length > 2 ? '...' : ''}` };
+    }
+
+    return { valid: true, message: `${validCount} valid file${validCount !== 1 ? 's' : ''} ready to upload` };
+  }, [selectedFiles.length, maxFiles, validateFile]);
+
+  // Document-level drag event handlers
+  useEffect(() => {
+    const handleDocumentDragOver = (e: DragEvent) => {
+      e.preventDefault();
+    };
+
+    const handleDocumentDrop = (e: DragEvent) => {
+      e.preventDefault();
+    };
+
+    document.addEventListener('dragover', handleDocumentDragOver);
+    document.addEventListener('drop', handleDocumentDrop);
+
+    return () => {
+      document.removeEventListener('dragover', handleDocumentDragOver);
+      document.removeEventListener('drop', handleDocumentDrop);
+    };
+  }, []);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (e.type === 'dragenter' || e.type === 'dragover') {
+    dragCounterRef.current++;
+    
+    if (dragCounterRef.current === 1) {
       setDragActive(true);
-    } else if (e.type === 'dragleave') {
+      
+      // Validate files for immediate feedback
+      if (e.dataTransfer.files.length > 0) {
+        const validation = validateDraggedFiles(e.dataTransfer.files);
+        setDragValidation(validation);
+      }
+    }
+  }, [validateDraggedFiles]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    dragCounterRef.current--;
+    
+    if (dragCounterRef.current === 0) {
       setDragActive(false);
+      setDragValidation(null);
     }
   }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Update validation if files changed
+    if (e.dataTransfer.files.length > 0) {
+      const validation = validateDraggedFiles(e.dataTransfer.files);
+      setDragValidation(validation);
+    }
+  }, [validateDraggedFiles]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    dragCounterRef.current = 0;
     setDragActive(false);
+    setDragValidation(null);
     
     const files = Array.from(e.dataTransfer.files);
     handleFiles(files);
@@ -120,10 +201,11 @@ export function FileUploadArea({
             ? 'border-primary bg-primary/5 scale-[1.02]' 
             : 'border-muted-foreground/25 hover:border-muted-foreground/40'
         } ${isUploading ? 'pointer-events-none opacity-60' : ''}`}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
         onDrop={handleDrop}
+        ref={dropZoneRef}
       >
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
           <UploadIcon className={`h-12 w-12 mb-4 transition-colors ${
@@ -140,6 +222,22 @@ export function FileUploadArea({
               : `Drag & drop files here, or click to select (max ${maxFiles} files)`
             }
           </p>
+
+          {/* Drag Validation Feedback */}
+          {dragActive && dragValidation && (
+            <div className={`flex items-center space-x-2 mb-4 p-2 rounded-md ${
+              dragValidation.valid 
+                ? 'bg-green-50 text-green-700 border border-green-200' 
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}>
+              {dragValidation.valid ? (
+                <CheckCircle className="h-4 w-4" />
+              ) : (
+                <AlertTriangle className="h-4 w-4" />
+              )}
+              <span className="text-sm font-medium">{dragValidation.message}</span>
+            </div>
+          )}
           
           <input
             type="file"
