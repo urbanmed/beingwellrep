@@ -1,10 +1,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Brain, TrendingUp, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { FileText, Brain, TrendingUp, Plus, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useReports } from "@/hooks/useReports";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { reports, loading } = useReports();
+
+  const hasReports = reports.length > 0;
+  const completedReports = reports.filter(r => r.ocr_status === 'completed');
+  const processingReports = reports.filter(r => r.ocr_status === 'processing');
+  const failedReports = reports.filter(r => r.ocr_status === 'failed');
 
   return (
     <div className="p-4 space-y-6">
@@ -26,7 +34,7 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/summaries')}>
           <CardContent className="pt-6 text-center">
             <Brain className="h-8 w-8 text-primary mx-auto mb-2" />
             <h3 className="font-semibold">AI Insights</h3>
@@ -41,18 +49,54 @@ const Index = () => {
         
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <FileText className="h-5 w-5 mr-2 text-primary" />
-              Medical Reports
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center">
+                <FileText className="h-5 w-5 mr-2 text-primary" />
+                Medical Reports
+              </div>
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {hasReports && (
+                <Badge variant="secondary">{reports.length} report{reports.length !== 1 ? 's' : ''}</Badge>
+              )}
             </CardTitle>
             <CardDescription>
-              Upload and organize your medical documents for easy access
+              {hasReports 
+                ? "Manage your uploaded medical documents and view their status"
+                : "Upload and organize your medical documents for easy access"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button className="w-full" onClick={() => navigate('/upload')}>
-              Upload Your First Report
-            </Button>
+            {hasReports ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div className="text-center">
+                    <div className="font-semibold text-green-600">{completedReports.length}</div>
+                    <div className="text-muted-foreground">Ready</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-blue-600">{processingReports.length}</div>
+                    <div className="text-muted-foreground">Processing</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-red-600">{failedReports.length}</div>
+                    <div className="text-muted-foreground">Failed</div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button className="flex-1" onClick={() => navigate('/reports')}>
+                    View Reports
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate('/upload')}>
+                    Upload More
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button className="w-full" onClick={() => navigate('/upload')}>
+                Upload Your First Report
+              </Button>
+            )}
           </CardContent>
         </Card>
 

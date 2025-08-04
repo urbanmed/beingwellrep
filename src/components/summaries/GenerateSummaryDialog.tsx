@@ -6,17 +6,21 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { useReports } from "@/hooks/useReports";
 import { 
   Brain, 
   AlertTriangle, 
   TrendingUp, 
   Stethoscope,
   FileText,
-  Loader2
+  Loader2,
+  RefreshCw,
+  Clock,
+  XCircle
 } from "lucide-react";
 import { Summary } from "@/types/summary";
 
-interface Report {
+interface ReportDisplay {
   id: string;
   title: string;
   report_date: string;
@@ -24,6 +28,7 @@ interface Report {
   ocr_status: string;
   ocr_text?: string;
   physician_name?: string;
+  processing_error?: string;
 }
 
 interface GenerateSummaryDialogProps {
@@ -72,12 +77,13 @@ export function GenerateSummaryDialog({
   loading = false,
   preSelectedReportIds = []
 }: GenerateSummaryDialogProps) {
-  const [reports, setReports] = useState<Report[]>([]);
+  const [allReports, setAllReports] = useState<ReportDisplay[]>([]);
   const [selectedReports, setSelectedReports] = useState<string[]>([]);
   const [selectedType, setSelectedType] = useState<Summary['summary_type']>('comprehensive');
   const [customPrompt, setCustomPrompt] = useState('');
   const [loadingReports, setLoadingReports] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const { retryOCR } = useReports();
 
   const fetchReports = useCallback(async () => {
     setLoadingReports(true);
@@ -85,14 +91,11 @@ export function GenerateSummaryDialog({
     try {
       const { data, error } = await supabase
         .from('reports')
-        .select('id, title, report_date, report_type, ocr_status, physician_name, ocr_text')
-        .eq('ocr_status', 'completed')
-        .not('ocr_text', 'is', null)
-        .neq('ocr_text', '')
+        .select('id, title, report_date, report_type, ocr_status, physician_name, ocr_text, processing_error')
         .order('report_date', { ascending: false });
 
       if (error) throw error;
-      setReports(data || []);
+      setAllReports((data || []) as ReportDisplay[]);
     } catch (error) {
       console.error('Error fetching reports:', error);
       setFetchError('Failed to load reports. Please try again.');
@@ -123,15 +126,37 @@ export function GenerateSummaryDialog({
     );
   };
 
+  // Filter reports for summary generation
+  const readyReports = allReports.filter(r => 
+    r.ocr_status === 'completed' && 
+    r.ocr_text && 
+    r.ocr_text.trim() !== ''
+  );
+
+  const processingReports = allReports.filter(r => r.ocr_status === 'processing');
+  const failedReports = allReports.filter(r => r.ocr_status === 'failed');
+
+  const handleRetryOCR = async (reportId: string) => {
+    try {
+      await retryOCR(reportId);
+      // Refresh the reports list
+      await fetchReports();
+    } catch (error) {
+      // Error is handled by the useReports hook
+    }
+  };
+
   const handleGenerate = async () => {
     if (selectedReports.length === 0 || !onGenerate) return;
     
     // Validate that selected reports have OCR text
-    const selectedReportData = reports.filter(r => selectedReports.includes(r.id));
-    const reportsWithoutText = selectedReportData.filter(r => !r.ocr_text);
+    const selectedReportData = readyReports.filter(r => selectedReports.includes(r.id));
+    const reportsWithoutText = selectedReports.filter(id => 
+      !readyReports.some(r => r.id === id)
+    );
     
     if (reportsWithoutText.length > 0) {
-      setFetchError(`The following reports don't have processed text yet: ${reportsWithoutText.map(r => r.title).join(', ')}`);
+      setFetchError('Please only select reports that have been fully processed.');
       return;
     }
     
@@ -219,39 +244,139 @@ export function GenerateSummaryDialog({
                   </Button>
                 </CardContent>
               </Card>
-            ) : reports.length === 0 ? (
+            ) : allReports.length === 0 ? (
               <Card>
                 <CardContent className="text-center py-8">
                   <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-muted-foreground">
-                    No processed reports available. Upload and process some reports first.
+                    No reports found. Upload some medical documents first.
                   </p>
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-3 max-h-60 overflow-y-auto">
-                {reports.map((report) => (
-                  <Card key={report.id} className="p-4">
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        checked={selectedReports.includes(report.id)}
-                        onCheckedChange={() => handleReportToggle(report.id)}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-medium text-sm truncate">{report.title}</h4>
-                          <Badge variant="outline" className="text-xs">
-                            {report.report_type}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(report.report_date).toLocaleDateString()}
-                          {report.physician_name && ` • Dr. ${report.physician_name}`}
-                        </p>
-                      </div>
+              <div className="space-y-4">
+                {/* Ready Reports */}
+                {readyReports.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-sm text-green-600 mb-2 flex items-center">
+                      <FileText className="h-4 w-4 mr-1" />
+                      Ready for Summary ({readyReports.length})
+                    </h4>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {readyReports.map((report) => (
+                        <Card key={report.id} className="p-3">
+                          <div className="flex items-center gap-3">
+                            <Checkbox
+                              checked={selectedReports.includes(report.id)}
+                              onCheckedChange={() => handleReportToggle(report.id)}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h5 className="font-medium text-sm truncate">{report.title}</h5>
+                                <Badge variant="outline" className="text-xs">
+                                  {report.report_type}
+                                </Badge>
+                                <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                                  Ready
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(report.report_date).toLocaleDateString()}
+                                {report.physician_name && ` • Dr. ${report.physician_name}`}
+                              </p>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Processing Reports */}
+                {processingReports.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-sm text-blue-600 mb-2 flex items-center">
+                      <Clock className="h-4 w-4 mr-1" />
+                      Processing ({processingReports.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {processingReports.map((report) => (
+                        <Card key={report.id} className="p-3 bg-blue-50">
+                          <div className="flex items-center gap-3">
+                            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h5 className="font-medium text-sm truncate">{report.title}</h5>
+                                <Badge variant="outline" className="text-xs">
+                                  {report.report_type}
+                                </Badge>
+                                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                                  Processing
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Text extraction in progress...
+                              </p>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Failed Reports */}
+                {failedReports.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-sm text-red-600 mb-2 flex items-center">
+                      <XCircle className="h-4 w-4 mr-1" />
+                      Processing Failed ({failedReports.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {failedReports.map((report) => (
+                        <Card key={report.id} className="p-3 bg-red-50">
+                          <div className="flex items-center gap-3">
+                            <XCircle className="h-4 w-4 text-red-600" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h5 className="font-medium text-sm truncate">{report.title}</h5>
+                                <Badge variant="outline" className="text-xs">
+                                  {report.report_type}
+                                </Badge>
+                                <Badge variant="destructive" className="text-xs">
+                                  Failed
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-red-600 mb-2">
+                                {report.processing_error || 'Processing failed'}
+                              </p>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-6 text-xs"
+                                onClick={() => handleRetryOCR(report.id)}
+                              >
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                Retry
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {readyReports.length === 0 && processingReports.length === 0 && failedReports.length === 0 && (
+                  <Card>
+                    <CardContent className="text-center py-8">
+                      <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-muted-foreground">
+                        No reports available for summary generation.
+                      </p>
+                    </CardContent>
                   </Card>
-                ))}
+                )}
               </div>
             )}
           </div>
@@ -277,7 +402,7 @@ export function GenerateSummaryDialog({
             </Button>
             <Button
               onClick={handleGenerate}
-              disabled={selectedReports.length === 0 || loading || !onGenerate}
+              disabled={selectedReports.length === 0 || loading || !onGenerate || readyReports.length === 0}
             >
               {loading ? (
                 <>

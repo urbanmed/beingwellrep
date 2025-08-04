@@ -146,6 +146,11 @@ serve(async (req) => {
       }
     }
 
+    // Validate OCR text before marking as completed
+    if (!ocrText || ocrText.trim() === '') {
+      throw new Error('No text could be extracted from the document. The file may be an image without text, corrupted, or in an unsupported format.')
+    }
+
     // Update report with OCR results
     const { error: updateError } = await supabaseClient
       .from('reports')
