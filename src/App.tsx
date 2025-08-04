@@ -20,9 +20,17 @@ import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
 import { VerifyPage } from "./pages/auth/VerifyPage";
 import { PhoneVerifyPage } from "./pages/auth/PhoneVerifyPage";
 
-const queryClient = new QueryClient();
+// Create QueryClient instance outside of component
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-const AuthRedirect = () => {
+const AuthRedirect: React.FC = () => {
   const { user, loading } = useAuth();
   
   if (loading) return <div>Loading...</div>;
@@ -30,66 +38,71 @@ const AuthRedirect = () => {
   return user ? <Navigate to="/" replace /> : <Navigate to="/auth/login" replace />;
 };
 
-function App() {
+const AppRoutes: React.FC = () => (
+  <Routes>
+    {/* Protected Routes */}
+    <Route path="/" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Index />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
+    <Route path="/upload" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Upload />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
+    <Route path="/profile" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Profile />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
+    <Route path="/profile/edit" element={
+      <ProtectedRoute>
+        <ProfileEdit />
+      </ProtectedRoute>
+    } />
+    
+    {/* Auth Routes */}
+    <Route path="/auth" element={<AuthRedirect />} />
+    <Route path="/auth/login" element={<LoginPage />} />
+    <Route path="/auth/signup" element={<SignupPage />} />
+    <Route path="/auth/onboarding" element={
+      <ProtectedRoute>
+        <OnboardingPage />
+      </ProtectedRoute>
+    } />
+    <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+    <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+    <Route path="/auth/verify" element={<VerifyPage />} />
+    <Route path="/auth/phone-verify" element={<PhoneVerifyPage />} />
+    
+    {/* Catch-all route */}
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
 
+const App: React.FC = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Protected Routes */}
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <MobileLayout>
-                    <Index />
-                  </MobileLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/upload" element={
-                <ProtectedRoute>
-                  <MobileLayout>
-                    <Upload />
-                  </MobileLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <MobileLayout>
-                    <Profile />
-                  </MobileLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/profile/edit" element={
-                <ProtectedRoute>
-                  <ProfileEdit />
-                </ProtectedRoute>
-              } />
-              
-              {/* Auth Routes */}
-              <Route path="/auth" element={<AuthRedirect />} />
-              <Route path="/auth/login" element={<LoginPage />} />
-              <Route path="/auth/signup" element={<SignupPage />} />
-              <Route path="/auth/onboarding" element={
-                <ProtectedRoute>
-                  <OnboardingPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/auth/verify" element={<VerifyPage />} />
-              <Route path="/auth/phone-verify" element={<PhoneVerifyPage />} />
-              
-              {/* Catch-all route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
   );
-}
+};
 
 export default App;
