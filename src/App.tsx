@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import Index from "./pages/Index";
 import Upload from "./pages/Upload";
+import Summaries from "./pages/Summaries";
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
 import NotFound from "./pages/NotFound";
@@ -52,6 +53,13 @@ const AppRoutes: React.FC = () => (
       <ProtectedRoute>
         <MobileLayout>
           <Upload />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
+    <Route path="/summaries" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Summaries />
         </MobileLayout>
       </ProtectedRoute>
     } />
