@@ -118,10 +118,10 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
         ));
 
         try {
-          // Generate unique filename
+          // Generate unique filename with user ID folder structure
           const timestamp = Date.now();
           const fileExtension = file.name.split('.').pop();
-          const fileName = `${timestamp}-${Math.random().toString(36).substr(2, 9)}.${fileExtension}`;
+          const fileName = `${authResult.user.id}/${timestamp}-${Math.random().toString(36).substr(2, 9)}.${fileExtension}`;
 
           // Upload file to storage
           const { data: uploadData, error: uploadError } = await supabase.storage
