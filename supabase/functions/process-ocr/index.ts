@@ -50,24 +50,33 @@ serve(async (req) => {
       throw new Error('Failed to download file')
     }
 
-    // Convert file to base64 using chunked approach for large files
+    // Convert file to base64 using a more reliable approach
     const arrayBuffer = await fileData.arrayBuffer()
     const bytes = new Uint8Array(arrayBuffer)
     
-    console.log(`Processing file of size: ${bytes.length} bytes`)
+    console.log(`Processing file of size: ${bytes.length} bytes, type: ${report.file_type || 'unknown'}`)
     
     // Check file size limit (Google Vision API has 20MB limit)
     if (bytes.length > 20 * 1024 * 1024) {
       throw new Error('File size exceeds 20MB limit for OCR processing')
     }
     
-    // Convert to base64 in chunks to avoid call stack overflow
-    let base64 = ''
-    const chunkSize = 8192 // Process 8KB chunks
+    // Check if file type is supported
+    const supportedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'application/pdf']
+    if (report.file_type && !supportedTypes.includes(report.file_type)) {
+      throw new Error(`Unsupported file type: ${report.file_type}`)
+    }
     
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.slice(i, i + chunkSize)
-      base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)))
+    // Convert to base64 using native browser API approach
+    let base64: string
+    try {
+      // Use a more reliable base64 encoding method
+      const binaryString = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
+      base64 = btoa(binaryString)
+      console.log(`Base64 conversion completed, length: ${base64.length}`)
+    } catch (encodeError) {
+      console.error('Base64 encoding failed:', encodeError)
+      throw new Error('Failed to encode file for OCR processing')
     }
 
     // Call Google Vision API
@@ -76,23 +85,45 @@ serve(async (req) => {
       throw new Error('Google Vision API key not configured')
     }
 
+    // Prepare the Vision API request
+    const requestPayload = {
+      requests: [{
+        image: { content: base64 },
+        features: [{ type: 'DOCUMENT_TEXT_DETECTION', maxResults: 1 }]
+      }]
+    }
+
+    console.log('Sending request to Vision API:', {
+      requestSize: JSON.stringify(requestPayload).length,
+      base64Length: base64.length,
+      fileType: report.file_type
+    })
+
     const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${visionApiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requests: [{
-          image: { content: base64 },
-          features: [{ type: 'DOCUMENT_TEXT_DETECTION', maxResults: 1 }]
-        }]
-      })
+      body: JSON.stringify(requestPayload)
     })
 
+    console.log('Vision API response status:', visionResponse.status)
+
     if (!visionResponse.ok) {
-      throw new Error(`Vision API error: ${visionResponse.status}`)
+      let errorDetails = ''
+      try {
+        const errorText = await visionResponse.text()
+        console.error('Vision API error response:', errorText)
+        errorDetails = ` - ${errorText}`
+      } catch (e) {
+        console.error('Failed to read error response:', e)
+      }
+      throw new Error(`Vision API error: ${visionResponse.status}${errorDetails}`)
     }
 
     const visionData = await visionResponse.json()
-    console.log('Vision API response:', visionData)
+    console.log('Vision API response received:', {
+      hasResponses: !!visionData.responses,
+      responseCount: visionData.responses?.length || 0
+    })
 
     let ocrText = ''
     let confidence = 0
