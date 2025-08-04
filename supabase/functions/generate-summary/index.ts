@@ -124,9 +124,10 @@ serve(async (req) => {
     }
 
     // Check if all reports have OCR text
-    const reportsWithoutOCR = reports.filter(r => !r.ocr_text);
+    const reportsWithoutOCR = reports.filter(r => !r.ocr_text || r.ocr_text.trim() === '');
     if (reportsWithoutOCR.length > 0) {
-      throw new Error('Some reports do not have OCR text processed yet');
+      const reportTitles = reportsWithoutOCR.map(r => r.title).join(', ');
+      throw new Error(`The following reports do not have processed OCR text yet: ${reportTitles}. Please wait for OCR processing to complete or retry OCR processing for these reports.`);
     }
 
     // Combine all OCR text

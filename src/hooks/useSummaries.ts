@@ -58,9 +58,19 @@ export function useSummaries() {
       return data.summary;
     } catch (error) {
       console.error('Error generating summary:', error);
+      const errorMessage = error.message || "Failed to generate summary";
+      
+      // Provide more specific error messages
+      let userFriendlyMessage = errorMessage;
+      if (errorMessage.includes('OCR text')) {
+        userFriendlyMessage = "Some selected reports haven't finished processing yet. Please wait for OCR processing to complete.";
+      } else if (errorMessage.includes('Edge Function returned a non-2xx status code')) {
+        userFriendlyMessage = "There was an issue processing your request. Please try again.";
+      }
+      
       toast({
         title: "Error",
-        description: error.message || "Failed to generate summary",
+        description: userFriendlyMessage,
         variant: "destructive",
       });
       throw error;

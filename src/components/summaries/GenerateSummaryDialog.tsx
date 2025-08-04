@@ -22,6 +22,7 @@ interface Report {
   report_date: string;
   report_type: string;
   ocr_status: string;
+  ocr_text?: string;
   physician_name?: string;
 }
 
@@ -84,8 +85,10 @@ export function GenerateSummaryDialog({
     try {
       const { data, error } = await supabase
         .from('reports')
-        .select('id, title, report_date, report_type, ocr_status, physician_name')
+        .select('id, title, report_date, report_type, ocr_status, physician_name, ocr_text')
         .eq('ocr_status', 'completed')
+        .not('ocr_text', 'is', null)
+        .neq('ocr_text', '')
         .order('report_date', { ascending: false });
 
       if (error) throw error;
@@ -123,6 +126,15 @@ export function GenerateSummaryDialog({
   const handleGenerate = async () => {
     if (selectedReports.length === 0 || !onGenerate) return;
     
+    // Validate that selected reports have OCR text
+    const selectedReportData = reports.filter(r => selectedReports.includes(r.id));
+    const reportsWithoutText = selectedReportData.filter(r => !r.ocr_text);
+    
+    if (reportsWithoutText.length > 0) {
+      setFetchError(`The following reports don't have processed text yet: ${reportsWithoutText.map(r => r.title).join(', ')}`);
+      return;
+    }
+    
     try {
       await onGenerate(selectedReports, selectedType, customPrompt || undefined);
       onClose();
@@ -130,6 +142,7 @@ export function GenerateSummaryDialog({
       setSelectedReports([]);
       setCustomPrompt('');
       setSelectedType('comprehensive');
+      setFetchError(null);
     } catch (error) {
       // Error handling is done in the hook
     }
