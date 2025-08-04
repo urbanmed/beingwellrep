@@ -7,11 +7,15 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
+  signUpWithPhone: (phone: string, firstName: string, lastName: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signInWithPhone: (phone: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   updatePassword: (password: string) => Promise<{ error: any }>;
   resendConfirmation: (email: string) => Promise<{ error: any }>;
+  verifyPhoneOTP: (phone: string, token: string) => Promise<{ error: any }>;
+  resendPhoneOTP: (phone: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -108,16 +112,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
+  const signUpWithPhone = async (phone: string, firstName: string, lastName: string) => {
+    const { error } = await supabase.auth.signUp({
+      phone,
+      password: '', // Phone signup doesn't use password initially
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+        }
+      }
+    });
+    return { error };
+  };
+
+  const signInWithPhone = async (phone: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      phone,
+      password,
+    });
+    return { error };
+  };
+
+  const verifyPhoneOTP = async (phone: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({
+      phone,
+      token,
+      type: 'sms'
+    });
+    return { error };
+  };
+
+  const resendPhoneOTP = async (phone: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'sms',
+      phone: phone,
+    });
+    return { error };
+  };
+
   const value = {
     user,
     session,
     loading,
     signUp,
+    signUpWithPhone,
     signIn,
+    signInWithPhone,
     signOut,
     resetPassword,
     updatePassword,
     resendConfirmation,
+    verifyPhoneOTP,
+    resendPhoneOTP,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -12,6 +12,7 @@ import { SignupPage } from "./pages/auth/SignupPage";
 import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
 import { VerifyPage } from "./pages/auth/VerifyPage";
+import { PhoneVerifyPage } from "./pages/auth/PhoneVerifyPage";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
             <Route path="/auth/verify" element={<VerifyPage />} />
+            <Route path="/auth/phone-verify" element={<PhoneVerifyPage />} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
