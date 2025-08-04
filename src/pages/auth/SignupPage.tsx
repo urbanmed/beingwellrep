@@ -75,9 +75,9 @@ export const SignupPage: React.FC = () => {
       } else {
         toast({
           title: "Account created!",
-          description: "Please check your email to verify your account.",
+          description: "Please check your email to verify your account, then set up your profile.",
         });
-        navigate('/auth/verify', { state: { email } });
+        navigate('/auth/onboarding');
       }
     } catch (error) {
       toast({

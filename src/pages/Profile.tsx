@@ -2,12 +2,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Settings, FileText, Activity, LogOut, User, Phone, Mail } from "lucide-react";
+import { Settings, FileText, Activity, LogOut, User, Phone, Mail, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 export default function Profile() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
@@ -59,6 +61,14 @@ export default function Profile() {
                 )}
               </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/profile/edit")}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Profile
+            </Button>
           </div>
         </CardContent>
       </Card>
