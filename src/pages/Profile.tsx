@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings, FileText, Activity, LogOut, User, Phone, Mail, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +12,29 @@ export default function Profile() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("avatar_url")
+          .eq("user_id", user.id)
+          .single();
+
+        if (data?.avatar_url) {
+          setAvatarUrl(data.avatar_url);
+        }
+      } catch (error) {
+        // Silently handle error - profile might not exist yet
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
 
   const handleSignOut = async () => {
     try {
@@ -38,9 +63,13 @@ export default function Profile() {
         <CardContent className="pt-6">
           <div className="flex items-center space-x-4">
             <Avatar className="h-16 w-16">
-              <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-                {user?.email ? getInitials(user.email) : <User className="h-8 w-8" />}
-              </AvatarFallback>
+              {avatarUrl ? (
+                <AvatarImage src={avatarUrl} alt="Profile photo" />
+              ) : (
+                <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+                  {user?.email ? getInitials(user.email) : <User className="h-8 w-8" />}
+                </AvatarFallback>
+              )}
             </Avatar>
             <div className="flex-1">
               <h2 className="text-xl font-semibold">

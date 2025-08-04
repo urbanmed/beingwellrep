@@ -20,6 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ProfilePhotoUpload } from "@/components/profile/ProfilePhotoUpload";
 import { cn } from "@/lib/utils";
 
 const accessibilityOptions = [
@@ -37,6 +38,7 @@ export default function ProfileEdit() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null);
 
   const form = useForm<CompleteProfileFormData>({
     resolver: zodResolver(completeProfileSchema),
@@ -85,6 +87,7 @@ export default function ProfileEdit() {
         }
 
         if (data) {
+          setCurrentAvatarUrl(data.avatar_url);
           form.reset({
             first_name: data.first_name || "",
             last_name: data.last_name || "",
@@ -198,6 +201,12 @@ export default function ProfileEdit() {
               </TabsList>
 
               <TabsContent value="basic" className="space-y-6">
+                <ProfilePhotoUpload 
+                  currentPhotoUrl={currentAvatarUrl}
+                  onPhotoChange={setCurrentAvatarUrl}
+                  className="mx-auto max-w-sm mb-6"
+                />
+                
                 <Card>
                   <CardHeader>
                     <CardTitle>Basic Information</CardTitle>

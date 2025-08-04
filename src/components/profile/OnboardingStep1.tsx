@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { ProfilePhotoUpload } from "./ProfilePhotoUpload";
 import { cn } from "@/lib/utils";
 
 interface OnboardingStep1Props {
@@ -43,6 +44,8 @@ export function OnboardingStep1({ data, onNext }: OnboardingStep1Props) {
           Let's start with your basic information to personalize your experience.
         </p>
       </div>
+
+      <ProfilePhotoUpload className="mx-auto max-w-sm" />
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
