@@ -1,8 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Brain, TrendingUp, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="p-4 space-y-6">
       {/* Welcome Header */}
@@ -15,7 +18,7 @@ const Index = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/upload')}>
           <CardContent className="pt-6 text-center">
             <Plus className="h-8 w-8 text-primary mx-auto mb-2" />
             <h3 className="font-semibold">Upload</h3>
@@ -47,7 +50,7 @@ const Index = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button className="w-full">
+            <Button className="w-full" onClick={() => navigate('/upload')}>
               Upload Your First Report
             </Button>
           </CardContent>
