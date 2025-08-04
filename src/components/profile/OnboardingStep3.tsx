@@ -92,7 +92,7 @@ export function OnboardingStep3({ data, onNext, onBack }: OnboardingStep3Props) 
               <FormItem>
                 <FormLabel>Emergency Contact Phone</FormLabel>
                 <FormControl>
-                  <Input placeholder="(555) 123-4567" {...field} />
+                  <Input placeholder="+91 98765 43210" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

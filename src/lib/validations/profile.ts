@@ -7,7 +7,8 @@ export const basicInfoSchema = z.object({
     required_error: "Date of birth is required",
   }),
   gender: z.string().min(1, "Gender is required"),
-  phone_number: z.string().min(10, "Valid phone number is required"),
+  phone_number: z.string()
+    .regex(/^[6-9]\d{9}$/, "Please enter a valid 10-digit Indian mobile number"),
   address: z.string().min(5, "Full address is required"),
   preferred_language: z.string().default("english"),
 });
@@ -23,7 +24,8 @@ export const medicalInfoSchema = z.object({
 
 export const emergencyContactSchema = z.object({
   emergency_contact_name: z.string().min(1, "Emergency contact name is required"),
-  emergency_contact_phone: z.string().min(10, "Valid phone number is required"),
+  emergency_contact_phone: z.string()
+    .regex(/^[6-9]\d{9}$/, "Please enter a valid 10-digit Indian mobile number"),
   emergency_contact_relationship: z.string().min(1, "Relationship is required"),
 });
 

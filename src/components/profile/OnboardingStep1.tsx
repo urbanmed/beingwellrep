@@ -154,7 +154,7 @@ export function OnboardingStep1({ data, onNext }: OnboardingStep1Props) {
               <FormItem>
                 <FormLabel>Phone Number</FormLabel>
                 <FormControl>
-                  <Input placeholder="(555) 123-4567" {...field} />
+                  <Input placeholder="+91 98765 43210" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -189,9 +189,9 @@ export function OnboardingStep1({ data, onNext }: OnboardingStep1Props) {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="english">English</SelectItem>
-                    <SelectItem value="spanish">Spanish</SelectItem>
-                    <SelectItem value="french">French</SelectItem>
-                    <SelectItem value="german">German</SelectItem>
+                    <SelectItem value="hindi">Hindi</SelectItem>
+                    <SelectItem value="telugu">Telugu</SelectItem>
+                    <SelectItem value="tamil">Tamil</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
