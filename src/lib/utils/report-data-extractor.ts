@@ -11,6 +11,9 @@ interface FacilityData {
   orderingPhysician?: string;
   collectionDate?: string;
   reportDate?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
 }
 
 function stripMarkdownCodeBlocks(text: string): string {
@@ -129,6 +132,45 @@ export function extractPatientAndFacilityData(extractedText: string | null): {
       }
       else if (data.report_date || data.date_reported || data.test_date) {
         facility.reportDate = data.report_date || data.date_reported || data.test_date;
+      }
+    }
+
+    // Check for facility address
+    if (!facility.address) {
+      if (labInfo.address || labInfo.facility_address || labInfo.lab_address) {
+        facility.address = labInfo.address || labInfo.facility_address || labInfo.lab_address;
+      }
+      else if (facilityFromPatient.address || facilityFromPatient.facility_address) {
+        facility.address = facilityFromPatient.address || facilityFromPatient.facility_address;
+      }
+      else if (data.address || data.facility_address || data.lab_address) {
+        facility.address = data.address || data.facility_address || data.lab_address;
+      }
+    }
+
+    // Check for facility phone
+    if (!facility.phone) {
+      if (labInfo.phone || labInfo.phone_number || labInfo.facility_phone || labInfo.lab_phone) {
+        facility.phone = labInfo.phone || labInfo.phone_number || labInfo.facility_phone || labInfo.lab_phone;
+      }
+      else if (facilityFromPatient.phone || facilityFromPatient.phone_number || facilityFromPatient.facility_phone) {
+        facility.phone = facilityFromPatient.phone || facilityFromPatient.phone_number || facilityFromPatient.facility_phone;
+      }
+      else if (data.phone || data.phone_number || data.facility_phone || data.lab_phone) {
+        facility.phone = data.phone || data.phone_number || data.facility_phone || data.lab_phone;
+      }
+    }
+
+    // Check for facility email
+    if (!facility.email) {
+      if (labInfo.email || labInfo.email_address || labInfo.facility_email || labInfo.lab_email) {
+        facility.email = labInfo.email || labInfo.email_address || labInfo.facility_email || labInfo.lab_email;
+      }
+      else if (facilityFromPatient.email || facilityFromPatient.email_address || facilityFromPatient.facility_email) {
+        facility.email = facilityFromPatient.email || facilityFromPatient.email_address || facilityFromPatient.facility_email;
+      }
+      else if (data.email || data.email_address || data.facility_email || data.lab_email) {
+        facility.email = data.email || data.email_address || data.facility_email || data.lab_email;
       }
     }
 

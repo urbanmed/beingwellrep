@@ -38,6 +38,9 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
             orderingPhysician={facility.orderingPhysician}
             collectionDate={facility.collectionDate}
             reportDate={facility.reportDate}
+            address={facility.address}
+            phone={facility.phone}
+            email={facility.email}
           />
         )}
       </div>
