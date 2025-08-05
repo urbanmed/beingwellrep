@@ -46,6 +46,9 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
   // Enhanced function to get structured data from the report
   const getStructuredData = (): ParsedMedicalData | null => {
     console.log('Getting structured data for report:', report.id);
+    console.log('Report type:', report.report_type);
+    console.log('Parsed data exists:', !!report.parsed_data);
+    console.log('Extracted text exists:', !!report.extracted_text);
     
     // First, try to get data from parsed_data
     if (report.parsed_data) {
@@ -79,8 +82,10 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
       
       // Try to transform existing data for lab reports
       if (report.report_type === 'lab') {
+        console.log('Attempting to transform lab report from parsed_data');
         const transformed = transformLabReportData(report.parsed_data);
         if (transformed) {
+          console.log('Successfully transformed parsed_data:', transformed);
           return transformed as ParsedMedicalData;
         }
       }
@@ -91,8 +96,22 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
       console.log('Attempting to parse extracted_text as JSON');
       const parsedFromText = parseExtractedTextAsJSON(report.extracted_text);
       
+      console.log('Parsed from text result:', parsedFromText);
+      
+      // Check if it's already in enhanced format
       if (parsedFromText && parsedFromText.reportType) {
+        console.log('Found enhanced format in extracted_text');
         return parsedFromText as ParsedMedicalData;
+      }
+      
+      // Try to transform for lab reports if parsed successfully
+      if (parsedFromText && report.report_type === 'lab') {
+        console.log('Attempting to transform lab report from extracted_text');
+        const transformed = transformLabReportData(parsedFromText);
+        if (transformed) {
+          console.log('Successfully transformed extracted_text:', transformed);
+          return transformed as ParsedMedicalData;
+        }
       }
       
       // Create fallback structure with enhanced types
@@ -102,6 +121,7 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
       });
       
       if (fallback) {
+        console.log('Using fallback structure');
         return {
           reportType: report.report_type || 'general',
           confidence: 25,
@@ -114,6 +134,7 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
       }
     }
 
+    console.warn('Unable to process report data for report:', report.id);
     return null;
   };
 
