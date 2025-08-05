@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Summary, SummaryContent } from "@/types/summary";
 import { formatDistanceToNow } from "date-fns";
+import { parseSummaryContent } from "@/lib/utils/summary-parser";
 
 interface SummaryViewerProps {
   summary: Summary | null;
@@ -34,14 +35,8 @@ export function SummaryViewer({
 }: SummaryViewerProps) {
   if (!summary) return null;
 
-  let content: SummaryContent;
-  try {
-    content = typeof summary.content === 'string' 
-      ? JSON.parse(summary.content) 
-      : summary.content;
-  } catch (e) {
-    content = { summary: summary.content as string };
-  }
+  // Parse the content using the utility function
+  const content: SummaryContent = parseSummaryContent(summary.content);
 
   const getSeverityColor = (level?: string) => {
     switch (level) {

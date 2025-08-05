@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Summary } from "@/types/summary";
+import { parseSummaryContent, getContentPreview, getSeverityBadge } from "@/lib/utils/summary-parser";
 
 interface SummaryCardProps {
   summary: Summary;
@@ -50,93 +51,11 @@ export function SummaryCard({ summary, onView, onPin }: SummaryCardProps) {
   const config = summaryTypeConfig[summary.summary_type as keyof typeof summaryTypeConfig];
   const Icon = config?.icon || Brain;
 
-  const getSeverityBadge = (content: any) => {
-    if (!content) return null;
-    
-    const severity = content.severity_level || content.overall_concern_level;
-    if (!severity) return null;
+  // Parse the content using the utility function
+  const parsedContent = parseSummaryContent(summary.content);
 
-    const severityConfig = {
-      low: { variant: "secondary" as const, label: "Low Priority" },
-      moderate: { variant: "default" as const, label: "Moderate" },
-      high: { variant: "destructive" as const, label: "High Priority" }
-    };
-
-    const severityInfo = severityConfig[severity as keyof typeof severityConfig];
-    return severityInfo ? (
-      <Badge variant={severityInfo.variant} className="text-xs">
-        {severityInfo.label}
-      </Badge>
-    ) : null;
-  };
-
-  const getContentPreview = (content: any) => {
-    if (typeof content === 'string') {
-      // If it's a string, try to parse it first
-      try {
-        const parsed = JSON.parse(content);
-        return getFormattedPreview(parsed);
-      } catch {
-        return content.slice(0, 150) + (content.length > 150 ? '...' : '');
-      }
-    }
-    
-    return getFormattedPreview(content);
-  };
-
-  const getFormattedPreview = (content: any) => {
-    if (!content) return "AI-generated health summary";
-
-    // For comprehensive summaries
-    if (content.summary) {
-      return content.summary.slice(0, 150) + (content.summary.length > 150 ? '...' : '');
-    }
-
-    // For trend analysis
-    if (content.overall_health_trajectory) {
-      const trajectory = content.overall_health_trajectory;
-      const insights = content.key_insights?.slice(0, 2) || [];
-      return `Health trajectory: ${trajectory}${insights.length > 0 ? `. Key insights: ${insights.join(', ')}` : ''}`.slice(0, 150) + '...';
-    }
-
-    // For abnormal findings
-    if (content.abnormal_findings?.length > 0) {
-      const count = content.abnormal_findings.length;
-      const firstFinding = Array.isArray(content.abnormal_findings) && content.abnormal_findings[0]?.finding 
-        ? content.abnormal_findings[0].finding 
-        : content.abnormal_findings[0];
-      return `${count} ${count === 1 ? 'finding' : 'findings'} identified${firstFinding ? `: ${firstFinding}` : ''}`.slice(0, 150) + (count > 1 ? '...' : '');
-    }
-
-    // For doctor prep
-    if (content.key_topics?.length > 0) {
-      const topics = content.key_topics.slice(0, 3).join(', ');
-      return `Topics to discuss: ${topics}${content.key_topics.length > 3 ? '...' : ''}`.slice(0, 150);
-    }
-
-    // For specific questions in doctor prep
-    if (content.specific_questions?.length > 0) {
-      const firstQuestion = content.specific_questions[0];
-      return `Questions for doctor: ${firstQuestion}${content.specific_questions.length > 1 ? '...' : ''}`.slice(0, 150);
-    }
-
-    // Fallback for any other structured content
-    if (content.overall_concern_level) {
-      const level = content.overall_concern_level;
-      return `Overall concern level: ${level}${content.recommended_actions?.length > 0 ? '. Recommendations available.' : ''}`;
-    }
-
-    return "AI-generated health summary";
-  };
-
-  let parsedContent;
-  try {
-    parsedContent = typeof summary.content === 'string' 
-      ? JSON.parse(summary.content) 
-      : summary.content;
-  } catch (e) {
-    parsedContent = summary.content;
-  }
+  // Get severity badge using the utility function
+  const severityBadgeInfo = getSeverityBadge(parsedContent);
 
   return (
     <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => onView(summary)}>
@@ -171,7 +90,11 @@ export function SummaryCard({ summary, onView, onPin }: SummaryCardProps) {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {getSeverityBadge(parsedContent)}
+            {severityBadgeInfo && (
+              <Badge variant={severityBadgeInfo.variant} className="text-xs">
+                {severityBadgeInfo.label}
+              </Badge>
+            )}
             {summary.confidence_score && (
               <Badge variant="outline" className="text-xs">
                 {Math.round(summary.confidence_score * 100)}% confidence

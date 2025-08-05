@@ -163,16 +163,53 @@ serve(async (req) => {
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
 
-    // Parse the JSON response
+    // Parse the JSON response with improved handling for markdown-wrapped content
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(aiResponse);
+      // Strip markdown code blocks if present
+      const cleanResponse = aiResponse
+        .replace(/```json\s*/gi, '')
+        .replace(/```typescript\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .trim();
+      
+      parsedResponse = JSON.parse(cleanResponse);
+      
+      // If the parsed result is still a string, try parsing again (nested JSON)
+      if (typeof parsedResponse === 'string') {
+        const secondClean = parsedResponse
+          .replace(/```json\s*/gi, '')
+          .replace(/```\s*/g, '')
+          .trim();
+        try {
+          parsedResponse = JSON.parse(secondClean);
+        } catch {
+          // Keep as string if second parse fails
+          parsedResponse = { summary: parsedResponse, confidence_score: 0.7 };
+        }
+      }
     } catch (e) {
-      // If JSON parsing fails, create a basic structure
-      parsedResponse = {
-        summary: aiResponse,
-        confidence_score: 0.7
-      };
+      console.warn('JSON parsing failed for AI response:', e);
+      // Try one more cleanup attempt
+      try {
+        const fallbackClean = aiResponse
+          .replace(/```[a-z]*\s*/gi, '') // Remove any code block markers
+          .replace(/^[^{[]*/, '') // Remove leading non-JSON characters
+          .replace(/[^}\]]*$/, '') // Remove trailing non-JSON characters
+          .trim();
+        
+        if (fallbackClean) {
+          parsedResponse = JSON.parse(fallbackClean);
+        } else {
+          throw new Error('No valid JSON content found');
+        }
+      } catch {
+        // Final fallback: create a basic structure
+        parsedResponse = {
+          summary: aiResponse,
+          confidence_score: 0.7
+        };
+      }
     }
 
     // Generate a title based on the summary type
