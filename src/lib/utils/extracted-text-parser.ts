@@ -103,10 +103,10 @@ function flattenTestResults(tests: any[]): any[] {
             flattened.push({
               name: `${test.test_name} - ${testKey}`,
               value: testData.value || testData.result || testData.level || 'N/A',
-              unit: testData.unit || '',
+              unit: testData.unit || testData.units || '',
               referenceRange: formatReferenceRange(testData.reference_range || testData.normal_range),
               status: determineTestStatus(testData),
-              notes: testData.interpretation || testData.comments || testData.notes || ''
+              notes: Array.isArray(testData.interpretation) ? testData.interpretation.join(', ') : testData.interpretation || testData.comments || testData.notes || ''
             });
           } else {
             // Simple key-value pair
@@ -125,10 +125,12 @@ function flattenTestResults(tests: any[]): any[] {
         flattened.push({
           name: test.test_name,
           value: test.results.value || test.results.result || 'N/A',
-          unit: test.results.unit || test.unit || '',
+          unit: test.results.unit || test.results.units || test.unit || '',
           referenceRange: formatReferenceRange(test.results.reference_range || test.results.normal_range || test.reference_range),
           status: determineTestStatus(test.results || test),
-          notes: test.results.interpretation || test.results.comments || test.results.notes || test.interpretation || ''
+          notes: Array.isArray(test.results.interpretation) ? test.results.interpretation.join(', ') : 
+                 test.results.interpretation || test.results.comments || test.results.notes || 
+                 Array.isArray(test.interpretation) ? test.interpretation.join(', ') : test.interpretation || ''
         });
       }
     }
@@ -141,7 +143,7 @@ function flattenTestResults(tests: any[]): any[] {
         unit: '',
         referenceRange: '',
         status: 'normal',
-        notes: '',
+        notes: Array.isArray(test.interpretation) ? test.interpretation.join(', ') : test.interpretation || '',
         isProfileHeader: true
       });
       
@@ -150,10 +152,11 @@ function flattenTestResults(tests: any[]): any[] {
         flattened.push({
           name: `  ${subTest.test || subTest.test_name || subTest.name}`, // Indent sub-tests
           value: subTest.result || subTest.value || 'N/A',
-          unit: subTest.unit || '',
+          unit: subTest.unit || subTest.units || '',
           referenceRange: formatReferenceRange(subTest.reference_range || subTest.normal_range),
           status: determineTestStatus(subTest),
-          notes: subTest.interpretation || subTest.comments || subTest.notes || '',
+          notes: Array.isArray(subTest.interpretation) ? subTest.interpretation.join(', ') : 
+                 subTest.interpretation || subTest.comments || subTest.notes || '',
           isSubTest: true
         });
       }
@@ -163,10 +166,11 @@ function flattenTestResults(tests: any[]): any[] {
       flattened.push({
         name: test.test || test.name || test.test_name || 'Unknown Test',
         value: test.result || test.value || 'N/A',
-        unit: test.unit || '',
+        unit: test.unit || test.units || '',
         referenceRange: formatReferenceRange(test.reference_range || test.normal_range),
         status: determineTestStatus(test),
-        notes: test.interpretation || test.comments || test.notes || ''
+        notes: Array.isArray(test.interpretation) ? test.interpretation.join(', ') : 
+               test.interpretation || test.comments || test.notes || ''
       });
     }
   }
@@ -183,16 +187,46 @@ function formatReferenceRange(range: any): string {
   }
   
   if (typeof range === 'object' && range !== null) {
-    const { min, max, low, high } = range;
-    const minVal = min || low;
-    const maxVal = max || high;
+    // Handle different object structures
+    const { min, max, low, high, lower_limit, upper_limit, minimum, maximum } = range;
+    
+    // Try different field combinations
+    const minVal = min || low || lower_limit || minimum;
+    const maxVal = max || high || upper_limit || maximum;
     
     if (minVal !== undefined && maxVal !== undefined) {
       return `${minVal} - ${maxVal}`;
     }
     
-    // Handle other object structures
-    return JSON.stringify(range);
+    // Handle single-value ranges
+    if (minVal !== undefined && maxVal === undefined) {
+      return `> ${minVal}`;
+    }
+    
+    if (maxVal !== undefined && minVal === undefined) {
+      return `< ${maxVal}`;
+    }
+    
+    // Handle nested objects with units
+    if (range.value) {
+      return formatReferenceRange(range.value);
+    }
+    
+    // Handle array format [min, max]
+    if (Array.isArray(range) && range.length === 2) {
+      return `${range[0]} - ${range[1]}`;
+    }
+    
+    // Fallback for complex objects - try to extract meaningful text
+    const rangeStr = JSON.stringify(range);
+    // Look for numeric patterns
+    const numericPattern = /(\d+\.?\d*)\s*[-–]\s*(\d+\.?\d*)/;
+    const match = rangeStr.match(numericPattern);
+    if (match) {
+      return `${match[1]} - ${match[2]}`;
+    }
+    
+    return rangeStr.replace(/[{}",]/g, ' ').trim();
   }
   
   return String(range);

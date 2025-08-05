@@ -206,7 +206,9 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
                   
                   {test.notes && (
                     <div className="mt-3 p-3 bg-muted/30 rounded">
-                      <span className="font-medium text-muted-foreground">Notes:</span>
+                      <span className="font-medium text-muted-foreground">
+                        {test.notes.toLowerCase().includes('interpretation') ? 'Interpretation:' : 'Notes:'}
+                      </span>
                       <p className="text-sm mt-1">{test.notes}</p>
                     </div>
                   )}
