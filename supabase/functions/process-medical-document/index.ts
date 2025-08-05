@@ -30,13 +30,40 @@ const extractTextFromPDF = async (pdfBuffer: ArrayBuffer): Promise<string> => {
     const pdfData = new Uint8Array(pdfBuffer);
     
     // Extract text using unpdf
-    const { text } = await extractText(pdfData);
+    const result = await extractText(pdfData);
+    console.log('Raw extraction result:', typeof result, result);
     
-    if (text && text.trim()) {
-      console.log(`Successfully extracted ${text.length} characters from PDF`);
-      return text.trim();
+    // Handle different return types from unpdf
+    let extractedText: string = '';
+    
+    if (result && typeof result === 'object') {
+      // Check if result has a text property
+      if ('text' in result && result.text) {
+        extractedText = typeof result.text === 'string' ? result.text : String(result.text || '');
+      }
+      // Fallback: check if result itself is the text
+      else if (typeof result === 'string') {
+        extractedText = result;
+      }
+      // Fallback: stringify the result if it's not empty
+      else if (result) {
+        extractedText = String(result);
+      }
+    } else if (typeof result === 'string') {
+      extractedText = result;
+    } else if (result) {
+      // Last resort: convert whatever we got to string
+      extractedText = String(result);
+    }
+    
+    // Clean and validate the extracted text
+    const cleanedText = extractedText?.trim?.() || '';
+    
+    if (cleanedText && cleanedText.length > 0) {
+      console.log(`Successfully extracted ${cleanedText.length} characters from PDF`);
+      return cleanedText;
     } else {
-      console.log('No text found in PDF');
+      console.log('No text found in PDF or text is empty');
       return '';
     }
   } catch (error) {
