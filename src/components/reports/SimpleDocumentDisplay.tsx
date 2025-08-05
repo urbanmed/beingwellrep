@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, FileText } from "lucide-react";
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface SimpleDocumentDisplayProps {
@@ -87,7 +86,6 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
           )}
         </CardContent>
       </Card>
-
     </div>
   );
 }
