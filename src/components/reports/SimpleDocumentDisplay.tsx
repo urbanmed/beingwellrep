@@ -17,6 +17,7 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
   const [fileExists, setFileExists] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [workingFileUrl, setWorkingFileUrl] = useState<string | null>(null);
 
   // Check if file exists in storage and find fallback if needed
   useEffect(() => {
@@ -78,10 +79,13 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
           if (userFiles && userFiles.length > 0) {
             console.log('Found alternative files:', userFiles.map(f => f.name));
             
-            // For now, just indicate that alternatives exist
-            // In the future, we could implement file selection UI
+            // Use the most recent alternative file
+            const mostRecentFile = userFiles[0]; // Already sorted by created_at desc
+            const alternativeFileUrl = `${userDirectory}/${mostRecentFile.name}`;
+            
+            console.log('Using alternative file:', alternativeFileUrl);
+            setWorkingFileUrl(alternativeFileUrl);
             setFileExists(true);
-            setError(`Original file not found, but ${userFiles.length} alternative file(s) available in your account.`);
             return;
           }
         }
@@ -104,12 +108,16 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
 
   // Construct the proper Supabase storage URL
   const getDocumentUrl = () => {
-    if (!report.file_url || !fileExists) return null;
+    if (!fileExists) return null;
+    
+    // Use the working file URL if available, otherwise fall back to original
+    const fileUrl = workingFileUrl || report.file_url;
+    if (!fileUrl) return null;
     
     try {
       const { data } = supabase.storage
         .from('medical-documents')
-        .getPublicUrl(report.file_url);
+        .getPublicUrl(fileUrl);
       return data.publicUrl;
     } catch (error) {
       console.error('Error constructing document URL:', error);
