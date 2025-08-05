@@ -61,23 +61,74 @@ export function extractPatientAndFacilityData(extractedText: string | null): {
       }
     }
 
-    // Extract facility data - check nested structures first
+    // Extract facility data - check multiple sections and field variations
     const facility: FacilityData = {};
-    const labInfo = data.lab_information || data.facility_information || data.facility || data;
     
-    if (labInfo) {
-      // Check various field names for facility data
+    // Primary sources for facility data
+    const labInfo = data.lab_information || data.facility_information || data.facility || {};
+    const facilityFromPatient = patientInfo || {};
+    
+    console.log('Lab information available:', Object.keys(labInfo));
+    console.log('Patient info keys for facility data:', Object.keys(facilityFromPatient));
+    
+    // Check for facility name in multiple locations and field names
+    if (!facility.facility) {
+      // Check lab information first
       if (labInfo.facility_name || labInfo.lab_name || labInfo.facility) {
         facility.facility = labInfo.facility_name || labInfo.lab_name || labInfo.facility;
       }
+      // Check patient information section (where it was actually found)
+      else if (facilityFromPatient.facility_name || facilityFromPatient.lab_name || facilityFromPatient.facility) {
+        facility.facility = facilityFromPatient.facility_name || facilityFromPatient.lab_name || facilityFromPatient.facility;
+      }
+      // Check root level
+      else if (data.facility_name || data.lab_name || data.facility) {
+        facility.facility = data.facility_name || data.lab_name || data.facility;
+      }
+    }
+    
+    // Check for ordering physician in multiple locations
+    if (!facility.orderingPhysician) {
+      // Check lab information
       if (labInfo.referring_doctor || labInfo.ordering_physician || labInfo.physician_name || labInfo.doctor) {
         facility.orderingPhysician = labInfo.referring_doctor || labInfo.ordering_physician || labInfo.physician_name || labInfo.doctor;
       }
-      if (labInfo.collection_date || labInfo.specimen_collection_date || labInfo.sample_collection_date) {
-        facility.collectionDate = labInfo.collection_date || labInfo.specimen_collection_date || labInfo.sample_collection_date;
+      // Check patient information section (where referring doctor was found)
+      else if (facilityFromPatient.referring_doctor || facilityFromPatient.ordering_physician || facilityFromPatient.physician_name || facilityFromPatient.doctor) {
+        facility.orderingPhysician = facilityFromPatient.referring_doctor || facilityFromPatient.ordering_physician || facilityFromPatient.physician_name || facilityFromPatient.doctor;
       }
+      // Check root level
+      else if (data.referring_doctor || data.ordering_physician || data.physician_name || data.doctor) {
+        facility.orderingPhysician = data.referring_doctor || data.ordering_physician || data.physician_name || data.doctor;
+      }
+    }
+    
+    // Check for collection date with specific field name from the actual data
+    if (!facility.collectionDate) {
+      // Check for the specific field name found in the actual data
+      if (labInfo.sample_collection_datetime || labInfo.collection_date || labInfo.specimen_collection_date || labInfo.sample_collection_date) {
+        facility.collectionDate = labInfo.sample_collection_datetime || labInfo.collection_date || labInfo.specimen_collection_date || labInfo.sample_collection_date;
+      }
+      // Check patient information section as fallback
+      else if (facilityFromPatient.sample_collection_datetime || facilityFromPatient.collection_date) {
+        facility.collectionDate = facilityFromPatient.sample_collection_datetime || facilityFromPatient.collection_date;
+      }
+      // Check root level
+      else if (data.sample_collection_datetime || data.collection_date || data.specimen_collection_date) {
+        facility.collectionDate = data.sample_collection_datetime || data.collection_date || data.specimen_collection_date;
+      }
+    }
+    
+    // Check for report date
+    if (!facility.reportDate) {
       if (labInfo.report_date || labInfo.date_reported || labInfo.test_date) {
         facility.reportDate = labInfo.report_date || labInfo.date_reported || labInfo.test_date;
+      }
+      else if (facilityFromPatient.report_date || facilityFromPatient.date_reported) {
+        facility.reportDate = facilityFromPatient.report_date || facilityFromPatient.date_reported;
+      }
+      else if (data.report_date || data.date_reported || data.test_date) {
+        facility.reportDate = data.report_date || data.date_reported || data.test_date;
       }
     }
 
