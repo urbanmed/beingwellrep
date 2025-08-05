@@ -1,108 +1,33 @@
-import { useState, useEffect } from "react";
-import { Camera, FileText, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Camera, FileText, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { FileUploadArea } from "@/components/upload/FileUploadArea";
-import { ReportTypeSelector } from "@/components/upload/ReportTypeSelector";
 import { UploadProgress } from "@/components/upload/UploadProgress";
 import { RecentUploads } from "@/components/upload/RecentUploads";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { useMetadataExtraction } from "@/hooks/useMetadataExtraction";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Upload() {
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [reportType, setReportType] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [physicianName, setPhysicianName] = useState("");
-  const [facilityName, setFacilityName] = useState("");
-  const [showUploadForm, setShowUploadForm] = useState(false);
   const { toast } = useToast();
 
   const { uploadFiles, isUploading, uploadProgress, uploadFileStates, resetUpload } = useFileUpload({
     onUploadComplete: (reportIds) => {
       console.log('Upload completed for reports:', reportIds);
-      // Reset form
-      setSelectedFiles([]);
-      setTitle("");
-      setDescription("");
-      setPhysicianName("");
-      setFacilityName("");
-      setReportType("");
-      setShowUploadForm(false);
-      // Trigger refresh of recent uploads (RecentUploads component will handle this)
+      toast({
+        title: "Upload Complete",
+        description: `Successfully uploaded ${reportIds.length} document(s). AI is analyzing them automatically.`,
+      });
     },
     onUploadError: (error) => {
       console.error('Upload error:', error);
     }
   });
 
-  const { extractMetadata, isExtracting } = useMetadataExtraction();
-
   const handleFileSelect = async (files: File[]) => {
-    setSelectedFiles(files);
-    if (files.length > 0 && !showUploadForm) {
-      setShowUploadForm(true);
-      
-      // Extract metadata from the first file to pre-populate form
-      if (files[0]) {
-        const metadata = await extractMetadata(files[0]);
-        if (metadata) {
-          if (metadata.title) setTitle(metadata.title);
-          if (metadata.reportType) setReportType(metadata.reportType);
-          if (metadata.description) setDescription(metadata.description);
-          if (metadata.physicianName) setPhysicianName(metadata.physicianName);
-          if (metadata.facilityName) setFacilityName(metadata.facilityName);
-        }
-      }
-    }
-  };
+    if (files.length === 0) return;
 
-  const handleSubmit = async () => {
-    if (selectedFiles.length === 0) {
-      toast({
-        title: "No files selected",
-        description: "Please select at least one file to upload.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!reportType) {
-      toast({
-        title: "Report type required",
-        description: "Please select a report type.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!title.trim()) {
-      toast({
-        title: "Title required",
-        description: "Please enter a title for your report.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const additionalData = {
-      description: description.trim() || null,
-      physician_name: physicianName.trim() || null,
-      facility_name: facilityName.trim() || null,
-    };
-
-    await uploadFiles(selectedFiles, reportType, title.trim(), additionalData);
-  };
-
-  const handleCancel = () => {
-    setSelectedFiles([]);
-    setShowUploadForm(false);
-    resetUpload();
+    // Start immediate upload without requiring form input
+    await uploadFiles(files);
   };
 
   return (
@@ -110,7 +35,7 @@ export default function Upload() {
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-bold text-foreground">Upload Medical Documents</h1>
         <p className="text-muted-foreground">
-          Upload your medical reports and documents for AI analysis and OCR processing
+          Simply upload your documents - our AI will automatically extract titles, types, and details
         </p>
       </div>
 
@@ -121,100 +46,19 @@ export default function Upload() {
         uploadProgress={uploadProgress}
       />
 
-      {/* Upload Form */}
-      {showUploadForm && selectedFiles.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Document Details</CardTitle>
-            <CardDescription>
-              {isExtracting ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Analyzing document to auto-fill fields...
-                </span>
-              ) : (
-                "Provide details about your medical documents"
-              )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Document Title *</Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Blood Test Results - January 2024"
-                  disabled={isUploading}
-                />
-              </div>
-
-              <ReportTypeSelector
-                value={reportType}
-                onChange={setReportType}
-                disabled={isUploading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Additional notes or context about this document..."
-                disabled={isUploading}
-                rows={3}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="physician">Physician Name (Optional)</Label>
-                <Input
-                  id="physician"
-                  value={physicianName}
-                  onChange={(e) => setPhysicianName(e.target.value)}
-                  placeholder="Dr. Jane Smith"
-                  disabled={isUploading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="facility">Medical Facility (Optional)</Label>
-                <Input
-                  id="facility"
-                  value={facilityName}
-                  onChange={(e) => setFacilityName(e.target.value)}
-                  placeholder="City General Hospital"
-                  disabled={isUploading}
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button 
-                onClick={handleSubmit} 
-                disabled={isUploading || !reportType || !title.trim()}
-                className="flex-1"
-              >
-                {isUploading ? 'Uploading...' : 'Upload Documents'}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={handleCancel}
-                disabled={isUploading}
-              >
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Upload Progress */}
       <UploadProgress files={uploadFileStates} />
+
+      {/* AI Features Information */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader className="text-center">
+          <Sparkles className="h-8 w-8 text-primary mx-auto mb-2" />
+          <CardTitle className="text-lg">Smart Document Processing</CardTitle>
+          <CardDescription>
+            Our AI automatically extracts document titles, types, physician names, facility information, and more from your uploads. No manual entry required!
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
       {/* Upload Options */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

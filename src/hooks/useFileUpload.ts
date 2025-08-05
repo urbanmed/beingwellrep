@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAutoMetadataExtraction } from './useAutoMetadataExtraction';
 
 interface UploadFile {
   name: string;
@@ -20,6 +21,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadFileStates, setUploadFileStates] = useState<UploadFile[]>([]);
   const { toast } = useToast();
+  const { extractAndUpdateMetadata } = useAutoMetadataExtraction();
 
   // Helper function to ensure user is authenticated
   const ensureAuthenticated = useCallback(async (retryCount = 0): Promise<{ user: any; error?: string }> => {
@@ -69,8 +71,8 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 
   const uploadFiles = useCallback(async (
     files: File[],
-    reportType: string,
-    title: string,
+    reportType?: string,
+    title?: string,
     additionalData: Record<string, any> = {}
   ) => {
     if (files.length === 0) return;
@@ -147,12 +149,15 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
             throw new Error(`Authentication failed for database operation: ${dbAuthResult.error || 'User not found'}`);
           }
 
-          // Create report record
+          // Create report record with default values if not provided
+          const defaultTitle = title || `Document uploaded ${new Date().toLocaleDateString()}`;
+          const defaultReportType = reportType || 'unknown';
+          
           const { data: reportData, error: reportError } = await supabase
             .from('reports')
             .insert({
-              title: files.length > 1 ? `${title} (${i + 1})` : title,
-              report_type: reportType,
+              title: files.length > 1 ? `${defaultTitle} (${i + 1})` : defaultTitle,
+              report_type: defaultReportType,
               file_name: file.name,
               file_url: uploadData.path,
               file_type: file.type,
@@ -203,6 +208,12 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
             setUploadFileStates(prev => prev.map((f, idx) => 
               idx === i ? { ...f, status: 'completed', progress: 100 } : f
             ));
+            
+            // Trigger automatic metadata extraction in the background
+            // Don't await this - let it run in the background
+            extractAndUpdateMetadata(reportId, uploadData.path).catch(error => {
+              console.warn('Background metadata extraction failed:', error);
+            });
           }
 
         } catch (error) {

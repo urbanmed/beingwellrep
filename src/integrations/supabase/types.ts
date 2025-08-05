@@ -155,9 +155,9 @@ export type Database = {
           physician_name: string | null
           processing_error: string | null
           report_date: string
-          report_type: string
+          report_type: string | null
           tags: string[] | null
-          title: string
+          title: string | null
           updated_at: string
           user_id: string
         }
@@ -181,9 +181,9 @@ export type Database = {
           physician_name?: string | null
           processing_error?: string | null
           report_date: string
-          report_type: string
+          report_type?: string | null
           tags?: string[] | null
-          title: string
+          title?: string | null
           updated_at?: string
           user_id: string
         }
@@ -207,9 +207,9 @@ export type Database = {
           physician_name?: string | null
           processing_error?: string | null
           report_date?: string
-          report_type?: string
+          report_type?: string | null
           tags?: string[] | null
-          title?: string
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
