@@ -7,21 +7,26 @@ import type { DocumentParsingResult } from '@/types/medical-data';
 
 export function useDocumentProcessing() {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const { toast } = useToast();
 
-  const processDocument = async (reportId: string): Promise<DocumentParsingResult> => {
+  const processDocument = async (reportId: string, maxRetries = 2): Promise<DocumentParsingResult> => {
     setIsProcessing(true);
+    setRetryCount(0);
     
-    try {
-      const { data, error } = await supabase.functions.invoke('process-medical-document', {
-        body: { reportId }
-      });
+    const attemptProcessing = async (attempt: number): Promise<DocumentParsingResult> => {
+      try {
+        setRetryCount(attempt);
+        
+        const { data, error } = await supabase.functions.invoke('process-medical-document', {
+          body: { reportId }
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (!data.success) {
-        throw new Error(data.error || 'Document processing failed');
-      }
+        if (!data.success) {
+          throw new Error(data.error || 'Document processing failed');
+        }
 
       // Validate the parsed data if available
       let validationResult = null;
@@ -44,39 +49,59 @@ export function useDocumentProcessing() {
           .eq('id', reportId);
       }
 
-      const result: DocumentParsingResult = {
-        success: true,
-        data: data.parsedData,
-        confidence: data.confidence,
-        model: 'gpt-4o-mini',
-        processingTime: data.processingTime
-      };
+        const result: DocumentParsingResult = {
+          success: true,
+          data: data.parsedData,
+          confidence: data.confidence,
+          model: 'gpt-4o-mini',
+          processingTime: data.processingTime
+        };
 
-      if (validationResult) {
-        result.errors = validationResult.errors;
+        if (validationResult) {
+          result.errors = validationResult.errors;
+        }
+
+        return result;
+
+      } catch (error) {
+        console.error(`Document processing error (attempt ${attempt + 1}):`, error);
+        
+        // Check if this is a retryable error
+        const isRetryable = error.message.includes('API error') || 
+                           error.message.includes('timeout') ||
+                           error.message.includes('network') ||
+                           error.message.includes('500');
+        
+        if (attempt < maxRetries && isRetryable) {
+          console.log(`Retrying in ${(attempt + 1) * 2} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 2000));
+          return attemptProcessing(attempt + 1);
+        }
+        
+        const result: DocumentParsingResult = {
+          success: false,
+          confidence: 0,
+          model: 'gpt-4o-mini',
+          errors: [error.message]
+        };
+
+        toast({
+          title: 'Processing Failed',
+          description: attempt > 0 
+            ? `Failed to process the document after ${attempt + 1} attempts. Please try again.`
+            : 'Failed to process the document. Please try again.',
+          variant: 'destructive'
+        });
+
+        return result;
       }
+    };
 
-      return result;
-
-    } catch (error) {
-      console.error('Document processing error:', error);
-      
-      const result: DocumentParsingResult = {
-        success: false,
-        confidence: 0,
-        model: 'gpt-4o-mini',
-        errors: [error.message]
-      };
-
-      toast({
-        title: 'Processing Failed',
-        description: 'Failed to process the document. Please try again.',
-        variant: 'destructive'
-      });
-
-      return result;
+    try {
+      return await attemptProcessing(0);
     } finally {
       setIsProcessing(false);
+      setRetryCount(0);
     }
   };
 
@@ -151,6 +176,7 @@ export function useDocumentProcessing() {
     processDocument,
     checkDuplicateDocument,
     reprocessDocument,
-    isProcessing
+    isProcessing,
+    retryCount
   };
 }

@@ -36,7 +36,7 @@ export function UploadProgress({ files }: UploadProgressProps) {
       case 'failed':
         return <Badge variant="destructive">Failed</Badge>;
       case 'processing':
-        return <Badge variant="secondary">Processing OCR</Badge>;
+        return <Badge variant="secondary">Document Processing</Badge>;
       case 'uploading':
         return <Badge variant="secondary">Uploading</Badge>;
       default:

@@ -18,6 +18,24 @@ const getPromptForReportType = (reportType: string) => {
   return prompts[reportType] || 'Extract relevant medical information and structure it appropriately.';
 };
 
+// File size limit: 20MB
+const MAX_FILE_SIZE = 20 * 1024 * 1024;
+
+const extractTextFromPDF = async (pdfBuffer: ArrayBuffer): Promise<string> => {
+  // For now, return a placeholder. In a production environment, you would use a PDF library
+  // like pdf-parse or similar to extract text from PDFs
+  console.log('PDF text extraction not yet implemented, using OCR fallback');
+  return '';
+};
+
+const isImageFile = (fileType: string): boolean => {
+  return fileType.startsWith('image/');
+};
+
+const isPDFFile = (fileType: string): boolean => {
+  return fileType === 'application/pdf';
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -62,53 +80,142 @@ serve(async (req) => {
       throw new Error('Failed to download file')
     }
 
-    // Convert file to base64
-    const arrayBuffer = await fileData.arrayBuffer()
-    const bytes = new Uint8Array(arrayBuffer)
-    const base64 = btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))
+    // Check file size
+    const fileSize = fileData.size
+    if (fileSize > MAX_FILE_SIZE) {
+      throw new Error(`File size (${Math.round(fileSize / 1024 / 1024)}MB) exceeds maximum limit of 20MB`)
+    }
 
-    console.log(`Processing file of size: ${bytes.length} bytes, type: ${report.file_type}`)
+    console.log(`Processing file of size: ${fileSize} bytes, type: ${report.file_type}`)
 
-    // Call OpenAI API for document analysis
+    // Get OpenAI API key
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
     if (!openaiApiKey) {
       throw new Error('OpenAI API key not configured')
     }
 
     const prompt = getPromptForReportType(report.report_type)
-    
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { 
-            role: 'user', 
-            content: [
-              { type: 'text', text: prompt },
+    let aiResponse: string = ''
+
+    if (isPDFFile(report.file_type)) {
+      // Handle PDF files with text extraction
+      console.log('Processing PDF file with text extraction')
+      
+      const arrayBuffer = await fileData.arrayBuffer()
+      let extractedText = await extractTextFromPDF(arrayBuffer)
+      
+      // If text extraction fails or returns empty, fall back to vision API
+      if (!extractedText.trim()) {
+        console.log('Text extraction failed, falling back to vision API')
+        const bytes = new Uint8Array(arrayBuffer)
+        const base64 = btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))
+        
+        const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: SYSTEM_PROMPT },
               { 
-                type: 'image_url', 
-                image_url: { url: `data:${report.file_type};base64,${base64}` }
+                role: 'user', 
+                content: [
+                  { type: 'text', text: prompt },
+                  { 
+                    type: 'image_url', 
+                    image_url: { url: `data:${report.file_type};base64,${base64}` }
+                  }
+                ]
               }
-            ]
-          }
-        ],
-        max_tokens: 2000,
-        temperature: 0.1
+            ],
+            max_tokens: 2000,
+            temperature: 0.1
+          })
+        })
+
+        if (!visionResponse.ok) {
+          const errorText = await visionResponse.text()
+          throw new Error(`OpenAI Vision API error: ${visionResponse.status} - ${errorText}`)
+        }
+
+        const visionData = await visionResponse.json()
+        aiResponse = visionData.choices?.[0]?.message?.content || ''
+      } else {
+        // Use text-based completion for extracted PDF text
+        console.log('Using extracted text for processing')
+        
+        const textResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: SYSTEM_PROMPT },
+              { role: 'user', content: `${prompt}\n\nDocument text:\n${extractedText}` }
+            ],
+            max_tokens: 2000,
+            temperature: 0.1
+          })
+        })
+
+        if (!textResponse.ok) {
+          const errorText = await textResponse.text()
+          throw new Error(`OpenAI Text API error: ${textResponse.status} - ${errorText}`)
+        }
+
+        const textData = await textResponse.json()
+        aiResponse = textData.choices?.[0]?.message?.content || ''
+      }
+    } else if (isImageFile(report.file_type)) {
+      // Handle image files with vision API
+      console.log('Processing image file with vision API')
+      
+      const arrayBuffer = await fileData.arrayBuffer()
+      const bytes = new Uint8Array(arrayBuffer)
+      const base64 = btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))
+
+      const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { 
+              role: 'user', 
+              content: [
+                { type: 'text', text: prompt },
+                { 
+                  type: 'image_url', 
+                  image_url: { url: `data:${report.file_type};base64,${base64}` }
+                }
+              ]
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.1
+        })
       })
-    })
 
-    if (!openaiResponse.ok) {
-      throw new Error(`OpenAI API error: ${openaiResponse.status}`)
+      if (!visionResponse.ok) {
+        const errorText = await visionResponse.text()
+        throw new Error(`OpenAI Vision API error: ${visionResponse.status} - ${errorText}`)
+      }
+
+      const visionData = await visionResponse.json()
+      aiResponse = visionData.choices?.[0]?.message?.content || ''
+    } else {
+      throw new Error(`Unsupported file type: ${report.file_type}`)
     }
-
-    const openaiData = await openaiResponse.json()
-    const aiResponse = openaiData.choices?.[0]?.message?.content
 
     if (!aiResponse) {
       throw new Error('No response from AI model')
@@ -122,6 +229,8 @@ serve(async (req) => {
       confidence = parsedData.confidence || 0.8
     } catch (parseError) {
       console.warn('Failed to parse AI response as JSON, storing as text')
+      // Store the raw response if JSON parsing fails
+      parsedData = { rawResponse: aiResponse }
     }
 
     // Update report with results
@@ -146,7 +255,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         parsedData,
-        confidence 
+        confidence,
+        processingTime: Date.now()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
