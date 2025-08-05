@@ -19,6 +19,8 @@ export const useMetadataExtraction = () => {
     setIsExtracting(true);
     
     try {
+      console.log('Starting metadata extraction for file:', file.name, 'size:', file.size, 'type:', file.type);
+      
       // First upload the file temporarily to storage for analysis
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       const fileName = `temp_${Date.now()}.${fileExt}`;
@@ -35,31 +37,37 @@ export const useMetadataExtraction = () => {
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
-        throw new Error('Failed to upload file for analysis');
+        throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
-      // Call the metadata extraction function
-      console.log('Calling metadata extraction function...');
+      console.log('File uploaded successfully, calling extraction function...');
       
       const { data, error } = await supabase.functions.invoke('extract-document-metadata', {
         body: { filePath }
       });
 
+      console.log('Function response:', { data, error });
+
       // Clean up the temporary file
-      await supabase.storage
+      const { error: deleteError } = await supabase.storage
         .from('medical-documents')
         .remove([filePath]);
+      
+      if (deleteError) {
+        console.warn('Failed to clean up temporary file:', deleteError);
+      }
 
       if (error) {
         console.error('Function invocation error:', error);
-        throw new Error('Failed to extract metadata');
+        throw new Error(`Function error: ${error.message}`);
       }
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to extract metadata');
+      if (!data?.success) {
+        console.error('Extraction failed with error:', data?.error);
+        throw new Error(data?.error || 'Unknown extraction error');
       }
 
-      console.log('Extracted metadata:', data.metadata);
+      console.log('Successfully extracted metadata:', data.metadata);
       
       toast({
         title: "Document analyzed",
@@ -69,11 +77,12 @@ export const useMetadataExtraction = () => {
       return data.metadata;
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Error extracting metadata:', error);
       
       toast({
         title: "Analysis failed",
-        description: "Could not analyze document. Please fill form manually.",
+        description: `Could not analyze document: ${errorMessage}. Please fill form manually.`,
         variant: "destructive",
       });
       

@@ -27,6 +27,8 @@ Guidelines:
 - Use null for any field that cannot be determined from the document`;
 
 serve(async (req) => {
+  console.log('Extract document metadata function called with method:', req.method);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -42,9 +44,13 @@ serve(async (req) => {
       }
     );
 
-    const { filePath } = await req.json();
+    const requestBody = await req.json();
+    console.log('Request body received:', requestBody);
+    
+    const { filePath } = requestBody;
     
     if (!filePath) {
+      console.error('Missing filePath in request');
       throw new Error('File path is required');
     }
 
