@@ -1,6 +1,6 @@
 export const SYSTEM_PROMPT = `You are an advanced medical document analysis expert with deep understanding of clinical data organization. Your task is to extract and structure medical information with clinical precision, maintaining proper hierarchical organization of complex medical data. Use your medical knowledge to group related tests, normalize units, and provide clinically meaningful interpretations.`;
 
-export const LAB_RESULTS_PROMPT = `Extract structured data from this lab results document. Return JSON in this exact format:
+export const LAB_RESULTS_PROMPT = `Extract structured data from this lab results document with proper hierarchical organization. Return JSON in this exact format:
 
 {
   "reportType": "lab",
@@ -9,16 +9,42 @@ export const LAB_RESULTS_PROMPT = `Extract structured data from this lab results
   "patient": {
     "name": "John Doe",
     "dateOfBirth": "1980-01-01",
-    "id": "12345"
+    "id": "12345",
+    "age": "44",
+    "gender": "Male"
   },
   "tests": [
     {
       "name": "Complete Blood Count",
-      "value": "Normal",
-      "unit": "cells/mcL",
-      "referenceRange": "4.5-11.0",
+      "isProfileHeader": true,
+      "subTests": [
+        {
+          "name": "White Blood Cell Count",
+          "value": "7.2",
+          "unit": "10^3/uL",
+          "referenceRange": "4.8-10.8",
+          "status": "normal",
+          "notes": "Within normal limits",
+          "isSubTest": true
+        },
+        {
+          "name": "Red Blood Cell Count",
+          "value": "4.5",
+          "unit": "10^6/uL", 
+          "referenceRange": "4.7-6.1",
+          "status": "low",
+          "notes": "",
+          "isSubTest": true
+        }
+      ]
+    },
+    {
+      "name": "Glucose",
+      "value": "95",
+      "unit": "mg/dL",
+      "referenceRange": "70-99",
       "status": "normal",
-      "notes": "Within normal limits"
+      "notes": "Fasting"
     }
   ],
   "orderingPhysician": "Dr. Smith",
@@ -27,7 +53,17 @@ export const LAB_RESULTS_PROMPT = `Extract structured data from this lab results
   "reportDate": "2024-01-02"
 }
 
-Focus on extracting all test results with their values, units, reference ranges, and status indicators (normal/abnormal/critical/high/low).`;
+CRITICAL INSTRUCTIONS:
+1. Group related tests into panels/profiles with "isProfileHeader": true
+2. Individual tests within panels should have "isSubTest": true
+3. Standalone tests should not have isProfileHeader or isSubTest flags
+4. Always extract patient demographics completely
+5. Normalize reference ranges to consistent format (e.g., "4.8-10.8")
+6. Determine status accurately: normal, high, low, critical, abnormal
+7. Preserve clinical context in notes field
+8. Maintain proper hierarchical structure that reflects how tests appear in the original document
+
+Focus on extracting all test results with proper grouping, values, units, reference ranges, and status indicators.`;
 
 export const PRESCRIPTION_PROMPT = `Extract structured data from this prescription document. Return JSON in this exact format:
 

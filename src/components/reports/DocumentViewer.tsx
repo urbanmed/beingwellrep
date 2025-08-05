@@ -11,7 +11,7 @@ import {
   parseExtractedTextAsJSON, 
   transformLabReportData, 
   createFallbackDataStructure 
-} from "@/lib/utils/extracted-text-parser";
+} from "@/lib/utils/extracted-text-parser-improved";
 
 interface DocumentViewerProps {
   report: {
@@ -147,61 +147,105 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
         reportDate={data.reportDate}
       />
 
-      {/* Test Results */}
+      {/* Test Results with Enhanced Hierarchy */}
       <div>
         <h4 className="font-semibold mb-4">Test Results</h4>
-        <div className="space-y-3">
+        <div className="space-y-2">
           {data.tests?.map((test: any, index: number) => (
-            <Card 
-              key={index} 
-              className={`p-4 ${test.isProfileHeader ? 'bg-muted/50' : ''} ${test.isSubTest ? 'ml-4 border-l-4 border-primary/20' : ''}`}
-            >
+            <div key={index}>
               {test.isProfileHeader ? (
-                <div>
-                  <h5 className="font-semibold text-lg">{test.name}</h5>
-                </div>
-              ) : (
-                <>
-                  <div className="flex justify-between items-start mb-3">
-                    <h5 className={`font-medium ${test.isSubTest ? 'text-base' : 'text-lg'}`}>
-                      {test.name}
-                    </h5>
-                    {test.status && test.status !== 'normal' && (
-                      <Badge variant={
-                        test.status === 'critical' ? 'destructive' :
-                        test.status === 'abnormal' || test.status === 'high' || test.status === 'low' ? 'secondary' : 'default'
-                      }>
-                        {test.status}
-                      </Badge>
-                    )}
+                <Card className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+                  <div className="flex items-center justify-between">
+                    <h5 className="font-bold text-lg text-primary">{test.name}</h5>
+                    <Badge variant="outline" className="text-primary border-primary/40">
+                      Test Panel
+                    </Badge>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium text-muted-foreground">Result:</span>
-                      <p className="font-semibold text-lg">
-                        {test.value} {test.unit && <span className="text-sm font-normal">{test.unit}</span>}
-                      </p>
+                  {test.notes && (
+                    <p className="text-sm text-muted-foreground mt-2">{test.notes}</p>
+                  )}
+                </Card>
+              ) : (
+                <Card className={`p-4 transition-all hover:shadow-md ${
+                  test.isSubTest 
+                    ? 'ml-6 border-l-4 border-primary/30 bg-gradient-to-r from-muted/20 to-transparent' 
+                    : 'hover:border-primary/20'
+                }`}>
+                  <div className="space-y-3">
+                    {/* Test Header */}
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h5 className={`font-semibold ${
+                          test.isSubTest ? 'text-base text-muted-foreground' : 'text-lg'
+                        }`}>
+                          {test.name}
+                        </h5>
+                      </div>
+                      
+                      {test.status && test.status !== 'normal' && (
+                        <Badge 
+                          variant={
+                            test.status === 'critical' ? 'destructive' :
+                            test.status === 'high' ? 'destructive' :
+                            test.status === 'low' ? 'secondary' :
+                            test.status === 'abnormal' ? 'secondary' : 'default'
+                          }
+                          className="ml-3"
+                        >
+                          {test.status.toUpperCase()}
+                        </Badge>
+                      )}
                     </div>
-                    {test.referenceRange && (
-                      <div>
-                        <span className="font-medium text-muted-foreground">Reference Range:</span>
-                        <p className="font-medium">{test.referenceRange}</p>
+                    
+                    {/* Test Value and Range */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          Result
+                        </span>
+                        <div className="flex items-baseline gap-2">
+                          <span className={`font-bold ${
+                            test.status === 'critical' || test.status === 'high' || test.status === 'low' 
+                              ? 'text-destructive' 
+                              : 'text-foreground'
+                          } ${test.isSubTest ? 'text-lg' : 'text-xl'}`}>
+                            {test.value}
+                          </span>
+                          {test.unit && (
+                            <span className="text-sm font-medium text-muted-foreground">
+                              {test.unit}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {test.referenceRange && (
+                        <div className="space-y-1">
+                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                            Reference Range
+                          </span>
+                          <p className="font-semibold text-sm text-muted-foreground">
+                            {test.referenceRange}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Notes/Interpretation */}
+                    {test.notes && (
+                      <div className="mt-4 p-3 bg-muted/40 rounded-lg border-l-4 border-primary/20">
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                            {test.notes.toLowerCase().includes('interpretation') ? 'Clinical Interpretation' : 'Notes'}
+                          </span>
+                        </div>
+                        <p className="text-sm mt-1 leading-relaxed">{test.notes}</p>
                       </div>
                     )}
                   </div>
-                  
-                  {test.notes && (
-                    <div className="mt-3 p-3 bg-muted/30 rounded">
-                      <span className="font-medium text-muted-foreground">
-                        {test.notes.toLowerCase().includes('interpretation') ? 'Interpretation:' : 'Notes:'}
-                      </span>
-                      <p className="text-sm mt-1">{test.notes}</p>
-                    </div>
-                  )}
-                </>
+                </Card>
               )}
-            </Card>
+            </div>
           ))}
         </div>
       </div>
