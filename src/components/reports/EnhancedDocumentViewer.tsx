@@ -63,10 +63,11 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
           return;
         }
 
-        // Extract bucket and path from URL
-        const urlParts = report.file_url.split('/');
-        const bucket = urlParts[urlParts.length - 2];
-        const filePath = urlParts[urlParts.length - 1];
+        // Use medical-documents bucket and the entire file_url as the file path
+        const bucket = 'medical-documents';
+        const filePath = report.file_url;
+
+        console.log(`Checking file: bucket=${bucket}, path=${filePath}`);
 
         // Try direct download first
         const { error: downloadError } = await supabase.storage
@@ -74,11 +75,14 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
           .download(filePath);
 
         if (!downloadError) {
+          console.log('File found at original path');
           setFileExists(true);
           const publicUrl = supabase.storage.from(bucket).getPublicUrl(filePath);
           setDocumentUrl(publicUrl.data.publicUrl);
         } else {
-          // If direct download fails, try to find alternative files
+          console.log('File not found at original path, searching for alternatives:', downloadError);
+          
+          // If direct download fails, search for alternative files in the user's folder
           const { data: files, error: listError } = await supabase.storage
             .from(bucket)
             .list(authData.user.id, {
@@ -87,24 +91,48 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
             });
 
           if (!listError && files && files.length > 0) {
-            // Find the first file that looks like it could be related
-            const alternativeFile = files.find(file => 
-              file.name.toLowerCase().includes('.pdf') || 
-              file.name.toLowerCase().includes('.jpg') ||
-              file.name.toLowerCase().includes('.jpeg') ||
-              file.name.toLowerCase().includes('.png')
-            );
+            console.log(`Found ${files.length} files in user folder:`, files.map(f => f.name));
+            
+            // Sort files by last modified date (most recent first) and prioritize PDFs
+            const sortedFiles = files
+              .filter(file => {
+                const name = file.name.toLowerCase();
+                return name.includes('.pdf') || 
+                       name.includes('.jpg') ||
+                       name.includes('.jpeg') ||
+                       name.includes('.png') ||
+                       name.includes('.gif') ||
+                       name.includes('.webp');
+              })
+              .sort((a, b) => {
+                // Prioritize PDFs first, then by modification date
+                const aIsPdf = a.name.toLowerCase().includes('.pdf');
+                const bIsPdf = b.name.toLowerCase().includes('.pdf');
+                
+                if (aIsPdf && !bIsPdf) return -1;
+                if (!aIsPdf && bIsPdf) return 1;
+                
+                // Both are same type, sort by date
+                const aDate = new Date(a.updated_at || a.created_at || 0);
+                const bDate = new Date(b.updated_at || b.created_at || 0);
+                return bDate.getTime() - aDate.getTime();
+              });
 
-            if (alternativeFile) {
+            if (sortedFiles.length > 0) {
+              const alternativeFile = sortedFiles[0];
               const alternativePath = `${authData.user.id}/${alternativeFile.name}`;
+              console.log(`Using alternative file: ${alternativePath}`);
+              
               const publicUrl = supabase.storage.from(bucket).getPublicUrl(alternativePath);
               setDocumentUrl(publicUrl.data.publicUrl);
               setWorkingFileUrl(publicUrl.data.publicUrl);
               setFileExists(true);
             } else {
+              console.log('No suitable alternative files found');
               setFileExists(false);
             }
           } else {
+            console.log('Error listing files or no files found:', listError);
             setFileExists(false);
           }
         }
