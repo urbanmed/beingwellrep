@@ -163,12 +163,12 @@ serve(async (req) => {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: 'gpt-4.1-2025-04-14',
             messages: [
               { role: 'system', content: SYSTEM_PROMPT },
               { role: 'user', content: `${prompt}\n\nDocument text:\n${extractedText}` }
             ],
-            max_tokens: 2000,
+            max_tokens: 8000,
             temperature: 0.1
           })
         })
@@ -196,7 +196,7 @@ serve(async (req) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+            model: 'gpt-4.1-2025-04-14',
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
             { 
@@ -210,7 +210,7 @@ serve(async (req) => {
               ]
             }
           ],
-          max_tokens: 2000,
+          max_tokens: 8000,
           temperature: 0.1
         })
       })
