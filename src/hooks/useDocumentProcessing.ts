@@ -53,7 +53,7 @@ export function useDocumentProcessing() {
           success: true,
           data: data.parsedData,
           confidence: data.confidence,
-        modelUsed: 'gpt-4o-mini',
+          model: 'gpt-4o-mini',
           processingTime: data.processingTime
         };
 
@@ -81,7 +81,7 @@ export function useDocumentProcessing() {
         const result: DocumentParsingResult = {
           success: false,
           confidence: 0,
-          modelUsed: 'gpt-4o-mini',
+          model: 'gpt-4o-mini',
           errors: [error.message]
         };
 

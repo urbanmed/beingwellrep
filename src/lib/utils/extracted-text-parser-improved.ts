@@ -381,14 +381,6 @@ export function transformLabReportData(rawData: any): any {
 
   console.log('Transforming lab report data with enhanced processing:', rawData);
 
-  // Helper to safely extract values from confidence-based structures
-  const extractWithConfidence = (obj: any): string | null => {
-    if (!obj) return null;
-    if (typeof obj === 'string') return obj;
-    if (obj.value !== undefined) return obj.value;
-    return null;
-  };
-
   // Helper to safely extract nested values
   const safeExtract = (obj: any, paths: string[]) => {
     for (const path of paths) {
@@ -400,13 +392,8 @@ export function transformLabReportData(rawData: any): any {
     return null;
   };
 
-  // Enhanced lab data recognition - check for confidence-based format first
+  // Enhanced lab data recognition
   const isLabData = (data: any): boolean => {
-    // Check for confidence-based format (patient_information + report_information)
-    if (data.patient_information && data.report_information) {
-      return true;
-    }
-    
     const labIndicators = [
       'tests', 'testResults', 'test_results', 'lab_tests', 'lab_results', 'laboratory_results',
       'patient', 'patientInfo', 'patient_info', 'demographics', 'collection_date', 'report_date',
@@ -416,7 +403,7 @@ export function transformLabReportData(rawData: any): any {
     const medicalTerms = [
       'hemoglobin', 'glucose', 'cholesterol', 'creatinine', 'bilirubin',
       'platelet', 'wbc', 'rbc', 'sodium', 'potassium', 'chloride',
-      'chemistry', 'hematology', 'lipid', 'metabolic', 'cbc', 'thyroid', 'iron'
+      'chemistry', 'hematology', 'lipid', 'metabolic', 'cbc'
     ];
     
     const dataString = JSON.stringify(data).toLowerCase();
@@ -438,100 +425,7 @@ export function transformLabReportData(rawData: any): any {
     return null;
   }
 
-  // Handle confidence-based format (patient_information + report_information)
-  if (rawData.patient_information && rawData.report_information) {
-    console.log('Processing confidence-based format with patient_information and report_information');
-    
-    const patientInfo = rawData.patient_information;
-    const reportInfo = rawData.report_information;
-    
-    // Extract patient data from confidence-based structure
-    const patient = {
-      name: extractWithConfidence(patientInfo.patient_name),
-      id: extractWithConfidence(patientInfo.patient_id) || extractWithConfidence(patientInfo.registration_number),
-      age: extractWithConfidence(patientInfo.age),
-      gender: extractWithConfidence(patientInfo.gender),
-      dateOfBirth: null // Not typically in this format
-    };
-
-    // Extract facility and provider info
-    const facility = extractWithConfidence(patientInfo.client) || null;
-    const orderingPhysician = extractWithConfidence(patientInfo.referring_doctor) || null;
-    
-    // Process all test reports and combine tests
-    const allTests: any[] = [];
-    let earliestCollectionDate: string | null = null;
-    let latestReportDate: string | null = null;
-    
-    if (Array.isArray(reportInfo)) {
-      for (const report of reportInfo) {
-        const reportTests = report.tests || [];
-        
-        // Track dates
-        if (report.collected_on && (!earliestCollectionDate || report.collected_on < earliestCollectionDate)) {
-          earliestCollectionDate = report.collected_on;
-        }
-        if (report.reported_on && (!latestReportDate || report.reported_on > latestReportDate)) {
-          latestReportDate = report.reported_on;
-        }
-        
-        // Process tests - group by report type
-        if (reportTests.length > 1) {
-          // Multiple tests = create a profile
-          allTests.push({
-            name: report.report_type,
-            isProfileHeader: true,
-            value: '',
-            unit: '',
-            referenceRange: '',
-            status: 'normal',
-            notes: `Sample: ${report.sample_type || 'Unknown'}`
-          });
-          
-          // Add individual tests as sub-tests
-          reportTests.forEach((test: any) => {
-            allTests.push({
-              name: test.test_name,
-              value: test.result || 'N/A',
-              unit: test.units || '',
-              referenceRange: formatReferenceRange(test.reference_range),
-              status: determineTestStatus(test),
-              notes: test.method ? `Method: ${test.method}` : '',
-              isSubTest: true
-            });
-          });
-        } else if (reportTests.length === 1) {
-          // Single test = standalone
-          const test = reportTests[0];
-          allTests.push({
-            name: test.test_name,
-            value: test.result || 'N/A',
-            unit: test.units || '',
-            referenceRange: formatReferenceRange(test.reference_range),
-            status: determineTestStatus(test),
-            notes: test.method ? `Method: ${test.method}` : ''
-          });
-        }
-      }
-    }
-    
-    const labData = {
-      reportType: 'lab',
-      patient: patient,
-      tests: allTests,
-      facility: facility,
-      orderingPhysician: orderingPhysician,
-      collectionDate: earliestCollectionDate,
-      reportDate: latestReportDate,
-      confidence: allTests.length > 0 ? 0.95 : 0.5,
-      extractedAt: new Date().toISOString()
-    };
-    
-    console.log('Successfully transformed confidence-based format:', labData);
-    return labData;
-  }
-
-  // Find test data arrays (existing logic for other formats)
+  // Find test data arrays
   const testArrayCandidates = [
     rawData.tests,
     rawData.test_results,

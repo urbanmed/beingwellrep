@@ -7,22 +7,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Enhanced system prompt for medical document analysis using GPT-4.1
-const ENHANCED_SYSTEM_PROMPT = `You are an expert medical document analysis AI with extensive knowledge of medical terminology, lab values, prescription formats, and healthcare documentation standards. Your role is to extract comprehensive, structured information from medical documents with high precision.
-
-Key principles:
-1. Extract ALL available information, even if some fields are empty
-2. Maintain medical accuracy and use proper terminology
-3. Preserve hierarchical relationships in test results
-4. Handle various document formats and layouts
-5. Provide confidence assessments for extracted data
-6. Return valid JSON without markdown formatting
-
-Always respond with a JSON object that matches the specified schema exactly. Do not wrap the response in markdown code blocks.`;
+const SYSTEM_PROMPT = `You are a medical document analysis AI that extracts structured data from medical reports, lab results, prescriptions, and other healthcare documents. Analyze the provided document and extract relevant medical information accurately. Structure the data according to medical document standards and return valid JSON only.`;
 
 const getPromptForReportType = (reportType: string) => {
-  // For now, return a simplified prompt - full prompts are in enhanced-prompts.ts
-  return `Extract comprehensive ${reportType} information from this medical document and return structured JSON data.`;
+  const prompts = {
+    'lab_results': 'Extract lab test results with values, units, reference ranges, and status indicators.',
+    'prescription': 'Extract medications with dosages, frequencies, instructions, and prescriber information.',
+    'radiology': 'Extract study details, findings, and radiologist impressions.',
+    'vitals': 'Extract vital signs measurements with values, units, and timestamps.',
+  };
+  return prompts[reportType] || 'Extract relevant medical information and structure it appropriately.';
 };
 
 // File size limit: 20MB
@@ -171,7 +165,7 @@ serve(async (req) => {
           body: JSON.stringify({
             model: 'gpt-4.1-2025-04-14',
             messages: [
-              { role: 'system', content: ENHANCED_SYSTEM_PROMPT },
+              { role: 'system', content: SYSTEM_PROMPT },
               { role: 'user', content: `${prompt}\n\nDocument text:\n${extractedText}` }
             ],
             max_tokens: 8000,
@@ -204,7 +198,7 @@ serve(async (req) => {
         body: JSON.stringify({
             model: 'gpt-4.1-2025-04-14',
           messages: [
-            { role: 'system', content: ENHANCED_SYSTEM_PROMPT },
+            { role: 'system', content: SYSTEM_PROMPT },
             { 
               role: 'user', 
               content: [
@@ -256,7 +250,7 @@ serve(async (req) => {
         extracted_text: aiResponse,
         parsed_data: parsedData,
         parsing_confidence: confidence,
-        parsing_model: 'gpt-4.1-2025-04-14',
+        parsing_model: 'gpt-4o-mini',
         processing_error: null
       })
       .eq('id', reportId)
