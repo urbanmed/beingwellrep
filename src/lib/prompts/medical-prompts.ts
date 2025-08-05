@@ -200,6 +200,13 @@ export function generateSmartTags(parsedData: any): string[] {
         if (test.status === 'critical') {
           tags.add('critical');
         }
+        // Add specific lab test categories
+        const testName = test.name?.toLowerCase() || '';
+        if (testName.includes('blood') || testName.includes('cbc')) tags.add('blood-work');
+        if (testName.includes('glucose') || testName.includes('a1c')) tags.add('diabetes');
+        if (testName.includes('cholesterol') || testName.includes('lipid')) tags.add('lipids');
+        if (testName.includes('liver') || testName.includes('alt') || testName.includes('ast')) tags.add('liver-function');
+        if (testName.includes('kidney') || testName.includes('creatinine') || testName.includes('bun')) tags.add('kidney-function');
       });
       break;
       
@@ -207,18 +214,54 @@ export function generateSmartTags(parsedData: any): string[] {
       parsedData.medications?.forEach((med: any) => {
         if (med.name) {
           const medName = med.name.toLowerCase();
-          if (medName.includes('insulin')) tags.add('diabetes');
-          if (medName.includes('lisinopril') || medName.includes('amlodipine')) tags.add('hypertension');
-          if (medName.includes('metformin')) tags.add('diabetes');
-          if (medName.includes('statin') || medName.includes('atorvastatin')) tags.add('cholesterol');
+          // Diabetes medications
+          if (medName.includes('insulin') || medName.includes('metformin') || medName.includes('glipizide')) {
+            tags.add('diabetes');
+          }
+          // Blood pressure medications
+          if (medName.includes('lisinopril') || medName.includes('amlodipine') || medName.includes('losartan')) {
+            tags.add('hypertension');
+          }
+          // Cholesterol medications
+          if (medName.includes('statin') || medName.includes('atorvastatin') || medName.includes('simvastatin')) {
+            tags.add('cholesterol');
+          }
+          // Pain medications
+          if (medName.includes('ibuprofen') || medName.includes('acetaminophen') || medName.includes('naproxen')) {
+            tags.add('pain-management');
+          }
+          // Antibiotics
+          if (medName.includes('amoxicillin') || medName.includes('azithromycin') || medName.includes('cephalexin')) {
+            tags.add('antibiotics');
+          }
         }
       });
       break;
       
     case 'radiology':
+      if (parsedData.study?.type) {
+        const studyType = parsedData.study.type.toLowerCase();
+        if (studyType.includes('ct')) tags.add('ct-scan');
+        if (studyType.includes('mri')) tags.add('mri');
+        if (studyType.includes('x-ray') || studyType.includes('xray')) tags.add('x-ray');
+        if (studyType.includes('ultrasound')) tags.add('ultrasound');
+        if (studyType.includes('mammogram')) tags.add('mammogram');
+      }
+      
       parsedData.findings?.forEach((finding: any) => {
         if (finding.severity === 'abnormal' || finding.severity === 'severe') {
           tags.add('abnormal');
+        }
+        if (finding.category) {
+          tags.add(finding.category.toLowerCase().replace(/\s+/g, '-'));
+        }
+      });
+      break;
+      
+    case 'vitals':
+      parsedData.vitals?.forEach((vital: any) => {
+        if (vital.type) {
+          tags.add(vital.type.replace('_', '-'));
         }
       });
       break;
@@ -230,6 +273,18 @@ export function generateSmartTags(parsedData: any): string[] {
     if (facility.includes('emergency') || facility.includes('er')) tags.add('emergency');
     if (facility.includes('lab')) tags.add('laboratory');
     if (facility.includes('imaging') || facility.includes('radiology')) tags.add('imaging');
+    if (facility.includes('hospital')) tags.add('hospital');
+    if (facility.includes('clinic')) tags.add('clinic');
+  }
+  
+  // Add provider specialty tags
+  if (parsedData.provider || parsedData.prescriber || parsedData.orderingPhysician) {
+    const provider = (parsedData.provider || parsedData.prescriber || parsedData.orderingPhysician || '').toLowerCase();
+    if (provider.includes('cardiologist')) tags.add('cardiology');
+    if (provider.includes('endocrinologist')) tags.add('endocrinology');
+    if (provider.includes('neurologist')) tags.add('neurology');
+    if (provider.includes('orthopedic')) tags.add('orthopedics');
+    if (provider.includes('dermatologist')) tags.add('dermatology');
   }
   
   return Array.from(tags);

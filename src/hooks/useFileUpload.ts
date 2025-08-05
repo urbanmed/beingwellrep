@@ -177,25 +177,25 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
             idx === i ? { ...f, progress: 75, reportId } : f
           ));
 
-          // Start OCR processing
+          // Start document processing
           setUploadFileStates(prev => prev.map((f, idx) => 
             idx === i ? { ...f, status: 'processing', progress: 80 } : f
           ));
 
-          // Call OCR function
-          const { error: ocrError } = await supabase.functions.invoke('process-ocr', {
+          // Call document processing function
+          const { error: processingError } = await supabase.functions.invoke('process-medical-document', {
             body: { reportId }
           });
 
-          if (ocrError) {
-            console.warn('OCR processing failed:', ocrError);
-            // Don't throw error here - file upload succeeded, OCR can be retried
+          if (processingError) {
+            console.warn('Document processing failed:', processingError);
+            // Don't throw error here - file upload succeeded, processing can be retried
             setUploadFileStates(prev => prev.map((f, idx) => 
               idx === i ? { 
                 ...f, 
                 status: 'failed', 
                 progress: 100,
-                error: 'OCR processing failed - can be retried'
+                error: 'Document processing failed - can be retried'
               } : f
             ));
           } else {

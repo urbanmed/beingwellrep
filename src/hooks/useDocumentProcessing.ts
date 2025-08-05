@@ -1,0 +1,156 @@
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { validateMedicalData, checkForDuplicates } from '@/lib/utils/medical-data-validator';
+import { generateSmartTags } from '@/lib/prompts/medical-prompts';
+import type { DocumentParsingResult } from '@/types/medical-data';
+
+export function useDocumentProcessing() {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
+
+  const processDocument = async (reportId: string): Promise<DocumentParsingResult> => {
+    setIsProcessing(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('process-medical-document', {
+        body: { reportId }
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || 'Document processing failed');
+      }
+
+      // Validate the parsed data if available
+      let validationResult = null;
+      if (data.parsedData) {
+        validationResult = validateMedicalData(data.parsedData);
+        
+        if (!validationResult.isValid) {
+          console.warn('Validation issues found:', validationResult.errors);
+        }
+      }
+
+      // Generate smart tags
+      const smartTags = data.parsedData ? generateSmartTags(data.parsedData) : [];
+
+      // Update the report with smart tags if any were generated
+      if (smartTags.length > 0) {
+        await supabase
+          .from('reports')
+          .update({ tags: smartTags })
+          .eq('id', reportId);
+      }
+
+      const result: DocumentParsingResult = {
+        success: true,
+        data: data.parsedData,
+        confidence: data.confidence,
+        model: 'gpt-4o-mini',
+        processingTime: data.processingTime
+      };
+
+      if (validationResult) {
+        result.errors = validationResult.errors;
+      }
+
+      return result;
+
+    } catch (error) {
+      console.error('Document processing error:', error);
+      
+      const result: DocumentParsingResult = {
+        success: false,
+        confidence: 0,
+        model: 'gpt-4o-mini',
+        errors: [error.message]
+      };
+
+      toast({
+        title: 'Processing Failed',
+        description: 'Failed to process the document. Please try again.',
+        variant: 'destructive'
+      });
+
+      return result;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const checkDuplicateDocument = async (reportId: string): Promise<{
+    isDuplicate: boolean;
+    similarity: number;
+    matchedReport?: any;
+  }> => {
+    try {
+      // Get the current report
+      const { data: currentReport, error: currentError } = await supabase
+        .from('reports')
+        .select('parsed_data')
+        .eq('id', reportId)
+        .single();
+
+      if (currentError || !currentReport?.parsed_data) {
+        return { isDuplicate: false, similarity: 0 };
+      }
+
+      // Get other reports from the same user
+      const { data: otherReports, error: otherError } = await supabase
+        .from('reports')
+        .select('id, title, parsed_data, report_date')
+        .neq('id', reportId);
+
+      if (otherError || !otherReports) {
+        return { isDuplicate: false, similarity: 0 };
+      }
+
+      return checkForDuplicates(currentReport.parsed_data as any, otherReports);
+
+    } catch (error) {
+      console.error('Duplicate check error:', error);
+      return { isDuplicate: false, similarity: 0 };
+    }
+  };
+
+  const reprocessDocument = async (reportId: string): Promise<void> => {
+    try {
+      // Reset the document status
+      await supabase
+        .from('reports')
+        .update({
+          parsing_status: 'pending',
+          parsed_data: null,
+          extraction_confidence: null,
+          parsing_confidence: null,
+          processing_error: null
+        })
+        .eq('id', reportId);
+
+      // Start reprocessing
+      await processDocument(reportId);
+
+      toast({
+        title: 'Success',
+        description: 'Document reprocessing started',
+      });
+
+    } catch (error) {
+      console.error('Reprocessing error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to start reprocessing',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  return {
+    processDocument,
+    checkDuplicateDocument,
+    reprocessDocument,
+    isProcessing
+  };
+}

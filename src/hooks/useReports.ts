@@ -96,10 +96,10 @@ export function useReports() {
       // Refresh the list
       await fetchReports();
     } catch (error) {
-      console.error('Error retrying OCR:', error);
+      console.error('Error retrying document processing:', error);
       toast({
         title: 'Error',
-        description: 'Failed to retry OCR processing',
+        description: 'Failed to retry document processing',
         variant: 'destructive',
       });
     }
