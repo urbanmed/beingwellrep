@@ -40,6 +40,35 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
       // First try the parsed_data
       if (report.parsed_data) {
         console.log('Using parsed_data:', report.parsed_data);
+        
+        // Check if parsed_data contains a rawResponse property with stringified JSON
+        if (typeof report.parsed_data === 'object' && 'rawResponse' in report.parsed_data) {
+          const rawResponse = (report.parsed_data as any).rawResponse;
+          console.log('Found rawResponse in parsed_data:', rawResponse);
+          
+          if (typeof rawResponse === 'string') {
+            // Parse the stringified JSON from rawResponse
+            const parsedFromRaw = parseExtractedTextAsJSON(rawResponse);
+            console.log('Parsed JSON from rawResponse:', parsedFromRaw);
+            
+            if (parsedFromRaw) {
+              // Transform lab report data if it matches that structure
+              const transformedData = transformLabReportData(parsedFromRaw);
+              console.log('Transformed lab data from rawResponse:', transformedData);
+              
+              if (transformedData && transformedData.tests && transformedData.tests.length > 0) {
+                return transformedData;
+              }
+              
+              // Create fallback structure for other JSON data
+              const fallbackData = createFallbackDataStructure(parsedFromRaw);
+              console.log('Fallback data structure from rawResponse:', fallbackData);
+              return fallbackData;
+            }
+          }
+        }
+        
+        // If no rawResponse or it's already structured, return as-is
         return report.parsed_data;
       }
 
