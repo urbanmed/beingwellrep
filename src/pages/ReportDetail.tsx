@@ -31,23 +31,33 @@ export default function ReportDetail() {
 
   useEffect(() => {
     const fetchReport = async () => {
-      if (!id) return;
+      if (!id) {
+        console.error('No report ID provided');
+        navigate('/reports');
+        return;
+      }
 
       try {
+        console.log('Fetching report with ID:', id);
+        
         const { data, error } = await supabase
           .from('reports')
           .select('*')
           .eq('id', id)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
 
+        console.log('Report data fetched:', data);
         setReport(data);
       } catch (error) {
         console.error('Error fetching report:', error);
         toast({
           title: "Error",
-          description: "Failed to load report details",
+          description: "Failed to load report details. Please check if the report exists.",
           variant: "destructive",
         });
         navigate('/reports');

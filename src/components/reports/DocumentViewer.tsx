@@ -4,6 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Eye, Download, ExternalLink } from "lucide-react";
 import type { ParsedMedicalData } from "@/types/medical-data";
+import { 
+  parseExtractedTextAsJSON, 
+  transformLabReportData, 
+  createFallbackDataStructure 
+} from "@/lib/utils/extracted-text-parser";
 
 interface DocumentViewerProps {
   report: {
@@ -27,6 +32,30 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
     if (report.file_url) {
       window.open(report.file_url, '_blank');
     }
+  };
+
+  // Try to get structured data from either parsed_data or extracted_text
+  const getStructuredData = (): ParsedMedicalData | null => {
+    if (report.parsed_data) {
+      return report.parsed_data;
+    }
+
+    if (report.extracted_text) {
+      // Try to parse extracted_text as JSON
+      const parsedFromText = parseExtractedTextAsJSON(report.extracted_text);
+      if (parsedFromText) {
+        // Transform lab report data if it matches that structure
+        const transformedData = transformLabReportData(parsedFromText);
+        if (transformedData) {
+          return transformedData;
+        }
+        
+        // Create fallback structure for other JSON data
+        return createFallbackDataStructure(parsedFromText);
+      }
+    }
+
+    return null;
   };
 
   const renderStructuredData = (data: ParsedMedicalData) => {
@@ -221,26 +250,40 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
       <Separator />
 
       {/* Structured Data */}
-      {report.parsed_data ? (
-        <div>
-          <h4 className="font-semibold mb-4">Structured Data</h4>
-          {renderStructuredData(report.parsed_data)}
-        </div>
-      ) : report.extracted_text ? (
-        <div>
-          <h4 className="font-semibold mb-4">Extracted Text</h4>
-          <Card className="p-4">
-            <pre className="whitespace-pre-wrap text-sm">{report.extracted_text}</pre>
-          </Card>
-        </div>
-      ) : (
-        <div className="text-center py-8 text-muted-foreground">
-          {report.parsing_status === 'pending' ? 
-            'Document processing pending...' :
-            'No data extracted from document'
-          }
-        </div>
-      )}
+      {(() => {
+        const structuredData = getStructuredData();
+        
+        if (structuredData) {
+          return (
+            <div>
+              <h4 className="font-semibold mb-4">
+                {report.parsed_data ? 'Structured Data' : 'Processed Data'}
+              </h4>
+              {renderStructuredData(structuredData)}
+            </div>
+          );
+        }
+
+        if (report.extracted_text) {
+          return (
+            <div>
+              <h4 className="font-semibold mb-4">Extracted Text</h4>
+              <Card className="p-4">
+                <pre className="whitespace-pre-wrap text-sm">{report.extracted_text}</pre>
+              </Card>
+            </div>
+          );
+        }
+
+        return (
+          <div className="text-center py-8 text-muted-foreground">
+            {report.parsing_status === 'pending' ? 
+              'Document processing pending...' :
+              'No data extracted from document'
+            }
+          </div>
+        );
+      })()}
     </div>
   );
 }
