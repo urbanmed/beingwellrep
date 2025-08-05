@@ -41,7 +41,10 @@ export function useAutoMetadataExtraction() {
         updateData.title = metadata.title;
       }
       
-      if (metadata.reportType && metadata.reportType !== 'unknown' && metadata.reportType !== 'general') {
+      if (metadata.reportType && 
+          metadata.reportType !== 'general' && 
+          metadata.reportType !== 'unknown' &&
+          ['lab_results', 'radiology', 'procedure', 'pathology', 'consultation', 'prescription', 'vaccination', 'discharge', 'allergy', 'mental_health', 'general'].includes(metadata.reportType)) {
         updateData.report_type = metadata.reportType;
       }
       

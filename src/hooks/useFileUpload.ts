@@ -151,7 +151,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 
           // Create report record with default values if not provided
           const defaultTitle = title || `Document uploaded ${new Date().toLocaleDateString()}`;
-          const defaultReportType = reportType || 'unknown';
+          const defaultReportType = reportType || 'general';
           
           const { data: reportData, error: reportError } = await supabase
             .from('reports')
