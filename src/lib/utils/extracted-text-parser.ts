@@ -91,8 +91,21 @@ function flattenTestResults(tests: any[]): any[] {
   const flattened: any[] = [];
   
   for (const test of tests) {
-    // Handle test profiles with sub-results
-    if (test.profile && test.results && Array.isArray(test.results)) {
+    // Handle different data structures we encounter
+    
+    // Structure 1: test has test_name and results object
+    if (test.test_name && test.results && typeof test.results === 'object') {
+      flattened.push({
+        name: test.test_name,
+        value: test.results.value || test.results.result || 'N/A',
+        unit: test.results.unit || test.unit || '',
+        referenceRange: formatReferenceRange(test.results.reference_range || test.results.normal_range || test.reference_range),
+        status: determineTestStatus(test.results || test),
+        notes: test.results.interpretation || test.results.comments || test.results.notes || test.interpretation || ''
+      });
+    }
+    // Structure 2: test profiles with sub-results array
+    else if (test.profile && test.results && Array.isArray(test.results)) {
       // Add the profile header
       flattened.push({
         name: test.profile,
@@ -107,7 +120,7 @@ function flattenTestResults(tests: any[]): any[] {
       // Add sub-tests
       for (const subTest of test.results) {
         flattened.push({
-          name: `  ${subTest.test}`, // Indent sub-tests
+          name: `  ${subTest.test || subTest.test_name || subTest.name}`, // Indent sub-tests
           value: subTest.result || subTest.value || 'N/A',
           unit: subTest.unit || '',
           referenceRange: formatReferenceRange(subTest.reference_range || subTest.normal_range),
@@ -116,8 +129,9 @@ function flattenTestResults(tests: any[]): any[] {
           isSubTest: true
         });
       }
-    } else {
-      // Handle regular tests
+    }
+    // Structure 3: Simple test object with direct properties
+    else {
       flattened.push({
         name: test.test || test.name || test.test_name || 'Unknown Test',
         value: test.result || test.value || 'N/A',
@@ -160,7 +174,13 @@ function formatReferenceRange(range: any): string {
 function determineTestStatus(test: any): string {
   // Check explicit status field
   if (test.status) {
-    return test.status.toLowerCase();
+    const status = test.status.toLowerCase();
+    // Normalize common status variations
+    if (status.includes('high') || status.includes('elevated')) return 'high';
+    if (status.includes('low') || status.includes('decreased')) return 'low';
+    if (status.includes('critical') || status.includes('panic')) return 'critical';
+    if (status.includes('abnormal') || status.includes('abnorm')) return 'abnormal';
+    return status;
   }
 
   // Check abnormal flags
@@ -173,18 +193,42 @@ function determineTestStatus(test: any): string {
     return 'critical';
   }
 
-  // Check if result is outside reference range (basic logic)
-  if (test.reference_range && test.result) {
-    const result = parseFloat(test.result);
-    if (!isNaN(result) && typeof test.reference_range === 'string') {
-      const rangeMatch = test.reference_range.match(/(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/);
+  // Check high/low flags
+  if (test.high_flag || test.high) {
+    return 'high';
+  }
+  
+  if (test.low_flag || test.low) {
+    return 'low';
+  }
+
+  // Check result value vs reference range for numeric values
+  const value = test.value || test.result;
+  const refRange = test.reference_range || test.normal_range;
+  
+  if (value && refRange && typeof refRange === 'string') {
+    const numericValue = parseFloat(String(value));
+    if (!isNaN(numericValue)) {
+      // Try to parse range like "10-20", "< 5", "> 100", etc.
+      const rangeMatch = refRange.match(/(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/);
       if (rangeMatch) {
         const [, min, max] = rangeMatch;
         const minVal = parseFloat(min);
         const maxVal = parseFloat(max);
-        if (result < minVal || result > maxVal) {
-          return 'abnormal';
-        }
+        if (numericValue < minVal) return 'low';
+        if (numericValue > maxVal) return 'high';
+      }
+      
+      // Handle "< X" format
+      const lessThanMatch = refRange.match(/<\s*(\d+\.?\d*)/);
+      if (lessThanMatch && numericValue >= parseFloat(lessThanMatch[1])) {
+        return 'high';
+      }
+      
+      // Handle "> X" format
+      const greaterThanMatch = refRange.match(/>\s*(\d+\.?\d*)/);
+      if (greaterThanMatch && numericValue <= parseFloat(greaterThanMatch[1])) {
+        return 'low';
       }
     }
   }
