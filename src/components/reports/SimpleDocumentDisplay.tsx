@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, FileText, Eye } from "lucide-react";
-import { useState } from "react";
+import { ExternalLink, FileText } from "lucide-react";
+
+import { supabase } from "@/integrations/supabase/client";
 
 interface SimpleDocumentDisplayProps {
   report: {
@@ -12,11 +13,26 @@ interface SimpleDocumentDisplayProps {
 }
 
 export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
-  const [showText, setShowText] = useState(false);
+  // Construct the proper Supabase storage URL
+  const getDocumentUrl = () => {
+    if (!report.file_url) return null;
+    
+    try {
+      const { data } = supabase.storage
+        .from('medical-documents')
+        .getPublicUrl(report.file_url);
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error constructing document URL:', error);
+      return null;
+    }
+  };
+
+  const documentUrl = getDocumentUrl();
 
   const handleViewOriginal = () => {
-    if (report.file_url) {
-      window.open(report.file_url, '_blank');
+    if (documentUrl) {
+      window.open(documentUrl, '_blank');
     }
   };
 
@@ -42,12 +58,12 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
         </CardHeader>
         
         <CardContent>
-          {report.file_url ? (
+          {documentUrl ? (
             <div className="space-y-4">
               {isPDF ? (
                 <div className="border rounded-lg overflow-hidden">
                   <iframe
-                    src={report.file_url}
+                    src={documentUrl}
                     className="w-full h-96"
                     title={`${report.title} - Original Document`}
                   />
@@ -55,7 +71,7 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
               ) : (
                 <div className="border rounded-lg overflow-hidden">
                   <img
-                    src={report.file_url}
+                    src={documentUrl}
                     alt={`${report.title} - Original Document`}
                     className="w-full h-auto max-h-96 object-contain"
                   />
@@ -72,36 +88,6 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
         </CardContent>
       </Card>
 
-      {/* Extracted Text Section */}
-      {report.extracted_text && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Eye className="h-5 w-5" />
-                Extracted Text
-              </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowText(!showText)}
-              >
-                {showText ? 'Hide' : 'Show'} Text
-              </Button>
-            </div>
-          </CardHeader>
-          
-          {showText && (
-            <CardContent>
-              <div className="bg-muted/50 rounded-lg p-4 max-h-96 overflow-y-auto">
-                <pre className="whitespace-pre-wrap text-sm font-mono">
-                  {report.extracted_text}
-                </pre>
-              </div>
-            </CardContent>
-          )}
-        </Card>
-      )}
     </div>
   );
 }
