@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Camera, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Camera, FileText, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { ReportTypeSelector } from "@/components/upload/ReportTypeSelector";
 import { UploadProgress } from "@/components/upload/UploadProgress";
 import { RecentUploads } from "@/components/upload/RecentUploads";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useMetadataExtraction } from "@/hooks/useMetadataExtraction";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Upload() {
@@ -40,10 +41,24 @@ export default function Upload() {
     }
   });
 
-  const handleFileSelect = (files: File[]) => {
+  const { extractMetadata, isExtracting } = useMetadataExtraction();
+
+  const handleFileSelect = async (files: File[]) => {
     setSelectedFiles(files);
     if (files.length > 0 && !showUploadForm) {
       setShowUploadForm(true);
+      
+      // Extract metadata from the first file to pre-populate form
+      if (files[0]) {
+        const metadata = await extractMetadata(files[0]);
+        if (metadata) {
+          if (metadata.title) setTitle(metadata.title);
+          if (metadata.reportType) setReportType(metadata.reportType);
+          if (metadata.description) setDescription(metadata.description);
+          if (metadata.physicianName) setPhysicianName(metadata.physicianName);
+          if (metadata.facilityName) setFacilityName(metadata.facilityName);
+        }
+      }
     }
   };
 
@@ -112,7 +127,14 @@ export default function Upload() {
           <CardHeader>
             <CardTitle>Document Details</CardTitle>
             <CardDescription>
-              Provide details about your medical documents
+              {isExtracting ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Analyzing document to auto-fill fields...
+                </span>
+              ) : (
+                "Provide details about your medical documents"
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
