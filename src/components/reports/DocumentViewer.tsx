@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Eye, Download, ExternalLink } from "lucide-react";
 import type { ParsedMedicalData } from "@/types/medical-data";
 import { PatientInfoCard } from "./PatientInfoCard";
+import { DoctorInfoCard } from "./DoctorInfoCard";
 import { 
   parseExtractedTextAsJSON, 
   transformLabReportData, 
@@ -177,42 +178,13 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
       {/* Patient Information */}
       {renderPatientInfo(data.patient)}
       
-      {/* Lab Metadata */}
-      {(data.facility || data.orderingPhysician || data.collectionDate) && (
-        <Card>
-          <CardContent className="p-4">
-            <h4 className="font-semibold mb-4 text-lg">Lab Information</h4>
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {data.facility && (
-                  <div className="flex flex-col space-y-1">
-                    <Label className="text-muted-foreground">Facility</Label>
-                    <span className="font-medium">{data.facility}</span>
-                  </div>
-                )}
-                {data.orderingPhysician && (
-                  <div className="flex flex-col space-y-1">
-                    <Label className="text-muted-foreground">Ordering Physician</Label>
-                    <span className="font-medium">{data.orderingPhysician}</span>
-                  </div>
-                )}
-                {data.collectionDate && (
-                  <div className="flex flex-col space-y-1">
-                    <Label className="text-muted-foreground">Collection Date</Label>
-                    <span className="font-medium">{new Date(data.collectionDate).toLocaleDateString()}</span>
-                  </div>
-                )}
-                {data.reportDate && (
-                  <div className="flex flex-col space-y-1">
-                    <Label className="text-muted-foreground">Report Date</Label>
-                    <span className="font-medium">{new Date(data.reportDate).toLocaleDateString()}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Doctor/Facility Information */}
+      <DoctorInfoCard 
+        facility={data.facility}
+        orderingPhysician={data.orderingPhysician}
+        collectionDate={data.collectionDate}
+        reportDate={data.reportDate}
+      />
 
       {/* Test Results */}
       <div>
@@ -280,6 +252,13 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
       {/* Patient Information */}
       {renderPatientInfo(data.patient)}
       
+      {/* Doctor/Facility Information */}
+      <DoctorInfoCard 
+        facility={data.facility}
+        orderingPhysician={data.orderingPhysician || data.prescribingPhysician}
+        reportDate={data.prescriptionDate || data.reportDate}
+      />
+      
       <h4 className="font-semibold">Medications</h4>
       {data.medications?.map((med: any, index: number) => (
         <Card key={index} className="p-4">
@@ -304,6 +283,13 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
     <div className="space-y-4">
       {/* Patient Information */}
       {renderPatientInfo(data.patient)}
+      
+      {/* Doctor/Facility Information */}
+      <DoctorInfoCard 
+        facility={data.facility}
+        orderingPhysician={data.orderingPhysician || data.radiologist}
+        reportDate={data.studyDate || data.reportDate}
+      />
       
       <h4 className="font-semibold">Radiology Report</h4>
       {data.study && (
@@ -351,6 +337,13 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
       {/* Patient Information */}
       {renderPatientInfo(data.patient)}
       
+      {/* Doctor/Facility Information */}
+      <DoctorInfoCard 
+        facility={data.facility}
+        orderingPhysician={data.orderingPhysician || data.recordingPhysician}
+        reportDate={data.recordDate || data.reportDate}
+      />
+      
       <h4 className="font-semibold">Vital Signs</h4>
       {data.vitals?.map((vital: any, index: number) => (
         <Card key={index} className="p-4">
@@ -387,6 +380,13 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
       <div className="space-y-4">
         {/* Patient Information */}
         {renderPatientInfo(data.patient)}
+        
+        {/* Doctor/Facility Information */}
+        <DoctorInfoCard 
+          facility={data.facility}
+          orderingPhysician={data.orderingPhysician || data.physician}
+          reportDate={data.reportDate}
+        />
         
         {/* Document Sections */}
         {data.sections && data.sections.length > 0 ? (
