@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sparkles, Eye, Download, MoreVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -15,6 +16,7 @@ interface ReportActionsProps {
 }
 
 export function ReportActions({ reportId, ocrStatus, onView, onDownload, onDelete }: ReportActionsProps) {
+  const navigate = useNavigate();
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { deleteReport } = useReports();
@@ -37,12 +39,10 @@ export function ReportActions({ reportId, ocrStatus, onView, onDownload, onDelet
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {onView && (
-            <DropdownMenuItem onClick={onView}>
-              <Eye className="h-4 w-4 mr-2" />
-              View Report
-            </DropdownMenuItem>
-          )}
+          <DropdownMenuItem onClick={() => navigate(`/reports/${reportId}`)}>
+            <Eye className="h-4 w-4 mr-2" />
+            View Report
+          </DropdownMenuItem>
           
           {ocrStatus === 'completed' && (
             <DropdownMenuItem onClick={() => setShowGenerateDialog(true)}>

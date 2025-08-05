@@ -200,7 +200,11 @@ export default function Reports() {
 
           <div className="grid gap-4">
             {filteredReports.map((report) => (
-              <Card key={report.id}>
+              <Card 
+                key={report.id} 
+                className="cursor-pointer transition-colors hover:bg-accent/5"
+                onClick={() => navigate(`/reports/${report.id}`)}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-4 flex-1">
@@ -208,6 +212,7 @@ export default function Reports() {
                         checked={selectedForDeletion.includes(report.id)}
                         onCheckedChange={(checked) => handleSelectReport(report.id, checked as boolean)}
                         className="mt-1"
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <div className="mt-1">
                         {getOCRStatusIcon(report.parsing_status)}
@@ -266,10 +271,12 @@ export default function Reports() {
                       </div>
                     </div>
                     
-                    <ReportActions
-                      reportId={report.id}
-                      ocrStatus={report.parsing_status}
-                    />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <ReportActions
+                        reportId={report.id}
+                        ocrStatus={report.parsing_status}
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>

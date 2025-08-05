@@ -23,10 +23,10 @@ export default function Timeline() {
   const [selectedItem, setSelectedItem] = useState<TimelineItemType | null>(null);
 
   const handleViewDetails = (item: TimelineItemType) => {
-    if (item.type === 'report') {
-      navigate('/reports');
+    if (item.type === 'summary') {
+      navigate(`/summaries?id=${item.id}`);
     } else {
-      navigate('/summaries');
+      navigate(`/reports/${item.id}`);
     }
   };
 
