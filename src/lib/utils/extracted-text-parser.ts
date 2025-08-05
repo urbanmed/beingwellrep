@@ -13,39 +13,89 @@ export function parseExtractedTextAsJSON(extractedText: string): any | null {
     return null;
   }
 
-  // Clean up markdown code blocks
+  console.log('Parsing extracted text, length:', extractedText.length);
+
+  // Clean up markdown code blocks more thoroughly
   let cleanedText = stripMarkdownCodeBlocks(extractedText);
+  
+  // Remove any trailing content after the last valid JSON character
+  const lastBrace = cleanedText.lastIndexOf('}');
+  const lastBracket = cleanedText.lastIndexOf(']');
+  const lastValidChar = Math.max(lastBrace, lastBracket);
+  
+  if (lastValidChar > 0 && lastValidChar < cleanedText.length - 1) {
+    console.log('Truncating text at last valid JSON character');
+    cleanedText = cleanedText.substring(0, lastValidChar + 1);
+  }
   
   // Try standard JSON parsing first
   try {
-    return JSON.parse(cleanedText);
+    const result = JSON.parse(cleanedText);
+    console.log('Standard JSON parsing successful');
+    return result;
   } catch (error) {
-    console.warn('Standard JSON parsing failed, attempting repair...', error);
+    console.warn('Standard JSON parsing failed:', error.message);
+  }
+
+  // Try chunked parsing for large JSON
+  const chunkResult = attemptChunkedParsing(cleanedText);
+  if (chunkResult) {
+    console.log('Chunked parsing successful');
+    return chunkResult;
   }
 
   // Try to repair truncated JSON
   const repairedJson = repairTruncatedJson(cleanedText);
   if (repairedJson) {
     try {
-      return JSON.parse(repairedJson);
+      const result = JSON.parse(repairedJson);
+      console.log('Repaired JSON parsing successful');
+      return result;
     } catch (error) {
-      console.warn('Repaired JSON parsing failed:', error);
+      console.warn('Repaired JSON parsing failed:', error.message);
     }
   }
 
   // Try partial parsing strategies
   const partialResult = attemptPartialParsing(cleanedText);
   if (partialResult) {
+    console.log('Partial parsing successful');
     return partialResult;
   }
 
   // Final fallback: try to extract any JSON-like structures
   const extractedJson = extractJsonStructures(cleanedText);
   if (extractedJson) {
+    console.log('JSON structure extraction successful');
     return extractedJson;
   }
 
   console.warn('All JSON parsing attempts failed for text:', cleanedText.substring(0, 200) + '...');
+  return null;
+}
+
+// Attempt chunked parsing for large JSON that might be partially corrupt
+function attemptChunkedParsing(text: string): any | null {
+  // Look for the start of a JSON object or array
+  const startIndex = Math.max(text.indexOf('{'), text.indexOf('['));
+  if (startIndex === -1) return null;
+
+  // Try parsing progressively smaller chunks from the start
+  const maxLength = Math.min(text.length, 50000); // Limit chunk size
+  
+  for (let length = maxLength; length >= 1000; length -= 1000) {
+    const chunk = text.substring(startIndex, startIndex + length);
+    const repairedChunk = repairTruncatedJson(chunk);
+    
+    if (repairedChunk) {
+      try {
+        return JSON.parse(repairedChunk);
+      } catch {
+        // Continue to smaller chunk
+      }
+    }
+  }
+  
   return null;
 }
 
@@ -85,20 +135,45 @@ function repairTruncatedJson(text: string): string | null {
 
 // Try to parse partial JSON structures
 function attemptPartialParsing(text: string): any | null {
-  // Look for complete JSON objects within the text
-  const jsonObjectPattern = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
-  const matches = text.match(jsonObjectPattern);
+  // Look for complete JSON objects within the text - improved pattern
+  const patterns = [
+    // Complete objects with nested structures
+    /\{(?:[^{}]|(?:\{[^{}]*\}))*\}/g,
+    // Arrays of objects
+    /\[(?:[^\[\]]|(?:\[[^\[\]]*\]))*\]/g,
+    // Simple key-value objects
+    /\{[^{}]+\}/g
+  ];
   
-  if (matches && matches.length > 0) {
-    // Try parsing the first complete-looking object
-    for (const match of matches) {
-      try {
-        const parsed = JSON.parse(match);
-        if (parsed && typeof parsed === 'object') {
-          return parsed;
+  for (const pattern of patterns) {
+    const matches = text.match(pattern);
+    
+    if (matches && matches.length > 0) {
+      // Sort by length descending to try larger, more complete objects first
+      const sortedMatches = matches.sort((a, b) => b.length - a.length);
+      
+      for (const match of sortedMatches) {
+        try {
+          const parsed = JSON.parse(match);
+          if (parsed && typeof parsed === 'object') {
+            console.log('Partial parsing found valid object, size:', Object.keys(parsed).length);
+            return parsed;
+          }
+        } catch (error) {
+          // Try repairing this match
+          const repaired = repairTruncatedJson(match);
+          if (repaired) {
+            try {
+              const parsed = JSON.parse(repaired);
+              if (parsed && typeof parsed === 'object') {
+                console.log('Partial parsing with repair successful');
+                return parsed;
+              }
+            } catch {
+              // Continue to next match
+            }
+          }
         }
-      } catch (error) {
-        console.warn('Partial parsing attempt failed for match:', match.substring(0, 100));
       }
     }
   }
@@ -401,26 +476,29 @@ function flattenTestResults(tests: any[]): any[] {
     
     // Structure 1: test has test_name and results object with nested properties
     if (test.test_name && test.results && typeof test.results === 'object' && !Array.isArray(test.results)) {
-      console.log('Structure 1: test_name with results object');
+      console.log('Structure 1: test_name with results object', test.test_name);
       
       // Check if results object contains multiple test results as key-value pairs
       if (Object.keys(test.results).length > 1 && !test.results.value && !test.results.result) {
-        console.log('Multiple nested test results found');
+        console.log('Multiple nested test results found, keys:', Object.keys(test.results));
         // This is a nested structure where each key in results is a separate test
         Object.entries(test.results).forEach(([testKey, testData]: [string, any]) => {
           if (typeof testData === 'object' && testData !== null) {
+            console.log(`Processing nested test: ${testKey}`, testData);
             flattened.push({
-              name: `${test.test_name} - ${testKey}`,
-              value: testData.value || testData.result || testData.level || 'N/A',
-              unit: testData.unit || testData.units || '',
-              referenceRange: formatReferenceRange(testData.reference_range || testData.normal_range),
+              name: `${test.test_name} - ${testKey.replace(/_/g, ' ')}`,
+              value: testData.result || testData.value || testData.level || testData.measurement || 'N/A',
+              unit: testData.units || testData.unit || '',
+              referenceRange: formatReferenceRange(testData.reference_interval || testData.reference_range || testData.normal_range || testData.ref_range),
               status: determineTestStatus(testData),
-              notes: Array.isArray(testData.interpretation) ? testData.interpretation.join(', ') : testData.interpretation || testData.comments || testData.notes || ''
+              notes: Array.isArray(testData.interpretation) ? testData.interpretation.join(', ') : 
+                     testData.interpretation || testData.comments || testData.notes || testData.flag || ''
             });
           } else {
             // Simple key-value pair
+            console.log(`Processing simple test: ${testKey} = ${testData}`);
             flattened.push({
-              name: `${test.test_name} - ${testKey}`,
+              name: `${test.test_name} - ${testKey.replace(/_/g, ' ')}`,
               value: String(testData),
               unit: '',
               referenceRange: '',
@@ -434,9 +512,9 @@ function flattenTestResults(tests: any[]): any[] {
         // Standard single result object
         flattened.push({
           name: test.test_name,
-          value: test.results.value || test.results.result || 'N/A',
-          unit: test.results.unit || test.results.units || test.unit || '',
-          referenceRange: formatReferenceRange(test.results.reference_range || test.results.normal_range || test.reference_range),
+          value: test.results.result || test.results.value || test.results.measurement || 'N/A',
+          unit: test.results.units || test.results.unit || test.unit || '',
+          referenceRange: formatReferenceRange(test.results.reference_interval || test.results.reference_range || test.results.normal_range || test.reference_range),
           status: determineTestStatus(test.results || test),
           notes: Array.isArray(test.results.interpretation) ? test.results.interpretation.join(', ') : 
                  test.results.interpretation || test.results.comments || test.results.notes || 
@@ -647,6 +725,35 @@ function determineTestStatus(test: any): string {
 // Create a fallback renderer for unstructured data
 export function createFallbackDataStructure(rawData: any): any {
   console.log('Creating fallback data structure for:', rawData);
+  
+  // If we have extracted_text, try to parse it for test results
+  if (rawData.extracted_text) {
+    console.log('Attempting to extract test data from extracted_text');
+    
+    // Try to find test-like patterns in the text
+    const testPattern = /(\w+(?:\s+\w+)*)\s*[:=]\s*([^\n\r]+)(?:\s*(?:ref|reference|normal)[:=]\s*([^\n\r]+))?/gi;
+    const matches = [...rawData.extracted_text.matchAll(testPattern)];
+    
+    if (matches.length > 5) { // If we find enough test-like patterns, treat as lab data
+      console.log('Found test-like patterns, creating lab fallback structure');
+      const tests = matches.slice(0, 20).map((match, index) => ({
+        name: match[1].trim(),
+        value: match[2].trim(),
+        unit: '',
+        referenceRange: match[3] ? match[3].trim() : '',
+        status: 'normal',
+        notes: ''
+      }));
+      
+      return {
+        reportType: 'lab',
+        patient: null,
+        tests: tests,
+        confidence: 0.4,
+        source: 'text_pattern_extraction'
+      };
+    }
+  }
   
   // If rawData is a string, try to extract basic information
   if (typeof rawData === 'string') {
