@@ -73,38 +73,140 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
     }
   };
 
+  const renderPatientInfo = (patient: any) => {
+    if (!patient || (!patient.name && !patient.dateOfBirth && !patient.id)) {
+      return null;
+    }
+
+    return (
+      <Card className="p-4 mb-4">
+        <h4 className="font-semibold mb-3">Patient Information</h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          {patient.name && (
+            <div>
+              <span className="font-medium text-muted-foreground">Name:</span>
+              <p className="font-medium">{patient.name}</p>
+            </div>
+          )}
+          {patient.dateOfBirth && (
+            <div>
+              <span className="font-medium text-muted-foreground">Date of Birth:</span>
+              <p className="font-medium">{patient.dateOfBirth}</p>
+            </div>
+          )}
+          {patient.id && (
+            <div>
+              <span className="font-medium text-muted-foreground">Patient ID:</span>
+              <p className="font-medium">{patient.id}</p>
+            </div>
+          )}
+        </div>
+      </Card>
+    );
+  };
+
   const renderLabData = (data: any) => (
     <div className="space-y-4">
-      <h4 className="font-semibold">Lab Results</h4>
-      {data.tests?.map((test: any, index: number) => (
-        <Card key={index} className="p-4">
-          <div className="flex justify-between items-start mb-2">
-            <h5 className="font-medium">{test.name}</h5>
-            {test.status && (
-              <Badge variant={
-                test.status === 'critical' ? 'destructive' :
-                test.status === 'abnormal' ? 'secondary' : 'default'
-              }>
-                {test.status}
-              </Badge>
+      {/* Patient Information */}
+      {renderPatientInfo(data.patient)}
+      
+      {/* Lab Metadata */}
+      {(data.facility || data.orderingPhysician || data.collectionDate) && (
+        <Card className="p-4">
+          <h4 className="font-semibold mb-3">Lab Information</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            {data.facility && (
+              <div>
+                <span className="font-medium text-muted-foreground">Facility:</span>
+                <p className="font-medium">{data.facility}</p>
+              </div>
+            )}
+            {data.orderingPhysician && (
+              <div>
+                <span className="font-medium text-muted-foreground">Ordering Physician:</span>
+                <p className="font-medium">{data.orderingPhysician}</p>
+              </div>
+            )}
+            {data.collectionDate && (
+              <div>
+                <span className="font-medium text-muted-foreground">Collection Date:</span>
+                <p className="font-medium">{new Date(data.collectionDate).toLocaleDateString()}</p>
+              </div>
+            )}
+            {data.reportDate && (
+              <div>
+                <span className="font-medium text-muted-foreground">Report Date:</span>
+                <p className="font-medium">{new Date(data.reportDate).toLocaleDateString()}</p>
+              </div>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div><strong>Value:</strong> {test.value} {test.unit}</div>
-            {test.referenceRange && (
-              <div><strong>Reference:</strong> {test.referenceRange}</div>
-            )}
-          </div>
-          {test.notes && (
-            <p className="text-sm text-muted-foreground mt-2">{test.notes}</p>
-          )}
         </Card>
-      ))}
+      )}
+
+      {/* Test Results */}
+      <div>
+        <h4 className="font-semibold mb-4">Test Results</h4>
+        <div className="space-y-3">
+          {data.tests?.map((test: any, index: number) => (
+            <Card 
+              key={index} 
+              className={`p-4 ${test.isProfileHeader ? 'bg-muted/50' : ''} ${test.isSubTest ? 'ml-4 border-l-4 border-primary/20' : ''}`}
+            >
+              {test.isProfileHeader ? (
+                <div>
+                  <h5 className="font-semibold text-lg">{test.name}</h5>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between items-start mb-3">
+                    <h5 className={`font-medium ${test.isSubTest ? 'text-base' : 'text-lg'}`}>
+                      {test.name}
+                    </h5>
+                    {test.status && test.status !== 'normal' && (
+                      <Badge variant={
+                        test.status === 'critical' ? 'destructive' :
+                        test.status === 'abnormal' || test.status === 'high' || test.status === 'low' ? 'secondary' : 'default'
+                      }>
+                        {test.status}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-muted-foreground">Result:</span>
+                      <p className="font-semibold text-lg">
+                        {test.value} {test.unit && <span className="text-sm font-normal">{test.unit}</span>}
+                      </p>
+                    </div>
+                    {test.referenceRange && (
+                      <div>
+                        <span className="font-medium text-muted-foreground">Reference Range:</span>
+                        <p className="font-medium">{test.referenceRange}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {test.notes && (
+                    <div className="mt-3 p-3 bg-muted/30 rounded">
+                      <span className="font-medium text-muted-foreground">Notes:</span>
+                      <p className="text-sm mt-1">{test.notes}</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </Card>
+          ))}
+        </div>
+      </div>
     </div>
   );
 
   const renderPrescriptionData = (data: any) => (
     <div className="space-y-4">
+      {/* Patient Information */}
+      {renderPatientInfo(data.patient)}
+      
       <h4 className="font-semibold">Medications</h4>
       {data.medications?.map((med: any, index: number) => (
         <Card key={index} className="p-4">
@@ -127,6 +229,9 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
 
   const renderRadiologyData = (data: any) => (
     <div className="space-y-4">
+      {/* Patient Information */}
+      {renderPatientInfo(data.patient)}
+      
       <h4 className="font-semibold">Radiology Report</h4>
       {data.study && (
         <Card className="p-4">
@@ -170,6 +275,9 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
 
   const renderVitalsData = (data: any) => (
     <div className="space-y-4">
+      {/* Patient Information */}
+      {renderPatientInfo(data.patient)}
+      
       <h4 className="font-semibold">Vital Signs</h4>
       {data.vitals?.map((vital: any, index: number) => (
         <Card key={index} className="p-4">
@@ -198,6 +306,9 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
 
   const renderGeneralData = (data: any) => (
     <div className="space-y-4">
+      {/* Patient Information */}
+      {renderPatientInfo(data.patient)}
+      
       <h4 className="font-semibold">Document Sections</h4>
       {data.sections?.map((section: any, index: number) => (
         <Card key={index} className="p-4">
