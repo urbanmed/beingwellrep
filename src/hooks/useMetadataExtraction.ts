@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface ExtractedMetadata {
   title: string | null;
@@ -12,9 +13,19 @@ export interface ExtractedMetadata {
 
 export const useMetadataExtraction = () => {
   const [isExtracting, setIsExtracting] = useState(false);
+  const { user } = useAuth();
 
   const extractMetadata = async (file: File): Promise<ExtractedMetadata | null> => {
     if (!file) return null;
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to analyze documents.",
+        variant: "destructive",
+      });
+      return null;
+    }
 
     setIsExtracting(true);
     
@@ -24,7 +35,7 @@ export const useMetadataExtraction = () => {
       // First upload the file temporarily to storage for analysis
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       const fileName = `temp_${Date.now()}.${fileExt}`;
-      const filePath = `metadata-extraction/${fileName}`;
+      const filePath = `${user.id}/metadata-extraction/${fileName}`;
 
       console.log('Uploading file for metadata extraction:', filePath);
 
