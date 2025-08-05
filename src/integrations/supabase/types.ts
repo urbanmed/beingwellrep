@@ -56,6 +56,57 @@ export type Database = {
         }
         Relationships: []
       }
+      family_members: {
+        Row: {
+          created_at: string
+          date_of_birth: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          first_name: string
+          gender: string | null
+          id: string
+          last_name: string
+          medical_notes: string | null
+          phone_number: string | null
+          photo_url: string | null
+          relationship: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date_of_birth?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          first_name: string
+          gender?: string | null
+          id?: string
+          last_name: string
+          medical_notes?: string | null
+          phone_number?: string | null
+          photo_url?: string | null
+          relationship: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date_of_birth?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          first_name?: string
+          gender?: string | null
+          id?: string
+          last_name?: string
+          medical_notes?: string | null
+          phone_number?: string | null
+          photo_url?: string | null
+          relationship?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           accessibility_needs: string[] | null
@@ -141,6 +192,7 @@ export type Database = {
           extracted_text: string | null
           extraction_confidence: number | null
           facility_name: string | null
+          family_member_id: string | null
           file_name: string | null
           file_size: number | null
           file_type: string | null
@@ -167,6 +219,7 @@ export type Database = {
           extracted_text?: string | null
           extraction_confidence?: number | null
           facility_name?: string | null
+          family_member_id?: string | null
           file_name?: string | null
           file_size?: number | null
           file_type?: string | null
@@ -193,6 +246,7 @@ export type Database = {
           extracted_text?: string | null
           extraction_confidence?: number | null
           facility_name?: string | null
+          family_member_id?: string | null
           file_name?: string | null
           file_size?: number | null
           file_type?: string | null
@@ -213,7 +267,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reports_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       summaries: {
         Row: {
