@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import * as pdfjs from 'https://esm.sh/pdfjs-dist@4.0.379'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,10 +22,81 @@ const getPromptForReportType = (reportType: string) => {
 // File size limit: 20MB
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
+const convertPDFToImages = async (pdfBuffer: ArrayBuffer): Promise<string[]> => {
+  try {
+    console.log('Converting PDF to images using PDF.js');
+    
+    // Load PDF document
+    const pdf = await pdfjs.getDocument({ data: pdfBuffer }).promise;
+    const numPages = pdf.numPages;
+    console.log(`PDF has ${numPages} pages`);
+    
+    const images: string[] = [];
+    const maxPages = Math.min(numPages, 5); // Limit to first 5 pages for memory optimization
+    
+    for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+      try {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 2.0 }); // High resolution for better OCR
+        
+        // Optimize dimensions for OpenAI Vision API (max 2048x2048)
+        const maxDimension = 2048;
+        let scale = 2.0;
+        if (viewport.width > maxDimension || viewport.height > maxDimension) {
+          scale = Math.min(maxDimension / viewport.width, maxDimension / viewport.height) * 2.0;
+        }
+        
+        const finalViewport = page.getViewport({ scale });
+        
+        // Create canvas
+        const canvas = new OffscreenCanvas(finalViewport.width, finalViewport.height);
+        const context = canvas.getContext('2d');
+        
+        if (!context) {
+          throw new Error('Failed to get canvas context');
+        }
+        
+        // Render page to canvas
+        await page.render({
+          canvasContext: context,
+          viewport: finalViewport
+        }).promise;
+        
+        // Convert to JPEG with 85% quality for optimal balance
+        const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 });
+        const arrayBuffer = await blob.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        const base64 = btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''));
+        
+        images.push(`data:image/jpeg;base64,${base64}`);
+        console.log(`Converted page ${pageNum} to image (${bytes.length} bytes)`);
+        
+        // Clean up page resources
+        page.cleanup();
+      } catch (pageError) {
+        console.error(`Error processing page ${pageNum}:`, pageError);
+        // Continue with other pages
+      }
+    }
+    
+    // Clean up PDF resources
+    pdf.destroy();
+    
+    if (images.length === 0) {
+      throw new Error('No pages could be converted to images');
+    }
+    
+    console.log(`Successfully converted ${images.length} pages to images`);
+    return images;
+  } catch (error) {
+    console.error('PDF to image conversion failed:', error);
+    throw new Error(`PDF conversion failed: ${error.message}`);
+  }
+};
+
 const extractTextFromPDF = async (pdfBuffer: ArrayBuffer): Promise<string> => {
-  // For now, return a placeholder. In a production environment, you would use a PDF library
-  // like pdf-parse or similar to extract text from PDFs
-  console.log('PDF text extraction not yet implemented, using OCR fallback');
+  // For now, return empty string to force image conversion fallback
+  console.log('Using PDF-to-image conversion for better processing');
   return '';
 };
 
@@ -104,11 +176,22 @@ serve(async (req) => {
       const arrayBuffer = await fileData.arrayBuffer()
       let extractedText = await extractTextFromPDF(arrayBuffer)
       
-      // If text extraction fails or returns empty, fall back to vision API
+      // If text extraction fails or returns empty, fall back to vision API with image conversion
       if (!extractedText.trim()) {
-        console.log('Text extraction failed, falling back to vision API')
-        const bytes = new Uint8Array(arrayBuffer)
-        const base64 = btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))
+        console.log('Converting PDF to images for vision API processing')
+        const images = await convertPDFToImages(arrayBuffer)
+        
+        // Process all converted images (for multi-page PDFs)
+        const imageContents = images.map(imageBase64 => ({
+          type: 'image_url',
+          image_url: { url: imageBase64 }
+        }))
+        
+        // Create message content with text prompt and all images
+        const messageContent = [
+          { type: 'text', text: `${prompt}\n\nThis document has ${images.length} page(s). Please analyze all pages and provide a comprehensive extraction.` },
+          ...imageContents
+        ]
         
         const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -122,16 +205,10 @@ serve(async (req) => {
               { role: 'system', content: SYSTEM_PROMPT },
               { 
                 role: 'user', 
-                content: [
-                  { type: 'text', text: prompt },
-                  { 
-                    type: 'image_url', 
-                    image_url: { url: `data:${report.file_type};base64,${base64}` }
-                  }
-                ]
+                content: messageContent
               }
             ],
-            max_tokens: 2000,
+            max_tokens: 4000, // Increased for multi-page processing
             temperature: 0.1
           })
         })
