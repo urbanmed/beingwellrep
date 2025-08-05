@@ -2,13 +2,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
   Brain, 
   AlertTriangle, 
   TrendingUp, 
   Stethoscope,
   Star,
   Calendar,
-  MoreVertical
+  MoreVertical,
+  Pin,
+  PinOff,
+  Trash2
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Summary } from "@/types/summary";
@@ -18,6 +27,7 @@ interface SummaryCardProps {
   summary: Summary;
   onView: (summary: Summary) => void;
   onPin?: (summaryId: string) => void;
+  onDelete?: (summaryId: string) => void;
 }
 
 const summaryTypeConfig = {
@@ -47,7 +57,7 @@ const summaryTypeConfig = {
   }
 };
 
-export function SummaryCard({ summary, onView, onPin }: SummaryCardProps) {
+export function SummaryCard({ summary, onView, onPin, onDelete }: SummaryCardProps) {
   const config = summaryTypeConfig[summary.summary_type as keyof typeof summaryTypeConfig];
   const Icon = config?.icon || Brain;
 
@@ -57,8 +67,25 @@ export function SummaryCard({ summary, onView, onPin }: SummaryCardProps) {
   // Get severity badge using the utility function
   const severityBadgeInfo = getSeverityBadge(parsedContent);
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't trigger onView if clicking on the dropdown menu
+    if ((e.target as HTMLElement).closest('[data-dropdown-trigger]')) {
+      return;
+    }
+    onView(summary);
+  };
+
+  const handleDropdownAction = (action: 'pin' | 'delete', e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (action === 'pin' && onPin) {
+      onPin(summary.id);
+    } else if (action === 'delete' && onDelete) {
+      onDelete(summary.id);
+    }
+  };
+
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => onView(summary)}>
+    <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleCardClick}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -76,9 +103,35 @@ export function SummaryCard({ summary, onView, onPin }: SummaryCardProps) {
             {summary.is_pinned && (
               <Star className="h-4 w-4 text-yellow-500 fill-current" />
             )}
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild data-dropdown-trigger>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-background">
+                <DropdownMenuItem onClick={(e) => handleDropdownAction('pin', e)}>
+                  {summary.is_pinned ? (
+                    <>
+                      <PinOff className="h-4 w-4 mr-2" />
+                      Unpin
+                    </>
+                  ) : (
+                    <>
+                      <Pin className="h-4 w-4 mr-2" />
+                      Pin
+                    </>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={(e) => handleDropdownAction('delete', e)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardHeader>

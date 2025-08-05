@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SummaryCard } from "@/components/summaries/SummaryCard";
 import { SummaryViewer } from "@/components/summaries/SummaryViewer";
 import { GenerateSummaryDialogWrapper } from "@/components/summaries/GenerateSummaryDialogWrapper";
+import { DeleteSummaryDialog } from "@/components/summaries/DeleteSummaryDialog";
 import { useSummaries } from "@/hooks/useSummaries";
 import { Summary } from "@/types/summary";
 import { Plus, Brain, Filter, Search } from "lucide-react";
@@ -16,13 +17,16 @@ export default function Summaries() {
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<'all' | Summary['summary_type']>('all');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [summaryToDelete, setSummaryToDelete] = useState<Summary | null>(null);
 
   const { 
     summaries, 
     loading, 
     generateSummary, 
     pinSummary, 
-    rateSummary 
+    rateSummary,
+    deleteSummary
   } = useSummaries();
 
   const filteredSummaries = summaries.filter(summary => {
@@ -40,6 +44,22 @@ export default function Summaries() {
     abnormal_findings: summaries.filter(s => s.summary_type === 'abnormal_findings').length,
     trend_analysis: summaries.filter(s => s.summary_type === 'trend_analysis').length,
     doctor_prep: summaries.filter(s => s.summary_type === 'doctor_prep').length,
+  };
+
+  const handleDeleteSummary = (summaryId: string) => {
+    const summary = summaries.find(s => s.id === summaryId);
+    if (summary) {
+      setSummaryToDelete(summary);
+      setDeleteDialogOpen(true);
+    }
+  };
+
+  const confirmDeleteSummary = async () => {
+    if (summaryToDelete) {
+      await deleteSummary(summaryToDelete.id);
+      setDeleteDialogOpen(false);
+      setSummaryToDelete(null);
+    }
   };
 
   if (loading && summaries.length === 0) {
@@ -141,12 +161,13 @@ export default function Summaries() {
                 <h2 className="text-lg font-semibold mb-4">📌 Pinned Summaries</h2>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {pinnedSummaries.map((summary) => (
-                    <SummaryCard
-                      key={summary.id}
-                      summary={summary}
-                      onView={setSelectedSummary}
-                      onPin={pinSummary}
-                    />
+                  <SummaryCard
+                    key={summary.id}
+                    summary={summary}
+                    onView={setSelectedSummary}
+                    onPin={pinSummary}
+                    onDelete={handleDeleteSummary}
+                  />
                   ))}
                 </div>
               </div>
@@ -157,12 +178,13 @@ export default function Summaries() {
                 <h2 className="text-lg font-semibold mb-4">Recent Summaries</h2>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {recentSummaries.map((summary) => (
-                    <SummaryCard
-                      key={summary.id}
-                      summary={summary}
-                      onView={setSelectedSummary}
-                      onPin={pinSummary}
-                    />
+                  <SummaryCard
+                    key={summary.id}
+                    summary={summary}
+                    onView={setSelectedSummary}
+                    onPin={pinSummary}
+                    onDelete={handleDeleteSummary}
+                  />
                   ))}
                 </div>
               </div>
@@ -193,6 +215,17 @@ export default function Summaries() {
       <GenerateSummaryDialogWrapper
         isOpen={isGenerateDialogOpen}
         onClose={() => setIsGenerateDialogOpen(false)}
+      />
+
+      {/* Delete Summary Dialog */}
+      <DeleteSummaryDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setSummaryToDelete(null);
+        }}
+        onConfirm={confirmDeleteSummary}
+        summaryTitle={summaryToDelete?.title}
       />
     </div>
   );
