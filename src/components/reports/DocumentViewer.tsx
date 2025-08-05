@@ -42,50 +42,53 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
     console.log('Getting structured data for report:', report.id, 'parsing_status:', report.parsing_status);
     
     try {
-      // Strategy 1: Direct JSON parse of rawResponse (highest priority)
+      // Strategy 1: Enhanced rawResponse parsing (highest priority)
       if (report.parsed_data && (report.parsed_data as any).rawResponse) {
-        console.log('Strategy 1: Parsing rawResponse directly');
+        console.log('Strategy 1: Enhanced rawResponse parsing');
         try {
           const rawResponse = (report.parsed_data as any).rawResponse;
-          const rawData = typeof rawResponse === 'string' 
-            ? JSON.parse(rawResponse)
-            : rawResponse;
+          let rawData: any;
           
-          console.log('Raw response data:', rawData);
-          const transformed = transformLabReportData(rawData);
-          if (transformed) {
-            console.log('Successfully transformed rawResponse data');
-            return transformed;
-          }
-        } catch (error) {
-          console.warn('Failed to parse rawResponse as JSON:', (error as Error).message);
-          
-          // Try parsing rawResponse as string with extraction
-          const rawResponse = (report.parsed_data as any).rawResponse;
           if (typeof rawResponse === 'string') {
-            const parsedFromString = parseExtractedTextAsJSON(rawResponse);
-            if (parsedFromString) {
-              console.log('Successfully parsed rawResponse string');
-              const transformed = transformLabReportData(parsedFromString);
-              if (transformed) return transformed;
+            // Use enhanced parsing for string rawResponse
+            rawData = parseExtractedTextAsJSON(rawResponse);
+          } else {
+            rawData = rawResponse;
+          }
+          
+          if (rawData) {
+            console.log('Raw response data parsed successfully, keys:', Object.keys(rawData));
+            const transformed = transformLabReportData(rawData);
+            if (transformed) {
+              console.log('Successfully transformed rawResponse data');
+              return transformed;
             }
           }
+        } catch (error) {
+          console.warn('Enhanced rawResponse parsing failed:', (error as Error).message);
         }
       }
 
-      // Strategy 2: Direct parsed_data
+      // Strategy 2: Direct parsed_data with enhanced handling
       if (report.parsed_data && typeof report.parsed_data === 'object') {
-        console.log('Strategy 2: Using parsed_data directly');
-        const transformed = transformLabReportData(report.parsed_data);
-        if (transformed) {
-          console.log('Successfully transformed parsed_data');
-          return transformed;
+        console.log('Strategy 2: Enhanced parsed_data handling');
+        
+        // Remove rawResponse to avoid interference and focus on other fields
+        const cleanedParsedData = { ...report.parsed_data };
+        delete (cleanedParsedData as any).rawResponse;
+        
+        if (Object.keys(cleanedParsedData).length > 0) {
+          const transformed = transformLabReportData(cleanedParsedData);
+          if (transformed) {
+            console.log('Successfully transformed cleaned parsed_data');
+            return transformed;
+          }
         }
       }
 
-      // Strategy 3: Parse extracted_text as JSON
+      // Strategy 3: Enhanced extracted_text parsing
       if (report.extracted_text) {
-        console.log('Strategy 3: Parsing extracted_text as JSON, length:', report.extracted_text.length);
+        console.log('Strategy 3: Enhanced extracted_text parsing, length:', report.extracted_text.length);
         const parsedText = parseExtractedTextAsJSON(report.extracted_text);
         if (parsedText) {
           console.log('Successfully parsed extracted_text, keys:', Object.keys(parsedText));
@@ -97,12 +100,17 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
         }
       }
 
-      // Strategy 4: Try to extract partial data from extracted_text
+      // Strategy 4: Enhanced fallback data structure
       if (report.extracted_text) {
-        console.log('Strategy 4: Attempting fallback data structure from extracted_text');
-        const fallbackData = createFallbackDataStructure({ extracted_text: report.extracted_text });
+        console.log('Strategy 4: Creating enhanced fallback data structure');
+        const fallbackData = createFallbackDataStructure({ 
+          extracted_text: report.extracted_text,
+          report_type: report.report_type,
+          facility_name: report.facility_name,
+          physician_name: report.physician_name
+        });
         if (fallbackData) {
-          console.log('Created fallback data structure');
+          console.log('Created enhanced fallback data structure');
           return fallbackData;
         }
       }

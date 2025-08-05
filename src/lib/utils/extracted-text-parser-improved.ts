@@ -5,7 +5,25 @@
 
 // Remove markdown code blocks from text
 export function stripMarkdownCodeBlocks(text: string): string {
-  return text.replace(/```(?:json)?\n?/g, '').trim();
+  if (!text) return '';
+  
+  // Remove markdown code blocks with language specifiers (more comprehensive)
+  let cleaned = text.replace(/```(?:json|javascript|js|typescript|ts)?\s*\n?/gi, '');
+  
+  // Remove any remaining markdown formatting
+  cleaned = cleaned.replace(/```/g, '');
+  
+  // Remove markdown backticks for inline code
+  cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
+  
+  // Remove common markdown artifacts
+  cleaned = cleaned.replace(/^\s*#+\s*/gm, ''); // Headers
+  cleaned = cleaned.replace(/^\s*[-*]\s*/gm, ''); // List items
+  
+  // Remove extra whitespace and normalize line breaks
+  cleaned = cleaned.trim().replace(/\n\s*\n/g, '\n');
+  
+  return cleaned;
 }
 
 // Attempt to parse JSON from extracted text with resilience for truncated/corrupted data
@@ -16,8 +34,13 @@ export function parseExtractedTextAsJSON(extractedText: string): any | null {
 
   console.log('Parsing extracted text, length:', extractedText.length);
 
-  // Clean up markdown code blocks more thoroughly
+  // Enhanced cleaning approach
   let cleanedText = stripMarkdownCodeBlocks(extractedText);
+  
+  // Additional cleaning for common issues
+  cleanedText = cleanedText.replace(/^\s*.*?({[\s\S]*})\s*.*?$/s, '$1'); // Extract main JSON object
+  cleanedText = cleanedText.replace(/,\s*}/g, '}'); // Remove trailing commas before closing braces
+  cleanedText = cleanedText.replace(/,\s*]/g, ']'); // Remove trailing commas before closing brackets
   
   // Remove any trailing content after the last valid JSON character
   const lastBrace = cleanedText.lastIndexOf('}');
@@ -355,15 +378,29 @@ export function transformLabReportData(rawData: any): any {
   // Enhanced lab data recognition
   const isLabData = (data: any): boolean => {
     const labIndicators = [
-      'tests', 'test_results', 'lab_tests', 'lab_results', 'laboratory_results',
-      'patient', 'patient_info', 'demographics', 'collection_date', 'report_date',
-      'ordering_physician', 'facility', 'laboratory'
+      'tests', 'testResults', 'test_results', 'lab_tests', 'lab_results', 'laboratory_results',
+      'patient', 'patientInfo', 'patient_info', 'demographics', 'collection_date', 'report_date',
+      'ordering_physician', 'facility', 'laboratory', 'sections'
     ];
     
-    return labIndicators.some(indicator => 
+    const medicalTerms = [
+      'hemoglobin', 'glucose', 'cholesterol', 'creatinine', 'bilirubin',
+      'platelet', 'wbc', 'rbc', 'sodium', 'potassium', 'chloride',
+      'chemistry', 'hematology', 'lipid', 'metabolic', 'cbc'
+    ];
+    
+    const dataString = JSON.stringify(data).toLowerCase();
+    
+    // Check for direct field indicators
+    const hasIndicators = labIndicators.some(indicator => 
       data.hasOwnProperty(indicator) || 
       (data.data && data.data.hasOwnProperty(indicator))
     );
+    
+    // Check for medical terms in the data
+    const hasMedicalTerms = medicalTerms.some(term => dataString.includes(term));
+    
+    return hasIndicators || hasMedicalTerms;
   };
 
   if (!isLabData(rawData)) {
