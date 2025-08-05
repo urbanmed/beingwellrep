@@ -36,26 +36,43 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
 
   // Try to get structured data from either parsed_data or extracted_text
   const getStructuredData = (): ParsedMedicalData | null => {
-    if (report.parsed_data) {
-      return report.parsed_data;
-    }
-
-    if (report.extracted_text) {
-      // Try to parse extracted_text as JSON
-      const parsedFromText = parseExtractedTextAsJSON(report.extracted_text);
-      if (parsedFromText) {
-        // Transform lab report data if it matches that structure
-        const transformedData = transformLabReportData(parsedFromText);
-        if (transformedData) {
-          return transformedData;
-        }
-        
-        // Create fallback structure for other JSON data
-        return createFallbackDataStructure(parsedFromText);
+    try {
+      // First try the parsed_data
+      if (report.parsed_data) {
+        console.log('Using parsed_data:', report.parsed_data);
+        return report.parsed_data;
       }
-    }
 
-    return null;
+      // Then try to parse extracted_text
+      if (report.extracted_text) {
+        console.log('Attempting to parse extracted_text:', report.extracted_text.substring(0, 200) + '...');
+        
+        // Try to parse extracted_text as JSON
+        const parsedFromText = parseExtractedTextAsJSON(report.extracted_text);
+        console.log('Parsed JSON from text:', parsedFromText);
+        
+        if (parsedFromText) {
+          // Transform lab report data if it matches that structure
+          const transformedData = transformLabReportData(parsedFromText);
+          console.log('Transformed lab data:', transformedData);
+          
+          if (transformedData && transformedData.tests && transformedData.tests.length > 0) {
+            return transformedData;
+          }
+          
+          // Create fallback structure for other JSON data
+          const fallbackData = createFallbackDataStructure(parsedFromText);
+          console.log('Fallback data structure:', fallbackData);
+          return fallbackData;
+        }
+      }
+
+      console.log('No structured data could be extracted');
+      return null;
+    } catch (error) {
+      console.error('Error getting structured data:', error);
+      return null;
+    }
   };
 
   const renderStructuredData = (data: ParsedMedicalData) => {
@@ -304,23 +321,66 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
     </div>
   );
 
-  const renderGeneralData = (data: any) => (
-    <div className="space-y-4">
-      {/* Patient Information */}
-      {renderPatientInfo(data.patient)}
-      
-      <h4 className="font-semibold">Document Sections</h4>
-      {data.sections?.map((section: any, index: number) => (
-        <Card key={index} className="p-4">
-          <h5 className="font-medium mb-2">{section.title}</h5>
-          <p className="text-sm">{section.content}</p>
-          {section.category && (
-            <Badge variant="outline" className="mt-2">{section.category}</Badge>
-          )}
-        </Card>
-      ))}
-    </div>
-  );
+  const renderGeneralData = (data: any) => {
+    // For lab data that couldn't be properly structured
+    if (data.tests && Array.isArray(data.tests) && data.tests.length > 0) {
+      return renderLabData(data);
+    }
+
+    return (
+      <div className="space-y-4">
+        {/* Patient Information */}
+        {renderPatientInfo(data.patient)}
+        
+        {/* Document Sections */}
+        {data.sections && data.sections.length > 0 ? (
+          <div>
+            <h4 className="font-semibold mb-4">Document Sections</h4>
+            {data.sections.map((section: any, index: number) => (
+              <Card key={index} className="p-4">
+                <h5 className="font-medium mb-2">{section.title}</h5>
+                <p className="text-sm">{section.content}</p>
+                {section.category && (
+                  <Badge variant="outline" className="mt-2">{section.category}</Badge>
+                )}
+              </Card>
+            ))}
+          </div>
+        ) : (
+          /* Raw JSON Data Display */
+          <div>
+            <h4 className="font-semibold mb-4">Document Data</h4>
+            <Card className="p-4">
+              <div className="space-y-4">
+                {Object.entries(data).map(([key, value]) => {
+                  if (key === 'patient' || key === 'reportType' || key === 'confidence' || key === 'extractedAt') {
+                    return null; // Skip these as they're handled elsewhere
+                  }
+                  
+                  return (
+                    <div key={key}>
+                      <h5 className="font-medium mb-2 capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                      </h5>
+                      {typeof value === 'object' && value !== null ? (
+                        <Card className="p-3 bg-muted/30">
+                          <pre className="text-xs whitespace-pre-wrap overflow-x-auto">
+                            {JSON.stringify(value, null, 2)}
+                          </pre>
+                        </Card>
+                      ) : (
+                        <p className="text-sm">{String(value)}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">

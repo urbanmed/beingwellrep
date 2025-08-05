@@ -93,16 +93,44 @@ function flattenTestResults(tests: any[]): any[] {
   for (const test of tests) {
     // Handle different data structures we encounter
     
-    // Structure 1: test has test_name and results object
-    if (test.test_name && test.results && typeof test.results === 'object') {
-      flattened.push({
-        name: test.test_name,
-        value: test.results.value || test.results.result || 'N/A',
-        unit: test.results.unit || test.unit || '',
-        referenceRange: formatReferenceRange(test.results.reference_range || test.results.normal_range || test.reference_range),
-        status: determineTestStatus(test.results || test),
-        notes: test.results.interpretation || test.results.comments || test.results.notes || test.interpretation || ''
-      });
+    // Structure 1: test has test_name and results object with nested properties
+    if (test.test_name && test.results && typeof test.results === 'object' && !Array.isArray(test.results)) {
+      // Check if results object contains multiple test results as key-value pairs
+      if (Object.keys(test.results).length > 1 && !test.results.value && !test.results.result) {
+        // This is a nested structure where each key in results is a separate test
+        Object.entries(test.results).forEach(([testKey, testData]: [string, any]) => {
+          if (typeof testData === 'object' && testData !== null) {
+            flattened.push({
+              name: `${test.test_name} - ${testKey}`,
+              value: testData.value || testData.result || testData.level || 'N/A',
+              unit: testData.unit || '',
+              referenceRange: formatReferenceRange(testData.reference_range || testData.normal_range),
+              status: determineTestStatus(testData),
+              notes: testData.interpretation || testData.comments || testData.notes || ''
+            });
+          } else {
+            // Simple key-value pair
+            flattened.push({
+              name: `${test.test_name} - ${testKey}`,
+              value: String(testData),
+              unit: '',
+              referenceRange: '',
+              status: 'normal',
+              notes: ''
+            });
+          }
+        });
+      } else {
+        // Standard single result object
+        flattened.push({
+          name: test.test_name,
+          value: test.results.value || test.results.result || 'N/A',
+          unit: test.results.unit || test.unit || '',
+          referenceRange: formatReferenceRange(test.results.reference_range || test.results.normal_range || test.reference_range),
+          status: determineTestStatus(test.results || test),
+          notes: test.results.interpretation || test.results.comments || test.results.notes || test.interpretation || ''
+        });
+      }
     }
     // Structure 2: test profiles with sub-results array
     else if (test.profile && test.results && Array.isArray(test.results)) {
@@ -251,6 +279,15 @@ export function createFallbackDataStructure(rawData: any): any {
     };
   }
 
+  // Check if this might be lab data that we can still process
+  if (rawData.results || rawData.tests || (rawData.lab_tests && Array.isArray(rawData.lab_tests))) {
+    console.log('Attempting to transform as lab data in fallback');
+    const labData = transformLabReportData(rawData);
+    if (labData && labData.tests && labData.tests.length > 0) {
+      return labData;
+    }
+  }
+
   // Try to extract meaningful sections from JSON data
   const sections = [];
   
@@ -283,7 +320,9 @@ export function createFallbackDataStructure(rawData: any): any {
         content: JSON.stringify(rawData, null, 2),
         category: 'raw_data'
       }
-    ]
+    ],
+    // Preserve original data for debugging
+    rawData: rawData
   };
 }
 
