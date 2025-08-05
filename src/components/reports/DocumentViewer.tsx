@@ -2,8 +2,10 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 import { Eye, Download, ExternalLink } from "lucide-react";
 import type { ParsedMedicalData } from "@/types/medical-data";
+import { PatientInfoCard } from "./PatientInfoCard";
 import { 
   parseExtractedTextAsJSON, 
   transformLabReportData, 
@@ -167,35 +169,7 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
   };
 
   const renderPatientInfo = (patient: any) => {
-    if (!patient || (!patient.name && !patient.dateOfBirth && !patient.id)) {
-      return null;
-    }
-
-    return (
-      <Card className="p-4 mb-4">
-        <h4 className="font-semibold mb-3">Patient Information</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          {patient.name && (
-            <div>
-              <span className="font-medium text-muted-foreground">Name:</span>
-              <p className="font-medium">{patient.name}</p>
-            </div>
-          )}
-          {patient.dateOfBirth && (
-            <div>
-              <span className="font-medium text-muted-foreground">Date of Birth:</span>
-              <p className="font-medium">{patient.dateOfBirth}</p>
-            </div>
-          )}
-          {patient.id && (
-            <div>
-              <span className="font-medium text-muted-foreground">Patient ID:</span>
-              <p className="font-medium">{patient.id}</p>
-            </div>
-          )}
-        </div>
-      </Card>
-    );
+    return <PatientInfoCard patient={patient} />;
   };
 
   const renderLabData = (data: any) => (
@@ -205,34 +179,38 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
       
       {/* Lab Metadata */}
       {(data.facility || data.orderingPhysician || data.collectionDate) && (
-        <Card className="p-4">
-          <h4 className="font-semibold mb-3">Lab Information</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            {data.facility && (
-              <div>
-                <span className="font-medium text-muted-foreground">Facility:</span>
-                <p className="font-medium">{data.facility}</p>
+        <Card>
+          <CardContent className="p-4">
+            <h4 className="font-semibold mb-4 text-lg">Lab Information</h4>
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {data.facility && (
+                  <div className="flex flex-col space-y-1">
+                    <Label className="text-muted-foreground">Facility</Label>
+                    <span className="font-medium">{data.facility}</span>
+                  </div>
+                )}
+                {data.orderingPhysician && (
+                  <div className="flex flex-col space-y-1">
+                    <Label className="text-muted-foreground">Ordering Physician</Label>
+                    <span className="font-medium">{data.orderingPhysician}</span>
+                  </div>
+                )}
+                {data.collectionDate && (
+                  <div className="flex flex-col space-y-1">
+                    <Label className="text-muted-foreground">Collection Date</Label>
+                    <span className="font-medium">{new Date(data.collectionDate).toLocaleDateString()}</span>
+                  </div>
+                )}
+                {data.reportDate && (
+                  <div className="flex flex-col space-y-1">
+                    <Label className="text-muted-foreground">Report Date</Label>
+                    <span className="font-medium">{new Date(data.reportDate).toLocaleDateString()}</span>
+                  </div>
+                )}
               </div>
-            )}
-            {data.orderingPhysician && (
-              <div>
-                <span className="font-medium text-muted-foreground">Ordering Physician:</span>
-                <p className="font-medium">{data.orderingPhysician}</p>
-              </div>
-            )}
-            {data.collectionDate && (
-              <div>
-                <span className="font-medium text-muted-foreground">Collection Date:</span>
-                <p className="font-medium">{new Date(data.collectionDate).toLocaleDateString()}</p>
-              </div>
-            )}
-            {data.reportDate && (
-              <div>
-                <span className="font-medium text-muted-foreground">Report Date:</span>
-                <p className="font-medium">{new Date(data.reportDate).toLocaleDateString()}</p>
-              </div>
-            )}
-          </div>
+            </div>
+          </CardContent>
         </Card>
       )}
 
@@ -413,16 +391,51 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
         {/* Document Sections */}
         {data.sections && data.sections.length > 0 ? (
           <div>
-            <h4 className="font-semibold mb-4">Document Sections</h4>
-            {data.sections.map((section: any, index: number) => (
-              <Card key={index} className="p-4">
-                <h5 className="font-medium mb-2">{section.title}</h5>
-                <p className="text-sm">{section.content}</p>
-                {section.category && (
-                  <Badge variant="outline" className="mt-2">{section.category}</Badge>
-                )}
-              </Card>
-            ))}
+            <h4 className="font-semibold mb-4">Document Information</h4>
+            <div className="space-y-4">
+              {data.sections.map((section: any, index: number) => (
+                <Card key={index}>
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <h5 className="font-medium text-lg">{section.title}</h5>
+                        {section.category && (
+                          <Badge variant="outline">{section.category}</Badge>
+                        )}
+                      </div>
+                      
+                      {/* Format content based on category */}
+                      {section.category === 'object' ? (
+                        <div className="space-y-2">
+                          {section.content.split('\n').map((line: string, lineIndex: number) => {
+                            const [label, ...valueParts] = line.split(':');
+                            const value = valueParts.join(':').trim();
+                            return (
+                              <div key={lineIndex} className="flex flex-col space-y-1">
+                                <Label className="text-muted-foreground">{label.trim()}</Label>
+                                <span className="font-medium">{value}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : section.category === 'list' ? (
+                        <div className="space-y-2">
+                          {section.content.split('\n').map((item: string, itemIndex: number) => (
+                            <div key={itemIndex} className="p-2 bg-muted/30 rounded text-sm">
+                              {item}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <span className="font-medium">{section.content}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         ) : (
           /* Raw JSON Data Display */

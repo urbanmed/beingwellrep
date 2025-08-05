@@ -147,6 +147,8 @@ export function transformLabReportData(rawData: any): any {
     return null;
   }
 
+  console.log('Transforming lab report data:', rawData);
+
   // Helper to safely extract nested values
   const safeExtract = (obj: any, paths: string[]) => {
     for (const path of paths) {
@@ -158,7 +160,36 @@ export function transformLabReportData(rawData: any): any {
     return null;
   };
 
-  // Try multiple data structure patterns
+  // Enhanced lab data recognition - look for lab indicators
+  const isLabData = (data: any): boolean => {
+    const labIndicators = [
+      'tests', 'test_results', 'lab_tests', 'lab_results', 'laboratory_results',
+      'patient', 'patient_info', 'demographics', 'collection_date', 'report_date',
+      'ordering_physician', 'facility', 'laboratory'
+    ];
+    
+    const hasLabIndicators = labIndicators.some(indicator => 
+      data.hasOwnProperty(indicator) || 
+      (data.data && data.data.hasOwnProperty(indicator))
+    );
+    
+    // Also check for nested test data structures
+    const hasNestedTests = Object.values(data).some((value: any) => 
+      Array.isArray(value) && value.length > 0 && 
+      typeof value[0] === 'object' && value[0] !== null &&
+      (value[0].test_name || value[0].test || value[0].name || value[0].results)
+    );
+    
+    return hasLabIndicators || hasNestedTests;
+  };
+
+  // Check if this looks like lab data
+  if (!isLabData(rawData)) {
+    console.log('Data does not appear to be lab report format');
+    return null;
+  }
+
+  // Try multiple data structure patterns with enhanced detection
   const testArrayCandidates = [
     rawData.tests,
     rawData.test_results,
@@ -167,7 +198,13 @@ export function transformLabReportData(rawData: any): any {
     rawData.lab_results,
     rawData.laboratory_results,
     rawData.data?.tests,
-    rawData.data?.test_results
+    rawData.data?.test_results,
+    // Look for any array that might contain test data
+    ...Object.values(rawData).filter((value: any) => 
+      Array.isArray(value) && value.length > 0 && 
+      typeof value[0] === 'object' && value[0] !== null &&
+      (value[0].test_name || value[0].test || value[0].name || value[0].results)
+    )
   ].filter(Boolean);
 
   const patientCandidates = [
@@ -178,21 +215,30 @@ export function transformLabReportData(rawData: any): any {
     rawData.patient_data
   ].filter(Boolean);
 
+  console.log('Found test array candidates:', testArrayCandidates.length);
+  console.log('Found patient candidates:', patientCandidates.length);
+
   // Handle the most common structure we see in extracted data
   if (patientCandidates.length > 0 || testArrayCandidates.length > 0) {
     const patient = patientCandidates[0] || {};
     const testArray = testArrayCandidates[0] || [];
     
+    console.log('Processing patient data:', patient);
+    console.log('Processing test array:', testArray);
+    
     // Process tests with error handling
     let tests: any[] = [];
     try {
-      tests = Array.isArray(testArray) ? flattenTestResults(testArray) : [];
+      if (Array.isArray(testArray) && testArray.length > 0) {
+        tests = flattenTestResults(testArray);
+        console.log('Successfully flattened tests:', tests.length, 'tests found');
+      }
     } catch (error) {
       console.warn('Error flattening test results, attempting recovery:', error);
       tests = attemptTestRecovery(testArray);
     }
     
-    return {
+    const labData = {
       reportType: 'lab',
       patient: {
         name: safeExtract(patient, ['name', 'patient_name', 'full_name']),
@@ -209,6 +255,9 @@ export function transformLabReportData(rawData: any): any {
       confidence: tests.length > 0 ? 0.9 : 0.5,
       extractedAt: new Date().toISOString()
     };
+    
+    console.log('Created lab data structure:', labData);
+    return labData;
   }
 
   // Handle legacy structures for backward compatibility
@@ -343,13 +392,20 @@ function attemptTestRecovery(testData: any): any[] {
 function flattenTestResults(tests: any[]): any[] {
   const flattened: any[] = [];
   
+  console.log('Flattening test results:', tests);
+  
   for (const test of tests) {
+    console.log('Processing test:', test);
+    
     // Handle different data structures we encounter
     
     // Structure 1: test has test_name and results object with nested properties
     if (test.test_name && test.results && typeof test.results === 'object' && !Array.isArray(test.results)) {
+      console.log('Structure 1: test_name with results object');
+      
       // Check if results object contains multiple test results as key-value pairs
       if (Object.keys(test.results).length > 1 && !test.results.value && !test.results.result) {
+        console.log('Multiple nested test results found');
         // This is a nested structure where each key in results is a separate test
         Object.entries(test.results).forEach(([testKey, testData]: [string, any]) => {
           if (typeof testData === 'object' && testData !== null) {
@@ -374,6 +430,7 @@ function flattenTestResults(tests: any[]): any[] {
           }
         });
       } else {
+        console.log('Single result object found');
         // Standard single result object
         flattened.push({
           name: test.test_name,
@@ -389,6 +446,8 @@ function flattenTestResults(tests: any[]): any[] {
     }
     // Structure 2: test profiles with sub-results array
     else if (test.profile && test.results && Array.isArray(test.results)) {
+      console.log('Structure 2: test profile with sub-results array');
+      
       // Add the profile header
       flattened.push({
         name: test.profile,
@@ -414,8 +473,41 @@ function flattenTestResults(tests: any[]): any[] {
         });
       }
     }
-    // Structure 3: Simple test object with direct properties
+    // Structure 3: Test with nested structure where test_name exists at top level and results is deeply nested
+    else if (test.test_name && test.results && Array.isArray(test.results)) {
+      console.log('Structure 3: test_name with results array');
+      
+      // Add profile header for the main test
+      flattened.push({
+        name: test.test_name,
+        value: '',
+        unit: '',
+        referenceRange: '',
+        status: 'normal',
+        notes: Array.isArray(test.interpretation) ? test.interpretation.join(', ') : test.interpretation || '',
+        isProfileHeader: true
+      });
+      
+      // Process each result in the array
+      for (const result of test.results) {
+        if (typeof result === 'object' && result !== null) {
+          flattened.push({
+            name: `  ${result.test || result.test_name || result.name || 'Sub-test'}`,
+            value: result.result || result.value || result.level || 'N/A',
+            unit: result.unit || result.units || '',
+            referenceRange: formatReferenceRange(result.reference_range || result.normal_range),
+            status: determineTestStatus(result),
+            notes: Array.isArray(result.interpretation) ? result.interpretation.join(', ') : 
+                   result.interpretation || result.comments || result.notes || '',
+            isSubTest: true
+          });
+        }
+      }
+    }
+    // Structure 4: Simple test object with direct properties
     else {
+      console.log('Structure 4: simple test object');
+      
       flattened.push({
         name: test.test || test.name || test.test_name || 'Unknown Test',
         value: test.result || test.value || 'N/A',
@@ -428,6 +520,7 @@ function flattenTestResults(tests: any[]): any[] {
     }
   }
   
+  console.log('Flattened results:', flattened);
   return flattened;
 }
 
@@ -553,16 +646,32 @@ function determineTestStatus(test: any): string {
 
 // Create a fallback renderer for unstructured data
 export function createFallbackDataStructure(rawData: any): any {
+  console.log('Creating fallback data structure for:', rawData);
+  
+  // If rawData is a string, try to extract basic information
   if (typeof rawData === 'string') {
     return {
       reportType: 'general',
-      sections: [
-        {
-          title: 'Extracted Text',
-          content: rawData,
-          category: 'text_data'
-        }
-      ]
+      sections: [{
+        title: 'Extracted Text',
+        content: rawData,
+        category: 'text'
+      }],
+      confidence: 0.3,
+      extractedAt: new Date().toISOString()
+    };
+  }
+
+  if (!rawData || typeof rawData !== 'object') {
+    return {
+      reportType: 'general',
+      sections: [{
+        title: 'No Data Available',
+        content: 'Unable to extract meaningful data from the document.',
+        category: 'error'
+      }],
+      confidence: 0.1,
+      extractedAt: new Date().toISOString()
     };
   }
 
@@ -575,41 +684,101 @@ export function createFallbackDataStructure(rawData: any): any {
     }
   }
 
-  // Try to extract meaningful sections from JSON data
-  const sections = [];
-  
-  // Extract patient info if available
-  if (rawData.patient) {
-    sections.push({
-      title: 'Patient Information',
-      content: formatObjectAsText(rawData.patient),
-      category: 'patient_info'
-    });
-  }
+  // Try to identify patient information for grouping
+  const patientKeys = ['patient', 'patient_info', 'demographics', 'name', 'patient_name', 'full_name'];
+  const patientData: any = {};
+  const sections: any[] = [];
 
-  // Extract other meaningful sections
-  Object.keys(rawData).forEach(key => {
-    if (key !== 'patient' && rawData[key]) {
+  // Extract patient information first - be more intelligent about it
+  Object.entries(rawData).forEach(([key, value]) => {
+    const lowerKey = key.toLowerCase();
+    if (patientKeys.some(pk => lowerKey.includes(pk))) {
+      if (typeof value === 'object' && value !== null) {
+        // If it's an object, merge its properties
+        Object.assign(patientData, value);
+      } else {
+        // If it's a primitive value, map it to a standard field
+        if (lowerKey.includes('name')) {
+          patientData.name = value;
+        } else {
+          patientData[key] = value;
+        }
+      }
+    }
+  });
+
+  // Process remaining data into sections, avoiding repetitive patient data
+  Object.entries(rawData).forEach(([key, value]) => {
+    const lowerKey = key.toLowerCase();
+    
+    // Skip patient data that's already been processed
+    if (patientKeys.some(pk => lowerKey.includes(pk))) {
+      return;
+    }
+
+    // Skip common metadata fields that aren't useful for display
+    if (['confidence', 'extractedAt', 'reportType'].includes(key)) {
+      return;
+    }
+
+    const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+    
+    if (typeof value === 'object' && value !== null) {
+      if (Array.isArray(value)) {
+        // Handle arrays more intelligently
+        if (value.length > 0) {
+          const content = value.map((item, index) => {
+            if (typeof item === 'object' && item !== null) {
+              // For objects, create a more readable format
+              const formatted = Object.entries(item)
+                .filter(([k, v]) => v !== null && v !== undefined && String(v).trim() !== '')
+                .map(([k, v]) => `${k.replace(/([A-Z])/g, ' $1')}: ${String(v)}`)
+                .join(', ');
+              return `${index + 1}. ${formatted}`;
+            } else {
+              return `${index + 1}. ${String(item)}`;
+            }
+          }).join('\n');
+          
+          sections.push({
+            title: formattedKey,
+            content: content,
+            category: 'list'
+          });
+        }
+      } else {
+        // Handle objects more intelligently
+        const content = Object.entries(value)
+          .filter(([k, v]) => v !== null && v !== undefined && String(v).trim() !== '')
+          .map(([k, v]) => {
+            const formattedSubKey = k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+            return `${formattedSubKey}: ${String(v)}`;
+          })
+          .join('\n');
+          
+        if (content) {
+          sections.push({
+            title: formattedKey,
+            content: content,
+            category: 'object'
+          });
+        }
+      }
+    } else if (value !== null && value !== undefined && String(value).trim() !== '') {
       sections.push({
-        title: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        content: formatObjectAsText(rawData[key]),
-        category: key
+        title: formattedKey,
+        content: String(value),
+        category: 'field'
       });
     }
   });
 
   return {
     reportType: 'general',
-    patient: rawData.patient || null,
-    sections: sections.length > 0 ? sections : [
-      {
-        title: 'Raw Data',
-        content: JSON.stringify(rawData, null, 2),
-        category: 'raw_data'
-      }
-    ],
-    // Preserve original data for debugging
-    rawData: rawData
+    patient: Object.keys(patientData).length > 0 ? patientData : null,
+    sections: sections,
+    confidence: 0.4,
+    extractedAt: new Date().toISOString()
   };
 }
 
