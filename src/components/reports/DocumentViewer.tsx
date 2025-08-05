@@ -1,5 +1,5 @@
 import { ReportHeader } from "./ReportHeader";
-import { SimpleDocumentDisplay } from "./SimpleDocumentDisplay";
+import { EnhancedDocumentViewer } from "./EnhancedDocumentViewer";
 import { PatientInfoCard } from "./PatientInfoCard";
 import { DoctorInfoCard } from "./DoctorInfoCard";
 import { extractPatientAndFacilityData } from "@/lib/utils/report-data-extractor";
@@ -45,7 +45,7 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
         )}
       </div>
       
-      <SimpleDocumentDisplay report={report} />
+      <EnhancedDocumentViewer report={report} />
     </div>
   );
 }
