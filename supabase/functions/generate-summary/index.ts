@@ -18,69 +18,86 @@ interface SummaryRequest {
 }
 
 const MEDICAL_PROMPTS = {
-  comprehensive: `You are a medical AI assistant helping patients understand their health reports. Analyze the provided medical report(s) and create a comprehensive, patient-friendly summary.
-
-Please structure your response as a JSON object with these exact fields:
+  comprehensive: `Analyze the following medical reports and create a comprehensive health summary. Group findings by priority level. Return ONLY a JSON object (no markdown code blocks) with this exact structure:
 {
-  "summary": "A clear, easy-to-understand explanation of the key findings",
-  "abnormal_findings": ["List of any abnormal or concerning findings"],
-  "normal_findings": ["List of normal findings for reassurance"],
-  "recommended_actions": ["Specific actions the patient should consider"],
-  "doctor_questions": ["5-7 specific questions the patient should ask their doctor"],
-  "severity_level": "low|moderate|high",
-  "confidence_score": 0.85
-}
-
-Guidelines:
-- Use simple, non-medical language
-- Explain medical terms when necessary
-- Be reassuring about normal findings
-- Be clear but not alarming about concerning findings
-- Focus on actionable information
-- Provide specific, relevant questions for the doctor`,
-
-  abnormal_findings: `You are a medical AI assistant. Focus specifically on identifying and explaining abnormal findings in the medical report(s).
-
-Respond with a JSON object:
-{
-  "abnormal_findings": [
-    {
-      "finding": "Brief description",
-      "explanation": "Patient-friendly explanation",
-      "significance": "What this might mean",
-      "urgency": "low|moderate|high"
-    }
-  ],
-  "overall_concern_level": "low|moderate|high",
-  "immediate_action_needed": true/false,
+  "summary": "Brief overall health status",
+  "high_priority": {
+    "findings": ["Critical finding 1", "Critical finding 2"],
+    "recommendations": ["Urgent action 1", "Urgent action 2"]
+  },
+  "medium_priority": {
+    "findings": ["Important finding 1", "Important finding 2"],
+    "recommendations": ["Important action 1", "Important action 2"]
+  },
+  "low_priority": {
+    "findings": ["Minor finding 1", "Minor finding 2"],
+    "recommendations": ["General recommendation 1", "General recommendation 2"]
+  },
   "confidence_score": 0.85
 }`,
 
-  trend_analysis: `You are a medical AI assistant analyzing health trends across multiple reports. Compare findings across time periods.
-
-Respond with a JSON object:
+  abnormal_findings: `Analyze the following medical reports and identify all abnormal findings grouped by severity. Return ONLY a JSON object (no markdown code blocks) with this exact structure:
 {
-  "trends": [
-    {
-      "parameter": "What is being tracked",
-      "trend": "improving|stable|worsening",
-      "details": "Explanation of the trend"
-    }
-  ],
-  "overall_health_trajectory": "improving|stable|declining",
-  "key_insights": ["Important observations about health progression"],
-  "confidence_score": 0.85
+  "summary": "Brief overview of abnormal findings",
+  "high_priority": {
+    "findings": ["Severe abnormality 1"],
+    "severity": "severe",
+    "recommendations": ["Immediate action required"]
+  },
+  "medium_priority": {
+    "findings": ["Moderate abnormality 1"],
+    "severity": "moderate", 
+    "recommendations": ["Follow up needed"]
+  },
+  "low_priority": {
+    "findings": ["Mild abnormality 1"],
+    "severity": "mild",
+    "recommendations": ["Monitor over time"]
+  },
+  "overall_concern_level": "mild|moderate|severe",
+  "confidence_score": 0.90
 }`,
 
-  doctor_prep: `You are a medical AI assistant helping patients prepare for their doctor visit. Based on the medical report(s), generate specific questions and talking points.
-
-Respond with a JSON object:
+  trend_analysis: `Analyze the following medical reports for trends over time, grouped by priority. Return ONLY a JSON object (no markdown code blocks) with this exact structure:
 {
-  "key_topics": ["Main topics to discuss"],
-  "specific_questions": ["Detailed questions about findings"],
-  "symptoms_to_mention": ["Related symptoms to bring up"],
-  "preparation_tips": ["How to prepare for the appointment"],
-  "confidence_score": 0.85
+  "summary": "Brief overview of health trends",
+  "high_priority": {
+    "trends": ["Concerning trend 1"],
+    "timeframe": "Recent months",
+    "recommendations": ["Immediate attention needed"]
+  },
+  "medium_priority": {
+    "trends": ["Notable trend 1"],
+    "timeframe": "Past 6 months",
+    "recommendations": ["Monitor closely"]
+  },
+  "low_priority": {
+    "trends": ["Minor improvement 1"],
+    "timeframe": "Long term",
+    "recommendations": ["Continue current approach"]
+  },
+  "confidence_score": 0.88
+}`,
+
+  doctor_prep: `Prepare talking points for a doctor visit based on these medical reports, prioritized by importance. Return ONLY a JSON object (no markdown code blocks) with this exact structure:
+{
+  "summary": "Key topics to discuss with doctor",
+  "high_priority": {
+    "topics": ["Urgent topic 1"],
+    "questions": ["Critical question 1"],
+    "symptoms": ["Concerning symptom 1"]
+  },
+  "medium_priority": {
+    "topics": ["Important topic 1"],
+    "questions": ["Important question 1"],
+    "symptoms": ["Notable symptom 1"]
+  },
+  "low_priority": {
+    "topics": ["General topic 1"],
+    "questions": ["General question 1"],
+    "symptoms": ["Minor symptom 1"]
+  },
+  "confidence_score": 0.92
 }`
 };
 
@@ -146,7 +163,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4.1-2025-04-14',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: combinedText }
@@ -161,56 +178,52 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    let aiResponse = data.choices[0].message.content;
 
-    // Parse the JSON response with improved handling for markdown-wrapped content
+    console.log('Raw AI response:', aiResponse);
+
+    // Enhanced content cleaning to handle various response formats
+    aiResponse = aiResponse.trim();
+    
+    // Remove markdown code blocks (multiple patterns)
+    aiResponse = aiResponse.replace(/```json\s*/g, '');
+    aiResponse = aiResponse.replace(/```\s*/g, '');
+    aiResponse = aiResponse.replace(/`{3,}/g, '');
+    
+    // Remove any leading/trailing whitespace and newlines
+    aiResponse = aiResponse.trim();
+    
     let parsedResponse;
     try {
-      // Strip markdown code blocks if present
-      const cleanResponse = aiResponse
-        .replace(/```json\s*/gi, '')
-        .replace(/```typescript\s*/gi, '')
-        .replace(/```\s*/g, '')
-        .trim();
+      // First attempt: direct parsing
+      parsedResponse = JSON.parse(aiResponse);
+    } catch (parseError) {
+      console.log('Direct JSON parse failed, attempting content extraction...');
       
-      parsedResponse = JSON.parse(cleanResponse);
-      
-      // If the parsed result is still a string, try parsing again (nested JSON)
-      if (typeof parsedResponse === 'string') {
-        const secondClean = parsedResponse
-          .replace(/```json\s*/gi, '')
-          .replace(/```\s*/g, '')
-          .trim();
-        try {
-          parsedResponse = JSON.parse(secondClean);
-        } catch {
-          // Keep as string if second parse fails
-          parsedResponse = { summary: parsedResponse, confidence_score: 0.7 };
-        }
-      }
-    } catch (e) {
-      console.warn('JSON parsing failed for AI response:', e);
-      // Try one more cleanup attempt
       try {
-        const fallbackClean = aiResponse
-          .replace(/```[a-z]*\s*/gi, '') // Remove any code block markers
-          .replace(/^[^{[]*/, '') // Remove leading non-JSON characters
-          .replace(/[^}\]]*$/, '') // Remove trailing non-JSON characters
-          .trim();
-        
-        if (fallbackClean) {
-          parsedResponse = JSON.parse(fallbackClean);
+        // Second attempt: find JSON object in the text
+        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsedResponse = JSON.parse(jsonMatch[0]);
         } else {
-          throw new Error('No valid JSON content found');
+          throw new Error('No JSON object found');
         }
-      } catch {
-        // Final fallback: create a basic structure
+      } catch (secondParseError) {
+        console.error('Failed to parse AI response as JSON:', secondParseError);
+        console.error('Raw content:', aiResponse);
+        
+        // Fallback: create structured content from text
         parsedResponse = {
           summary: aiResponse,
-          confidence_score: 0.7
+          high_priority: { findings: [], recommendations: [] },
+          medium_priority: { findings: [], recommendations: [] },
+          low_priority: { findings: [], recommendations: [] },
+          confidence_score: 0.5
         };
       }
     }
+
+    console.log('Parsed response:', parsedResponse);
 
     // Generate a title based on the summary type
     const titleMap = {
@@ -230,7 +243,7 @@ serve(async (req) => {
         content: JSON.stringify(parsedResponse),
         source_report_ids: reportIds,
         generated_at: new Date().toISOString(),
-        ai_model_used: 'gpt-4o',
+        ai_model_used: 'gpt-4.1-2025-04-14',
         confidence_score: parsedResponse.confidence_score || 0.8
       })
       .select()

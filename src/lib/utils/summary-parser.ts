@@ -13,118 +13,169 @@ export function stripMarkdownCodeBlocks(text: string): string {
 }
 
 export function parseSummaryContent(content: any): any {
-  // If already an object, return as is
+  // If content is already an object, return it
   if (typeof content === 'object' && content !== null) {
     return content;
   }
-
-  // If not a string, convert to string first
-  if (typeof content !== 'string') {
-    return { summary: String(content) };
-  }
-
-  // Strip markdown code blocks first
-  const cleanContent = stripMarkdownCodeBlocks(content);
-
-  // Try to parse as JSON
-  try {
-    const parsed = JSON.parse(cleanContent);
+  
+  // If content is a string, try to parse it as JSON
+  if (typeof content === 'string') {
+    // Remove any markdown code blocks and clean whitespace
+    let cleanContent = stripMarkdownCodeBlocks(content).trim();
     
-    // If parsed result is a string, try parsing again (nested JSON)
-    if (typeof parsed === 'string') {
-      const cleanNested = stripMarkdownCodeBlocks(parsed);
-      try {
-        return JSON.parse(cleanNested);
-      } catch {
-        return { summary: parsed };
-      }
-    }
-    
-    return parsed;
-  } catch (error) {
-    // If JSON parsing fails, try one more time with additional cleanup
     try {
-      const secondAttempt = cleanContent
-        .replace(/^[^{[]*/, '') // Remove leading non-JSON characters
-        .replace(/[^}\]]*$/, '') // Remove trailing non-JSON characters
-        .trim();
-      
-      if (secondAttempt) {
-        return JSON.parse(secondAttempt);
+      // First, try to parse directly
+      const parsed = JSON.parse(cleanContent);
+      return ensurePriorityStructure(parsed);
+    } catch (error) {
+      try {
+        // If that fails, try to find JSON within the string
+        const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return ensurePriorityStructure(parsed);
+        }
+      } catch (nestedError) {
+        console.error('Failed to parse summary content:', nestedError);
       }
-    } catch {
-      // Final fallback: return as summary string
-      return { summary: cleanContent || content };
+      
+      // If all parsing fails, create a structured fallback
+      return createFallbackStructure(cleanContent);
     }
-    
-    return { summary: cleanContent || content };
   }
+  
+  // Fallback for any other type
+  return createFallbackStructure(String(content));
+}
+
+function ensurePriorityStructure(parsed: any): any {
+  // If already has priority structure, return as-is
+  if (parsed.high_priority || parsed.medium_priority || parsed.low_priority) {
+    return parsed;
+  }
+  
+  // Convert legacy formats to priority structure
+  if (parsed.abnormal_findings || parsed.key_points || parsed.trends || parsed.key_topics) {
+    return convertLegacyToPriority(parsed);
+  }
+  
+  return parsed;
+}
+
+function convertLegacyToPriority(legacy: any): any {
+  const base = {
+    summary: legacy.summary || 'Health summary',
+    confidence_score: legacy.confidence_score || 0.8,
+    high_priority: { findings: [], recommendations: [] },
+    medium_priority: { findings: [], recommendations: [] },
+    low_priority: { findings: [], recommendations: [] }
+  };
+
+  // Convert based on legacy structure
+  if (legacy.abnormal_findings) {
+    base.high_priority.findings = legacy.abnormal_findings.slice(0, 2) || [];
+    base.medium_priority.findings = legacy.abnormal_findings.slice(2, 4) || [];
+    base.low_priority.findings = legacy.abnormal_findings.slice(4) || [];
+  }
+  
+  if (legacy.key_points) {
+    base.high_priority.findings = legacy.key_points.slice(0, 2) || [];
+    base.medium_priority.findings = legacy.key_points.slice(2, 4) || [];
+    base.low_priority.findings = legacy.key_points.slice(4) || [];
+  }
+  
+  if (legacy.recommended_actions) {
+    const recs = Array.isArray(legacy.recommended_actions) ? legacy.recommended_actions : [];
+    base.high_priority.recommendations = recs.slice(0, 2) || [];
+    base.medium_priority.recommendations = recs.slice(2, 4) || [];
+    base.low_priority.recommendations = recs.slice(4) || [];
+  }
+
+  return base;
+}
+
+function createFallbackStructure(content: string): any {
+  return {
+    summary: content,
+    confidence_score: 0.5,
+    high_priority: { findings: [], recommendations: [] },
+    medium_priority: { findings: [], recommendations: [] },
+    low_priority: { findings: [], recommendations: [] }
+  };
 }
 
 export function getContentPreview(content: any, maxLength: number = 150): string {
   const parsed = parseSummaryContent(content);
   
-  if (!parsed) return "AI-generated health summary";
-
-  // For comprehensive summaries
+  let preview = '';
+  
+  // Extract preview from priority structure
   if (parsed.summary) {
-    const text = String(parsed.summary);
-    return text.slice(0, maxLength) + (text.length > maxLength ? '...' : '');
+    preview = parsed.summary;
+  } else if (parsed.high_priority?.findings?.length > 0) {
+    const highFindings = parsed.high_priority.findings.slice(0, 2);
+    preview = `High priority: ${highFindings.join(', ')}`;
+  } else if (parsed.medium_priority?.findings?.length > 0) {
+    const mediumFindings = parsed.medium_priority.findings.slice(0, 2);
+    preview = `Important findings: ${mediumFindings.join(', ')}`;
+  } else if (parsed.low_priority?.findings?.length > 0) {
+    const lowFindings = parsed.low_priority.findings.slice(0, 2);
+    preview = `General findings: ${lowFindings.join(', ')}`;
+  } else {
+    // Legacy format fallbacks
+    if (parsed.abnormal_findings && Array.isArray(parsed.abnormal_findings)) {
+      preview = `Abnormal findings: ${parsed.abnormal_findings.slice(0, 2).join(', ')}`;
+    } else if (parsed.key_topics && Array.isArray(parsed.key_topics)) {
+      preview = `Key topics: ${parsed.key_topics.slice(0, 2).join(', ')}`;
+    } else if (parsed.trends && Array.isArray(parsed.trends)) {
+      preview = `Health trends: ${parsed.trends.slice(0, 2).join(', ')}`;
+    } else if (parsed.key_points && Array.isArray(parsed.key_points)) {
+      preview = `Key points: ${parsed.key_points.slice(0, 2).join(', ')}`;
+    } else {
+      preview = 'Summary content available';
+    }
   }
-
-  // For trend analysis
-  if (parsed.overall_health_trajectory) {
-    const trajectory = parsed.overall_health_trajectory;
-    const insights = parsed.key_insights?.slice(0, 2) || [];
-    const text = `Health trajectory: ${trajectory}${insights.length > 0 ? `. Key insights: ${insights.join(', ')}` : ''}`;
-    return text.slice(0, maxLength) + (text.length > maxLength ? '...' : '');
+  
+  // Truncate to maxLength
+  if (preview.length > maxLength) {
+    preview = preview.substring(0, maxLength - 3) + '...';
   }
-
-  // For abnormal findings
-  if (parsed.abnormal_findings?.length > 0) {
-    const count = parsed.abnormal_findings.length;
-    const firstFinding = Array.isArray(parsed.abnormal_findings) && parsed.abnormal_findings[0]?.finding 
-      ? parsed.abnormal_findings[0].finding 
-      : parsed.abnormal_findings[0];
-    const text = `${count} ${count === 1 ? 'finding' : 'findings'} identified${firstFinding ? `: ${firstFinding}` : ''}`;
-    return text.slice(0, maxLength) + (count > 1 ? '...' : '');
-  }
-
-  // For doctor prep
-  if (parsed.key_topics?.length > 0) {
-    const topics = parsed.key_topics.slice(0, 3).join(', ');
-    const text = `Topics to discuss: ${topics}${parsed.key_topics.length > 3 ? '...' : ''}`;
-    return text.slice(0, maxLength);
-  }
-
-  // For specific questions in doctor prep
-  if (parsed.specific_questions?.length > 0) {
-    const firstQuestion = parsed.specific_questions[0];
-    const text = `Questions for doctor: ${firstQuestion}${parsed.specific_questions.length > 1 ? '...' : ''}`;
-    return text.slice(0, maxLength);
-  }
-
-  // Fallback for any other structured content
-  if (parsed.overall_concern_level) {
-    const level = parsed.overall_concern_level;
-    return `Overall concern level: ${level}${parsed.recommended_actions?.length > 0 ? '. Recommendations available.' : ''}`;
-  }
-
-  return "AI-generated health summary";
+  
+  return preview || 'No preview available';
 }
 
 export function getSeverityBadge(content: any) {
   const parsed = parseSummaryContent(content);
-  if (!parsed) return null;
   
-  const severity = parsed.severity_level || parsed.overall_concern_level;
-  if (!severity) return null;
-
-  const severityConfig = {
-    low: { variant: "secondary" as const, label: "Low Priority" },
-    moderate: { variant: "default" as const, label: "Moderate" },
-    high: { variant: "destructive" as const, label: "High Priority" }
-  };
-
-  return severityConfig[severity as keyof typeof severityConfig] || null;
+  // Check priority structure first
+  const hasHighPriority = parsed.high_priority?.findings?.length > 0 || parsed.high_priority?.topics?.length > 0;
+  const hasMediumPriority = parsed.medium_priority?.findings?.length > 0 || parsed.medium_priority?.topics?.length > 0;
+  const hasLowPriority = parsed.low_priority?.findings?.length > 0 || parsed.low_priority?.topics?.length > 0;
+  
+  if (hasHighPriority) {
+    return { variant: 'destructive' as const, label: 'High Priority' };
+  } else if (hasMediumPriority) {
+    return { variant: 'default' as const, label: 'Medium Priority' };
+  } else if (hasLowPriority) {
+    return { variant: 'secondary' as const, label: 'Low Priority' };
+  }
+  
+  // Fallback to legacy severity indicators
+  const severityLevel = parsed.severity_level || parsed.overall_concern_level;
+  
+  if (severityLevel) {
+    switch (severityLevel.toLowerCase()) {
+      case 'severe':
+      case 'high':
+        return { variant: 'destructive' as const, label: 'High Priority' };
+      case 'moderate':
+      case 'medium':
+        return { variant: 'default' as const, label: 'Medium Priority' };
+      case 'mild':
+      case 'low':
+        return { variant: 'secondary' as const, label: 'Low Priority' };
+    }
+  }
+  
+  return null;
 }

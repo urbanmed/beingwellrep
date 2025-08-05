@@ -12,7 +12,8 @@ import {
   TrendingUp,
   Brain,
   Stethoscope,
-  MessageSquare
+  MessageSquare,
+  Info
 } from "lucide-react";
 import { Summary, SummaryContent } from "@/types/summary";
 import { formatDistanceToNow } from "date-fns";
@@ -36,7 +37,7 @@ export function SummaryViewer({
   if (!summary) return null;
 
   // Parse the content using the utility function
-  const content: SummaryContent = parseSummaryContent(summary.content);
+  const content: any = parseSummaryContent(summary.content);
 
   const getSeverityColor = (level?: string) => {
     switch (level) {
@@ -316,7 +317,98 @@ export function SummaryViewer({
     </div>
   );
 
+  const renderPrioritySection = (priority: 'high' | 'medium' | 'low', data: any, icon: React.ReactNode, colorClass: string) => {
+    if (!data || (!data.findings?.length && !data.topics?.length && !data.trends?.length)) {
+      return null;
+    }
+
+    const findings = data.findings || data.topics || data.trends || [];
+    const recommendations = data.recommendations || data.questions || [];
+
+    return (
+      <div className={`border rounded-lg p-4 ${colorClass}`}>
+        <div className="flex items-center gap-2 mb-3">
+          {icon}
+          <h4 className="font-semibold capitalize text-foreground">
+            {priority} Priority
+          </h4>
+        </div>
+        
+        {findings.length > 0 && (
+          <div className="space-y-2 mb-3">
+            <h5 className="text-sm font-medium text-muted-foreground">
+              {data.topics ? 'Topics:' : data.trends ? 'Trends:' : 'Findings:'}
+            </h5>
+            <ul className="space-y-1">
+              {findings.map((item: string, index: number) => (
+                <li key={index} className="text-sm text-foreground flex items-start">
+                  <span className="mr-2 text-primary">•</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        {recommendations.length > 0 && (
+          <div className="space-y-2">
+            <h5 className="text-sm font-medium text-muted-foreground">
+              {data.questions ? 'Questions:' : 'Recommendations:'}
+            </h5>
+            <ul className="space-y-1">
+              {recommendations.map((item: string, index: number) => (
+                <li key={index} className="text-sm text-foreground flex items-start">
+                  <span className="mr-2 text-primary">→</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderContent = () => {
+    // Check if content has priority structure
+    const hasPriorityStructure = content.high_priority || content.medium_priority || content.low_priority;
+    
+    if (hasPriorityStructure) {
+      return (
+        <div className="space-y-6">
+          {content.summary && (
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <p className="text-foreground leading-relaxed">{content.summary}</p>
+            </div>
+          )}
+          
+          <div className="space-y-4">
+            {renderPrioritySection(
+              'high', 
+              content.high_priority, 
+              <AlertTriangle className="h-4 w-4 text-destructive" />,
+              'border-destructive/50 bg-destructive/5'
+            )}
+            
+            {renderPrioritySection(
+              'medium', 
+              content.medium_priority, 
+              <Info className="h-4 w-4 text-primary" />,
+              'border-primary/50 bg-primary/5'
+            )}
+            
+            {renderPrioritySection(
+              'low', 
+              content.low_priority, 
+              <CheckCircle className="h-4 w-4 text-green-600" />,
+              'border-green-500/50 bg-green-50 dark:bg-green-900/10'
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    // Fallback to original rendering for legacy content
     switch (summary.summary_type) {
       case 'comprehensive':
         return renderComprehensiveSummary();
