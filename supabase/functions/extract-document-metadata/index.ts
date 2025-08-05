@@ -12,7 +12,7 @@ const METADATA_EXTRACTION_PROMPT = `You are a medical document analysis expert. 
 Return ONLY a valid JSON object with this exact structure:
 {
   "title": "Brief descriptive title for the document",
-  "reportType": "lab_results" | "prescription" | "radiology" | "vitals" | "consultation" | "general",
+  "reportType": "lab_results" | "radiology" | "procedure" | "pathology" | "consultation" | "prescription" | "vaccination" | "discharge" | "allergy" | "mental_health" | "general",
   "physicianName": "Doctor's name if mentioned, null if not found",
   "facilityName": "Medical facility/hospital/clinic name if mentioned, null if not found", 
   "description": "Brief 1-2 sentence description of what this document contains"
@@ -20,11 +20,25 @@ Return ONLY a valid JSON object with this exact structure:
 
 Guidelines:
 - title: Create a clear, concise title (e.g., "Blood Test Results - January 2024", "Chest X-Ray Report")
-- reportType: Choose the most appropriate category
+- reportType: Choose the most appropriate category from the available options
 - physicianName: Extract full doctor name, include title if present (Dr., MD, etc.)
 - facilityName: Extract hospital, clinic, lab, or medical facility name
 - description: Summarize the document's purpose and key content briefly
 - Use null for any field that cannot be determined from the document`;
+
+// Helper function to convert array buffer to base64 safely
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000; // 32KB chunks to prevent stack overflow
+  let result = '';
+  
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.slice(i, i + chunkSize);
+    result += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  
+  return btoa(result);
+}
 
 serve(async (req) => {
   console.log('Extract document metadata function called with method:', req.method);
@@ -66,11 +80,17 @@ serve(async (req) => {
       throw new Error(`Failed to download file: ${downloadError.message}`);
     }
 
-    // Get file buffer
+    // Get file buffer and check size
     const fileBuffer = await fileData.arrayBuffer();
     const fileSize = fileBuffer.byteLength;
     
     console.log('File downloaded, size:', fileSize);
+
+    // Check file size to prevent stack overflow (limit to 10MB)
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    if (fileSize > maxFileSize) {
+      throw new Error('File size too large for metadata extraction. Please upload files smaller than 10MB.');
+    }
 
     // Get OpenAI API key
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -85,8 +105,8 @@ serve(async (req) => {
     let openAIResponse;
 
     if (isImage) {
-      // For images, use vision API
-      const base64Image = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)));
+      // For images, use vision API with safe base64 conversion
+      const base64Image = arrayBufferToBase64(fileBuffer);
       
       openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -105,7 +125,7 @@ serve(async (req) => {
                   type: 'image_url',
                   image_url: {
                     url: `data:image/${isImage[1]};base64,${base64Image}`,
-                    detail: 'high'
+                    detail: 'low' // Use low detail to reduce processing overhead
                   }
                 }
               ]
@@ -116,8 +136,8 @@ serve(async (req) => {
         }),
       });
     } else if (isPDF) {
-      // For PDFs, convert to image and use vision API
-      const base64PDF = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)));
+      // For PDFs, use safe base64 conversion
+      const base64PDF = arrayBufferToBase64(fileBuffer);
       
       openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -136,7 +156,7 @@ serve(async (req) => {
                   type: 'image_url',
                   image_url: {
                     url: `data:application/pdf;base64,${base64PDF}`,
-                    detail: 'high'
+                    detail: 'low' // Use low detail to reduce processing overhead
                   }
                 }
               ]
@@ -190,6 +210,17 @@ serve(async (req) => {
     }
 
     console.log('Successfully extracted metadata:', metadata);
+
+    // Clean up the temporary file
+    try {
+      await supabaseClient.storage
+        .from('medical-documents')
+        .remove([filePath]);
+      console.log('Temporary file cleaned up:', filePath);
+    } catch (cleanupError) {
+      console.warn('Failed to clean up temporary file:', cleanupError);
+      // Don't fail the whole request for cleanup errors
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 
