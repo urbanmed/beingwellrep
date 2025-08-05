@@ -25,8 +25,8 @@ interface ReportDisplay {
   title: string;
   report_date: string;
   report_type: string;
-  ocr_status: string;
-  ocr_text?: string;
+  parsing_status: string;
+  extracted_text?: string;
   physician_name?: string;
   processing_error?: string;
 }
@@ -91,7 +91,7 @@ export function GenerateSummaryDialog({
     try {
       const { data, error } = await supabase
         .from('reports')
-        .select('id, title, report_date, report_type, ocr_status, physician_name, ocr_text, processing_error')
+        .select('id, title, report_date, report_type, parsing_status, physician_name, extracted_text, processing_error')
         .order('report_date', { ascending: false });
 
       if (error) throw error;
@@ -128,13 +128,13 @@ export function GenerateSummaryDialog({
 
   // Filter reports for summary generation
   const readyReports = allReports.filter(r => 
-    r.ocr_status === 'completed' && 
-    r.ocr_text && 
-    r.ocr_text.trim() !== ''
+    r.parsing_status === 'completed' && 
+    r.extracted_text && 
+    r.extracted_text.trim() !== ''
   );
 
-  const processingReports = allReports.filter(r => r.ocr_status === 'processing');
-  const failedReports = allReports.filter(r => r.ocr_status === 'failed');
+  const processingReports = allReports.filter(r => r.parsing_status === 'processing');
+  const failedReports = allReports.filter(r => r.parsing_status === 'failed');
 
   const handleRetryOCR = async (reportId: string) => {
     try {

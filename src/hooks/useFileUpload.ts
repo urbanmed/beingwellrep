@@ -158,7 +158,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
               file_type: file.type,
               file_size: file.size,
               report_date: new Date().toISOString().split('T')[0],
-              ocr_status: 'pending',
+              parsing_status: 'pending',
               user_id: dbAuthResult.user.id,
               ...additionalData
             })

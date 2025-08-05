@@ -15,8 +15,8 @@ interface Report {
   file_name: string;
   file_size: number;
   created_at: string;
-  ocr_status: string;
-  ocr_confidence: number | null;
+  parsing_status: string;
+  extraction_confidence: number | null;
   processing_error: string | null;
   physician_name: string | null;
 }
@@ -169,7 +169,7 @@ export function RecentUploads() {
                   <p className="text-sm text-muted-foreground">{report.file_name}</p>
                 </div>
               </div>
-              {getOCRStatusBadge(report.ocr_status, report.ocr_confidence)}
+              {getOCRStatusBadge(report.parsing_status, report.extraction_confidence)}
             </div>
 
             <div className="flex items-center space-x-4 text-xs text-muted-foreground">
@@ -190,14 +190,14 @@ export function RecentUploads() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                {getOCRStatusIcon(report.ocr_status)}
+                {getOCRStatusIcon(report.parsing_status)}
                 <span className="text-sm capitalize">
                   {report.report_type.replace('_', ' ')}
                 </span>
               </div>
 
             <div className="flex items-center space-x-2">
-              {report.ocr_status === 'failed' && (
+              {report.parsing_status === 'failed' && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -207,7 +207,7 @@ export function RecentUploads() {
                 </Button>
               )}
               
-              {report.ocr_status === 'completed' && (
+              {report.parsing_status === 'completed' && (
                 <Button
                   variant="outline"
                   size="sm"

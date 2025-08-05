@@ -34,7 +34,7 @@ export default function Timeline() {
     const totalReports = items.filter(item => item.type === 'report').length;
     const totalSummaries = items.filter(item => item.type === 'summary').length;
     const processedReports = items.filter(item => 
-      item.type === 'report' && item.ocrStatus === 'completed'
+      item.type === 'report' && item.parsingStatus === 'completed'
     ).length;
 
     return { totalReports, totalSummaries, processedReports };

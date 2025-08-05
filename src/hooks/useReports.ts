@@ -10,8 +10,9 @@ export interface Report {
   file_size: number;
   created_at: string;
   updated_at: string;
-  ocr_status: string;
-  ocr_confidence: number | null;
+  parsing_status: string;
+  extraction_confidence: number | null;
+  parsing_confidence: number | null;
   processing_error: string | null;
   physician_name: string | null;
   facility_name: string | null;
@@ -22,6 +23,9 @@ export interface Report {
   report_date: string;
   notes: string | null;
   user_id: string;
+  extracted_text: string | null;
+  parsed_data: any | null;
+  parsing_model: string | null;
 }
 
 export function useReports() {
@@ -78,7 +82,7 @@ export function useReports() {
 
   const retryOCR = async (reportId: string) => {
     try {
-      const { error } = await supabase.functions.invoke('process-ocr', {
+      const { error } = await supabase.functions.invoke('process-medical-document', {
         body: { reportId }
       });
 
@@ -86,7 +90,7 @@ export function useReports() {
 
       toast({
         title: 'Success',
-        description: 'OCR processing restarted',
+        description: 'Document processing restarted',
       });
 
       // Refresh the list

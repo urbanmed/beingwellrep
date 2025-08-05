@@ -10,9 +10,9 @@ const Index = () => {
   const { reports, loading } = useReports();
 
   const hasReports = reports.length > 0;
-  const completedReports = reports.filter(r => r.ocr_status === 'completed');
-  const processingReports = reports.filter(r => r.ocr_status === 'processing');
-  const failedReports = reports.filter(r => r.ocr_status === 'failed');
+  const completedReports = reports.filter(r => r.parsing_status === 'completed');
+  const processingReports = reports.filter(r => r.parsing_status === 'processing');
+  const failedReports = reports.filter(r => r.parsing_status === 'failed');
 
   return (
     <div className="p-4 space-y-6">

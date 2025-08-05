@@ -24,9 +24,9 @@ export default function Reports() {
 
     const matchesFilter = 
       activeFilter === "all" ||
-      (activeFilter === "completed" && report.ocr_status === "completed") ||
-      (activeFilter === "processing" && report.ocr_status === "processing") ||
-      (activeFilter === "failed" && report.ocr_status === "failed") ||
+      (activeFilter === "completed" && report.parsing_status === "completed") ||
+      (activeFilter === "processing" && report.parsing_status === "processing") ||
+      (activeFilter === "failed" && report.parsing_status === "failed") ||
       (activeFilter === "critical" && report.is_critical);
 
     return matchesSearch && matchesFilter;
@@ -126,7 +126,7 @@ export default function Reports() {
                 onClick={() => setActiveFilter("completed")}
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
-                Processed ({reports.filter(r => r.ocr_status === 'completed').length})
+                Processed ({reports.filter(r => r.parsing_status === 'completed').length})
               </Button>
               <Button
                 variant={activeFilter === "processing" ? "default" : "outline"}
@@ -134,7 +134,7 @@ export default function Reports() {
                 onClick={() => setActiveFilter("processing")}
               >
                 <Clock className="h-3 w-3 mr-1" />
-                Processing ({reports.filter(r => r.ocr_status === 'processing').length})
+                Processing ({reports.filter(r => r.parsing_status === 'processing').length})
               </Button>
               <Button
                 variant={activeFilter === "failed" ? "default" : "outline"}
@@ -142,7 +142,7 @@ export default function Reports() {
                 onClick={() => setActiveFilter("failed")}
               >
                 <AlertCircle className="h-3 w-3 mr-1" />
-                Failed ({reports.filter(r => r.ocr_status === 'failed').length})
+                Failed ({reports.filter(r => r.parsing_status === 'failed').length})
               </Button>
             </div>
           </div>
@@ -154,7 +154,7 @@ export default function Reports() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-4 flex-1">
                       <div className="mt-1">
-                        {getOCRStatusIcon(report.ocr_status)}
+                        {getOCRStatusIcon(report.parsing_status)}
                       </div>
                       
                       <div className="flex-1 min-w-0">
@@ -165,7 +165,7 @@ export default function Reports() {
                               Critical
                             </Badge>
                           )}
-                          {getOCRStatusBadge(report.ocr_status, report.ocr_confidence)}
+                          {getOCRStatusBadge(report.parsing_status, report.extraction_confidence)}
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-muted-foreground mb-3">
@@ -212,7 +212,7 @@ export default function Reports() {
                     
                     <ReportActions
                       reportId={report.id}
-                      ocrStatus={report.ocr_status}
+                      ocrStatus={report.parsing_status}
                     />
                   </div>
                 </CardContent>

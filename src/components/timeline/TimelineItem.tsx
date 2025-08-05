@@ -26,7 +26,7 @@ export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails
 
   const getStatusBadge = () => {
     if (item.type === 'report') {
-      switch (item.ocrStatus) {
+      switch (item.parsingStatus) {
         case 'completed':
           return <Badge variant="default" className="text-xs">Processed</Badge>;
         case 'processing':

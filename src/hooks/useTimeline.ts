@@ -14,7 +14,7 @@ export interface TimelineItem {
   reportType?: string;
   facility?: string;
   physician?: string;
-  ocrStatus?: string;
+  parsingStatus?: string;
   summaryType?: string;
   isPinned?: boolean;
   rating?: number;
@@ -57,7 +57,7 @@ export function useTimeline() {
         reportType: report.report_type,
         facility: report.facility_name,
         physician: report.physician_name,
-        ocrStatus: report.ocr_status
+        parsingStatus: report.parsing_status
       });
     });
 

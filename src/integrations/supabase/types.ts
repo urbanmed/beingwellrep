@@ -138,6 +138,8 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          extracted_text: string | null
+          extraction_confidence: number | null
           facility_name: string | null
           file_name: string | null
           file_size: number | null
@@ -146,9 +148,10 @@ export type Database = {
           id: string
           is_critical: boolean | null
           notes: string | null
-          ocr_confidence: number | null
-          ocr_status: string | null
-          ocr_text: string | null
+          parsed_data: Json | null
+          parsing_confidence: number | null
+          parsing_model: string | null
+          parsing_status: string | null
           physician_name: string | null
           processing_error: string | null
           report_date: string
@@ -161,6 +164,8 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          extracted_text?: string | null
+          extraction_confidence?: number | null
           facility_name?: string | null
           file_name?: string | null
           file_size?: number | null
@@ -169,9 +174,10 @@ export type Database = {
           id?: string
           is_critical?: boolean | null
           notes?: string | null
-          ocr_confidence?: number | null
-          ocr_status?: string | null
-          ocr_text?: string | null
+          parsed_data?: Json | null
+          parsing_confidence?: number | null
+          parsing_model?: string | null
+          parsing_status?: string | null
           physician_name?: string | null
           processing_error?: string | null
           report_date: string
@@ -184,6 +190,8 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          extracted_text?: string | null
+          extraction_confidence?: number | null
           facility_name?: string | null
           file_name?: string | null
           file_size?: number | null
@@ -192,9 +200,10 @@ export type Database = {
           id?: string
           is_critical?: boolean | null
           notes?: string | null
-          ocr_confidence?: number | null
-          ocr_status?: string | null
-          ocr_text?: string | null
+          parsed_data?: Json | null
+          parsing_confidence?: number | null
+          parsing_model?: string | null
+          parsing_status?: string | null
           physician_name?: string | null
           processing_error?: string | null
           report_date?: string
