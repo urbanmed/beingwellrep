@@ -22,45 +22,27 @@ export function DoctorInfoCard({
   email
 }: DoctorInfoCardProps) {
   // Only render if we have at least one piece of information
-  if (!facility && !orderingPhysician && !collectionDate && !reportDate && !address && !phone && !email) {
+  if (!facility && !orderingPhysician && !address && !phone && !email) {
     return null;
   }
 
   return (
     <Card>
-      <CardContent className="p-4">
-        <h4 className="font-semibold mb-4 text-lg">Medical Information</h4>
-        <div className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CardContent className="p-3">
+        <h4 className="font-semibold mb-2 text-base">Medical Information</h4>
+        <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {facility && (
-              <div className="flex flex-col space-y-1">
-                <Label className="text-muted-foreground">Facility</Label>
-                <span className="font-medium">{facility}</span>
+              <div className="flex flex-col space-y-0.5">
+                <Label className="text-muted-foreground text-xs">Facility</Label>
+                <span className="font-medium text-sm">{facility}</span>
               </div>
             )}
             
             {orderingPhysician && (
-              <div className="flex flex-col space-y-1">
-                <Label className="text-muted-foreground">Ordering Physician</Label>
-                <span className="font-medium">{orderingPhysician}</span>
-              </div>
-            )}
-            
-            {collectionDate && (
-              <div className="flex flex-col space-y-1">
-                <Label className="text-muted-foreground">Collection Date</Label>
-                <span className="font-medium">
-                  {new Date(collectionDate).toLocaleDateString()}
-                </span>
-              </div>
-            )}
-            
-            {reportDate && (
-              <div className="flex flex-col space-y-1">
-                <Label className="text-muted-foreground">Report Date</Label>
-                <span className="font-medium">
-                  {new Date(reportDate).toLocaleDateString()}
-                </span>
+              <div className="flex flex-col space-y-0.5">
+                <Label className="text-muted-foreground text-xs">Ordering Physician</Label>
+                <span className="font-medium text-sm">{orderingPhysician}</span>
               </div>
             )}
           </div>
