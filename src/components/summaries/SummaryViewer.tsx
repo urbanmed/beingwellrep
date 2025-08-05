@@ -45,10 +45,10 @@ export function SummaryViewer({
 
   const getSeverityColor = (level?: string) => {
     switch (level) {
-      case 'high': return 'text-red-600 bg-red-50 border-red-200';
-      case 'moderate': return 'text-orange-600 bg-orange-50 border-orange-200';
-      case 'low': return 'text-green-600 bg-green-50 border-green-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+      case 'high': return 'bg-destructive/10 border-destructive/20 text-destructive';
+      case 'moderate': return 'bg-warning/10 border-warning/20 text-warning';
+      case 'low': return 'bg-success/10 border-success/20 text-success';
+      default: return 'bg-muted border-muted-foreground/20 text-muted-foreground';
     }
   };
 
@@ -89,7 +89,7 @@ export function SummaryViewer({
       )}
 
       {content.normal_findings && content.normal_findings.length > 0 && (
-        <Card className="text-green-600 bg-green-50 border-green-200">
+        <Card className="bg-success/10 border-success/20 text-success">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-inherit">
               <CheckCircle className="h-5 w-5" />
@@ -294,7 +294,7 @@ export function SummaryViewer({
       {content.abnormal_findings && content.abnormal_findings.length > 0 && (
         <div className="space-y-4">
           {content.abnormal_findings.map((finding, idx) => (
-            <Card key={idx} className="border-orange-200">
+            <Card key={idx} className="border-warning/30">
               <CardContent className="pt-6">
                 {typeof finding === 'string' ? (
                   <p className="text-sm">{finding}</p>

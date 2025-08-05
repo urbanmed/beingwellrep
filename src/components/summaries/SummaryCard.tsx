@@ -71,13 +71,61 @@ export function SummaryCard({ summary, onView, onPin }: SummaryCardProps) {
   };
 
   const getContentPreview = (content: any) => {
-    if (typeof content === 'string') return content.slice(0, 150) + '...';
+    if (typeof content === 'string') {
+      // If it's a string, try to parse it first
+      try {
+        const parsed = JSON.parse(content);
+        return getFormattedPreview(parsed);
+      } catch {
+        return content.slice(0, 150) + (content.length > 150 ? '...' : '');
+      }
+    }
     
-    if (content.summary) return content.summary.slice(0, 150) + '...';
-    if (content.overall_health_trajectory) return `Health trajectory: ${content.overall_health_trajectory}`;
-    if (content.abnormal_findings?.length > 0) return `${content.abnormal_findings.length} findings identified`;
-    if (content.key_topics?.length > 0) return `${content.key_topics.length} topics to discuss`;
-    
+    return getFormattedPreview(content);
+  };
+
+  const getFormattedPreview = (content: any) => {
+    if (!content) return "AI-generated health summary";
+
+    // For comprehensive summaries
+    if (content.summary) {
+      return content.summary.slice(0, 150) + (content.summary.length > 150 ? '...' : '');
+    }
+
+    // For trend analysis
+    if (content.overall_health_trajectory) {
+      const trajectory = content.overall_health_trajectory;
+      const insights = content.key_insights?.slice(0, 2) || [];
+      return `Health trajectory: ${trajectory}${insights.length > 0 ? `. Key insights: ${insights.join(', ')}` : ''}`.slice(0, 150) + '...';
+    }
+
+    // For abnormal findings
+    if (content.abnormal_findings?.length > 0) {
+      const count = content.abnormal_findings.length;
+      const firstFinding = Array.isArray(content.abnormal_findings) && content.abnormal_findings[0]?.finding 
+        ? content.abnormal_findings[0].finding 
+        : content.abnormal_findings[0];
+      return `${count} ${count === 1 ? 'finding' : 'findings'} identified${firstFinding ? `: ${firstFinding}` : ''}`.slice(0, 150) + (count > 1 ? '...' : '');
+    }
+
+    // For doctor prep
+    if (content.key_topics?.length > 0) {
+      const topics = content.key_topics.slice(0, 3).join(', ');
+      return `Topics to discuss: ${topics}${content.key_topics.length > 3 ? '...' : ''}`.slice(0, 150);
+    }
+
+    // For specific questions in doctor prep
+    if (content.specific_questions?.length > 0) {
+      const firstQuestion = content.specific_questions[0];
+      return `Questions for doctor: ${firstQuestion}${content.specific_questions.length > 1 ? '...' : ''}`.slice(0, 150);
+    }
+
+    // Fallback for any other structured content
+    if (content.overall_concern_level) {
+      const level = content.overall_concern_level;
+      return `Overall concern level: ${level}${content.recommended_actions?.length > 0 ? '. Recommendations available.' : ''}`;
+    }
+
     return "AI-generated health summary";
   };
 
