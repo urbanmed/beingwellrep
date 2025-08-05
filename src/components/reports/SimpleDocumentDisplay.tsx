@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, FileText, AlertCircle } from "lucide-react";
+import { ExternalLink, FileText, AlertCircle, File, Image } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 
@@ -133,7 +134,23 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
     }
   };
 
-  const isPDF = report.file_url?.toLowerCase().includes('.pdf');
+  // Get file type and extension
+  const getFileInfo = () => {
+    const fileUrl = workingFileUrl || report.file_url;
+    if (!fileUrl) return { type: 'unknown', extension: '', icon: File };
+    
+    const extension = fileUrl.toLowerCase().split('.').pop() || '';
+    
+    if (extension === 'pdf') {
+      return { type: 'PDF Document', extension: 'PDF', icon: FileText };
+    } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+      return { type: 'Image', extension: extension.toUpperCase(), icon: Image };
+    } else {
+      return { type: 'Document', extension: extension.toUpperCase(), icon: File };
+    }
+  };
+
+  const fileInfo = getFileInfo();
 
   return (
     <div className="space-y-4">
@@ -182,29 +199,53 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
             </Alert>
           ) : documentUrl ? (
             <div className="space-y-4">
-              {isPDF ? (
-                <div className="border rounded-lg overflow-hidden">
-                  <iframe
-                    src={documentUrl}
-                    className="w-full h-96"
-                    title={`${report.title} - Original Document`}
-                    onError={() => setError('Failed to load document preview')}
-                  />
+              {/* Document Preview Card */}
+              <div 
+                className="border rounded-lg p-6 hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={handleViewOriginal}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <fileInfo.icon className="h-6 w-6 text-primary" />
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-medium truncate">{report.title}</h3>
+                      <Badge variant="secondary" className="flex-shrink-0">
+                        {fileInfo.extension}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {fileInfo.type}
+                    </p>
+                    {workingFileUrl && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        Using alternative file from your account
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex-shrink-0">
+                    <ExternalLink className="h-5 w-5 text-muted-foreground" />
+                  </div>
                 </div>
-              ) : (
-                <div className="border rounded-lg overflow-hidden">
-                  <img
-                    src={documentUrl}
-                    alt={`${report.title} - Original Document`}
-                    className="w-full h-auto max-h-96 object-contain"
-                    onError={() => setError('Failed to load document preview')}
-                  />
-                </div>
-              )}
+              </div>
               
-              <p className="text-sm text-muted-foreground">
-                Click "View Original" to open the document in a new tab for better viewing.
-              </p>
+              <div className="bg-muted/50 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-muted-foreground">
+                    <p className="font-medium mb-1">Document opens in new tab</p>
+                    <p>
+                      For security reasons, documents are opened in a new browser tab. 
+                      Click the document preview above or the "View Original" button to view the full document.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <Alert>
