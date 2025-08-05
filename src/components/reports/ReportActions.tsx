@@ -1,18 +1,32 @@
 import { useState } from 'react';
-import { Sparkles, Eye, Download, MoreVertical } from 'lucide-react';
+import { Sparkles, Eye, Download, MoreVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { GenerateSummaryDialogWrapper } from '@/components/summaries/GenerateSummaryDialogWrapper';
+import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import { useReports } from '@/hooks/useReports';
 
 interface ReportActionsProps {
   reportId: string;
   ocrStatus: string;
   onView?: () => void;
   onDownload?: () => void;
+  onDelete?: () => void;
 }
 
-export function ReportActions({ reportId, ocrStatus, onView, onDownload }: ReportActionsProps) {
+export function ReportActions({ reportId, ocrStatus, onView, onDownload, onDelete }: ReportActionsProps) {
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { deleteReport } = useReports();
+
+  const handleDelete = async () => {
+    setShowDeleteDialog(false);
+    if (onDelete) {
+      onDelete();
+    } else {
+      await deleteReport(reportId);
+    }
+  };
 
   return (
     <>
@@ -43,6 +57,16 @@ export function ReportActions({ reportId, ocrStatus, onView, onDownload }: Repor
               Download
             </DropdownMenuItem>
           )}
+          
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuItem 
+            onClick={() => setShowDeleteDialog(true)}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Report
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       
@@ -50,6 +74,12 @@ export function ReportActions({ reportId, ocrStatus, onView, onDownload }: Repor
         isOpen={showGenerateDialog}
         onClose={() => setShowGenerateDialog(false)}
         preSelectedReportIds={[reportId]}
+      />
+      
+      <DeleteConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDelete}
       />
     </>
   );

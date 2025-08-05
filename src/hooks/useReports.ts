@@ -57,6 +57,30 @@ export function useReports() {
 
   const deleteReport = async (reportId: string) => {
     try {
+      // First get the report to access the file_url for cleanup
+      const { data: report, error: fetchError } = await supabase
+        .from('reports')
+        .select('file_url, file_name')
+        .eq('id', reportId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Delete the file from storage if it exists
+      if (report?.file_url) {
+        const filePath = report.file_url.split('/').pop();
+        if (filePath) {
+          const { error: storageError } = await supabase.storage
+            .from('medical-documents')
+            .remove([filePath]);
+          
+          if (storageError) {
+            console.warn('Failed to delete file from storage:', storageError);
+          }
+        }
+      }
+
+      // Delete the report from database
       const { error } = await supabase
         .from('reports')
         .delete()
@@ -68,13 +92,69 @@ export function useReports() {
       
       toast({
         title: "Success",
-        description: "Report deleted",
+        description: "Report and associated files deleted",
       });
     } catch (error) {
       console.error('Error deleting report:', error);
       toast({
         title: "Error",
         description: "Failed to delete report",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteMultipleReports = async (reportIds: string[]) => {
+    try {
+      // Get all reports to access file URLs for cleanup
+      const { data: reportsToDelete, error: fetchError } = await supabase
+        .from('reports')
+        .select('id, file_url, file_name')
+        .in('id', reportIds);
+
+      if (fetchError) throw fetchError;
+
+      // Collect file paths to delete from storage
+      const filePaths: string[] = [];
+      reportsToDelete?.forEach(report => {
+        if (report.file_url) {
+          const filePath = report.file_url.split('/').pop();
+          if (filePath) {
+            filePaths.push(filePath);
+          }
+        }
+      });
+
+      // Delete files from storage if any exist
+      if (filePaths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('medical-documents')
+          .remove(filePaths);
+        
+        if (storageError) {
+          console.warn('Failed to delete some files from storage:', storageError);
+        }
+      }
+
+      // Delete reports from database
+      const { error } = await supabase
+        .from('reports')
+        .delete()
+        .in('id', reportIds);
+
+      if (error) throw error;
+
+      setReports(prev => prev.filter(r => !reportIds.includes(r.id)));
+      
+      toast({
+        title: "Success",
+        description: `${reportIds.length} report${reportIds.length > 1 ? 's' : ''} deleted`,
+      });
+    } catch (error) {
+      console.error('Error deleting reports:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete reports",
         variant: "destructive",
       });
     }
@@ -114,6 +194,7 @@ export function useReports() {
     loading,
     fetchReports,
     deleteReport,
+    deleteMultipleReports,
     retryOCR,
     refetch: fetchReports
   };

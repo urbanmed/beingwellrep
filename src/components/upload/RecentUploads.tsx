@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
-import { FileText, Calendar, User, AlertCircle, CheckCircle, Clock, Brain, Sparkles } from 'lucide-react';
+import { FileText, Calendar, User, AlertCircle, CheckCircle, Clock, Brain, Sparkles, Trash2, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { GenerateSummaryDialogWrapper } from '@/components/summaries/GenerateSummaryDialogWrapper';
+import { DeleteConfirmDialog } from '@/components/reports/DeleteConfirmDialog';
+import { useReports } from '@/hooks/useReports';
 
 interface Report {
   id: string;
@@ -26,7 +29,10 @@ export function RecentUploads() {
   const [loading, setLoading] = useState(true);
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
+  const [selectedForDeletion, setSelectedForDeletion] = useState<string[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { toast } = useToast();
+  const { deleteMultipleReports, retryOCR: retryReportOCR } = useReports();
 
   useEffect(() => {
     fetchRecentReports();
@@ -58,30 +64,50 @@ export function RecentUploads() {
   };
 
   const retryOCR = async (reportId: string) => {
-    try {
-      const { error } = await supabase.functions.invoke('process-ocr', {
-        body: { reportId }
-      });
+    await retryReportOCR(reportId);
+    fetchRecentReports();
+  };
 
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: 'Success',
-        description: 'OCR processing restarted',
-      });
-
-      // Refresh the list
-      fetchRecentReports();
-    } catch (error) {
-      console.error('Error retrying OCR:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to retry OCR processing',
-        variant: 'destructive',
-      });
+  const handleSelectReport = (reportId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedForDeletion(prev => [...prev, reportId]);
+    } else {
+      setSelectedForDeletion(prev => prev.filter(id => id !== reportId));
     }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedForDeletion(reports.map(r => r.id));
+    } else {
+      setSelectedForDeletion([]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    setShowDeleteDialog(false);
+    await deleteMultipleReports(selectedForDeletion);
+    setSelectedForDeletion([]);
+    fetchRecentReports();
+  };
+
+  const clearFailedReports = async () => {
+    const failedReportIds = reports
+      .filter(r => r.parsing_status === 'failed')
+      .map(r => r.id);
+    
+    if (failedReportIds.length > 0) {
+      await deleteMultipleReports(failedReportIds);
+      fetchRecentReports();
+    }
+  };
+
+  const retryAllFailed = async () => {
+    const failedReports = reports.filter(r => r.parsing_status === 'failed');
+    for (const report of failedReports) {
+      await retryReportOCR(report.id);
+    }
+    fetchRecentReports();
   };
 
   const getOCRStatusIcon = (status: string) => {
@@ -153,16 +179,75 @@ export function RecentUploads() {
     );
   }
 
+  const failedCount = reports.filter(r => r.parsing_status === 'failed').length;
+  const processingCount = reports.filter(r => r.parsing_status === 'processing').length;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Uploads</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Recent Uploads</CardTitle>
+          {reports.length > 0 && (
+            <div className="flex items-center gap-2">
+              {failedCount > 0 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={retryAllFailed}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    <RotateCcw className="h-3 w-3 mr-1" />
+                    Retry All Failed
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearFailedReports}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Clear Failed
+                  </Button>
+                </>
+              )}
+              {selectedForDeletion.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Delete Selected ({selectedForDeletion.length})
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+        {reports.length > 0 && (
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox
+                checked={selectedForDeletion.length === reports.length && reports.length > 0}
+                onCheckedChange={handleSelectAll}
+              />
+              Select All
+            </label>
+            <span>{reports.length} total</span>
+            {processingCount > 0 && <span>{processingCount} processing</span>}
+            {failedCount > 0 && <span className="text-red-600">{failedCount} failed</span>}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {reports.map((report) => (
           <div key={report.id} className="border rounded-lg p-4 space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-start space-x-3">
+                <Checkbox
+                  checked={selectedForDeletion.includes(report.id)}
+                  onCheckedChange={(checked) => handleSelectReport(report.id, checked as boolean)}
+                />
                 <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div className="flex-1">
                   <h3 className="font-medium">{report.title}</h3>
@@ -242,6 +327,14 @@ export function RecentUploads() {
           setSelectedReportIds([]);
         }}
         preSelectedReportIds={selectedReportIds}
+      />
+      
+      <DeleteConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleBulkDelete}
+        isMultiple={true}
+        count={selectedForDeletion.length}
       />
     </Card>
   );

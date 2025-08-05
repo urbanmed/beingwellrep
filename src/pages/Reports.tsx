@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Search, Filter, FileText, Calendar, AlertCircle, CheckCircle, Clock, Plus } from "lucide-react";
+import { Search, Filter, FileText, Calendar, AlertCircle, CheckCircle, Clock, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useReports } from "@/hooks/useReports";
 import { ReportActions } from "@/components/reports/ReportActions";
+import { DeleteConfirmDialog } from "@/components/reports/DeleteConfirmDialog";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
@@ -13,8 +15,10 @@ export default function Reports() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
+  const [selectedForDeletion, setSelectedForDeletion] = useState<string[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
-  const { reports, loading } = useReports();
+  const { reports, loading, deleteMultipleReports, fetchReports } = useReports();
 
   const filteredReports = reports.filter(report => {
     const matchesSearch = 
@@ -31,6 +35,28 @@ export default function Reports() {
 
     return matchesSearch && matchesFilter;
   });
+
+  const handleSelectReport = (reportId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedForDeletion(prev => [...prev, reportId]);
+    } else {
+      setSelectedForDeletion(prev => prev.filter(id => id !== reportId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedForDeletion(filteredReports.map(r => r.id));
+    } else {
+      setSelectedForDeletion([]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    setShowDeleteDialog(false);
+    await deleteMultipleReports(selectedForDeletion);
+    setSelectedForDeletion([]);
+  };
 
   const getOCRStatusIcon = (status: string) => {
     switch (status) {
@@ -112,6 +138,15 @@ export default function Reports() {
                 className="pl-10"
               />
             </div>
+            {selectedForDeletion.length > 0 && (
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Selected ({selectedForDeletion.length})
+              </Button>
+            )}
             <div className="flex gap-2 flex-wrap">
               <Button
                 variant={activeFilter === "all" ? "default" : "outline"}
@@ -147,12 +182,33 @@ export default function Reports() {
             </div>
           </div>
 
+          {filteredReports.length > 0 && (
+            <div className="flex items-center gap-4 text-sm text-muted-foreground border-b pb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={selectedForDeletion.length === filteredReports.length && filteredReports.length > 0}
+                  onCheckedChange={handleSelectAll}
+                />
+                Select All
+              </label>
+              <span>{filteredReports.length} result{filteredReports.length !== 1 ? 's' : ''}</span>
+              {selectedForDeletion.length > 0 && (
+                <span className="text-destructive">{selectedForDeletion.length} selected</span>
+              )}
+            </div>
+          )}
+
           <div className="grid gap-4">
             {filteredReports.map((report) => (
               <Card key={report.id}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-4 flex-1">
+                      <Checkbox
+                        checked={selectedForDeletion.includes(report.id)}
+                        onCheckedChange={(checked) => handleSelectReport(report.id, checked as boolean)}
+                        className="mt-1"
+                      />
                       <div className="mt-1">
                         {getOCRStatusIcon(report.parsing_status)}
                       </div>
@@ -230,6 +286,14 @@ export default function Reports() {
           )}
         </div>
       )}
+      
+      <DeleteConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleBulkDelete}
+        isMultiple={true}
+        count={selectedForDeletion.length}
+      />
     </div>
   );
 }
