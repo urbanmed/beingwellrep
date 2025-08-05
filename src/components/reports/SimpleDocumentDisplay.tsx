@@ -18,7 +18,7 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
   const [isChecking, setIsChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if file exists in storage
+  // Check if file exists in storage and find fallback if needed
   useEffect(() => {
     const checkFileExists = async () => {
       if (!report.file_url) {
@@ -31,26 +31,68 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
         setIsChecking(true);
         setError(null);
 
-        // Try to get file info to check if it exists
-        const { data, error: storageError } = await supabase.storage
-          .from('medical-documents')
-          .list('', {
-            limit: 1,
-            search: report.file_url
-          });
+        console.log('Checking file existence for:', report.file_url);
 
-        if (storageError) {
-          console.error('Storage error:', storageError);
-          setError(storageError.message);
-          setFileExists(false);
-        } else {
-          // Check if file was found in the list
-          const fileFound = data && data.length > 0;
-          setFileExists(fileFound);
+        // First, try direct file head check for more reliable existence detection
+        const { data: headData, error: headError } = await supabase.storage
+          .from('medical-documents')
+          .list('', { limit: 1, search: report.file_url.split('/')[1] });
+
+        if (headError) {
+          console.error('Head check error:', headError);
         }
+
+        // Try to get the actual file to verify it exists
+        const { data: downloadData, error: downloadError } = await supabase.storage
+          .from('medical-documents')
+          .download(report.file_url);
+
+        if (!downloadError && downloadData) {
+          console.log('File found directly:', report.file_url);
+          setFileExists(true);
+          return;
+        }
+
+        console.log('Direct file not found, searching for alternatives...');
+
+        // Extract user directory from file_url (format: user_id/filename)
+        const pathParts = report.file_url.split('/');
+        if (pathParts.length >= 2) {
+          const userDirectory = pathParts[0];
+          
+          console.log('Searching in user directory:', userDirectory);
+
+          // List all files in user directory to find alternatives
+          const { data: userFiles, error: listError } = await supabase.storage
+            .from('medical-documents')
+            .list(userDirectory, {
+              limit: 100,
+              sortBy: { column: 'created_at', order: 'desc' }
+            });
+
+          if (listError) {
+            console.error('Error listing user files:', listError);
+            throw listError;
+          }
+
+          if (userFiles && userFiles.length > 0) {
+            console.log('Found alternative files:', userFiles.map(f => f.name));
+            
+            // For now, just indicate that alternatives exist
+            // In the future, we could implement file selection UI
+            setFileExists(true);
+            setError(`Original file not found, but ${userFiles.length} alternative file(s) available in your account.`);
+            return;
+          }
+        }
+
+        console.log('No files found for this report');
+        setFileExists(false);
+        setError('No files found for this report.');
+
       } catch (err) {
-        console.error('Error checking file existence:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        console.error('Error in file existence check:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error occurred');
         setFileExists(false);
       } finally {
         setIsChecking(false);
