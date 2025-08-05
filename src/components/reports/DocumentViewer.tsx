@@ -34,73 +34,120 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
     }
   };
 
-  // Try to get structured data from either parsed_data or extracted_text
+  // Multi-strategy approach to extract structured data with enhanced error recovery
   const getStructuredData = (): ParsedMedicalData | null => {
     try {
-      // First try the parsed_data
-      if (report.parsed_data) {
-        console.log('Using parsed_data:', report.parsed_data);
-        
-        // Check if parsed_data contains a rawResponse property with stringified JSON
-        if (typeof report.parsed_data === 'object' && 'rawResponse' in report.parsed_data) {
-          const rawResponse = (report.parsed_data as any).rawResponse;
-          console.log('Found rawResponse in parsed_data:', rawResponse);
-          
-          if (typeof rawResponse === 'string') {
-            // Parse the stringified JSON from rawResponse
-            const parsedFromRaw = parseExtractedTextAsJSON(rawResponse);
-            console.log('Parsed JSON from rawResponse:', parsedFromRaw);
+      // Multiple strategies for extracting structured data
+      const strategies = [
+        // Strategy 1: Check rawResponse in parsed_data
+        () => {
+          if (typeof report.parsed_data === 'object' && 'rawResponse' in report.parsed_data) {
+            const rawResponse = (report.parsed_data as any).rawResponse;
+            console.log('Strategy 1: Found rawResponse in parsed_data:', rawResponse);
             
-            if (parsedFromRaw) {
-              // Transform lab report data if it matches that structure
-              const transformedData = transformLabReportData(parsedFromRaw);
-              console.log('Transformed lab data from rawResponse:', transformedData);
-              
+            if (typeof rawResponse === 'string') {
+              const parsedFromRaw = parseExtractedTextAsJSON(rawResponse);
+              if (parsedFromRaw) {
+                const transformedData = transformLabReportData(parsedFromRaw);
+                if (transformedData && transformedData.tests && transformedData.tests.length > 0) {
+                  console.log('Strategy 1: Successfully transformed lab data from rawResponse');
+                  return transformedData;
+                }
+                
+                const fallbackData = createFallbackDataStructure(parsedFromRaw);
+                console.log('Strategy 1: Created fallback structure from rawResponse');
+                return fallbackData;
+              }
+            }
+          }
+          return null;
+        },
+
+        // Strategy 2: Try parsed_data directly
+        () => {
+          if (report.parsed_data) {
+            console.log('Strategy 2: Using parsed_data directly:', report.parsed_data);
+            
+            // Try to transform as lab data first
+            const transformedData = transformLabReportData(report.parsed_data);
+            if (transformedData && transformedData.tests && transformedData.tests.length > 0) {
+              console.log('Strategy 2: Successfully transformed lab data from parsed_data');
+              return transformedData;
+            }
+            
+            // Check if it's already structured medical data
+            if (report.parsed_data.reportType || 
+                (report.parsed_data as any).tests || 
+                (report.parsed_data as any).patient) {
+              console.log('Strategy 2: Found existing structured data');
+              return report.parsed_data;
+            }
+            
+            // Create fallback structure
+            const fallbackData = createFallbackDataStructure(report.parsed_data);
+            console.log('Strategy 2: Created fallback structure from parsed_data');
+            return fallbackData;
+          }
+          return null;
+        },
+
+        // Strategy 3: Parse extracted_text
+        () => {
+          if (report.extracted_text) {
+            console.log('Strategy 3: Parsing extracted_text:', report.extracted_text.substring(0, 200) + '...');
+            
+            const parsedFromText = parseExtractedTextAsJSON(report.extracted_text);
+            if (parsedFromText) {
+              const transformedData = transformLabReportData(parsedFromText);
               if (transformedData && transformedData.tests && transformedData.tests.length > 0) {
+                console.log('Strategy 3: Successfully transformed lab data from extracted_text');
                 return transformedData;
               }
               
-              // Create fallback structure for other JSON data
-              const fallbackData = createFallbackDataStructure(parsedFromRaw);
-              console.log('Fallback data structure from rawResponse:', fallbackData);
+              const fallbackData = createFallbackDataStructure(parsedFromText);
+              console.log('Strategy 3: Created fallback structure from extracted_text');
               return fallbackData;
             }
           }
-        }
-        
-        // If no rawResponse or it's already structured, return as-is
-        return report.parsed_data;
-      }
+          return null;
+        },
 
-      // Then try to parse extracted_text
-      if (report.extracted_text) {
-        console.log('Attempting to parse extracted_text:', report.extracted_text.substring(0, 200) + '...');
-        
-        // Try to parse extracted_text as JSON
-        const parsedFromText = parseExtractedTextAsJSON(report.extracted_text);
-        console.log('Parsed JSON from text:', parsedFromText);
-        
-        if (parsedFromText) {
-          // Transform lab report data if it matches that structure
-          const transformedData = transformLabReportData(parsedFromText);
-          console.log('Transformed lab data:', transformedData);
-          
-          if (transformedData && transformedData.tests && transformedData.tests.length > 0) {
-            return transformedData;
+        // Strategy 4: Fallback to raw extracted text
+        () => {
+          if (report.extracted_text) {
+            console.log('Strategy 4: Using raw extracted text as fallback');
+            return createFallbackDataStructure(report.extracted_text);
           }
-          
-          // Create fallback structure for other JSON data
-          const fallbackData = createFallbackDataStructure(parsedFromText);
-          console.log('Fallback data structure:', fallbackData);
-          return fallbackData;
+          return null;
+        }
+      ];
+
+      // Try each strategy until one succeeds
+      for (let i = 0; i < strategies.length; i++) {
+        console.log(`Attempting data extraction strategy ${i + 1}`);
+        const result = strategies[i]();
+        if (result) {
+          console.log(`Strategy ${i + 1} succeeded:`, result);
+          return result;
         }
       }
 
-      console.log('No structured data could be extracted');
+      console.warn('All data extraction strategies failed');
       return null;
     } catch (error) {
-      console.error('Error getting structured data:', error);
-      return null;
+      console.error('Error in getStructuredData:', error);
+      
+      // Last resort: create a basic error structure
+      return {
+        reportType: 'general',
+        sections: [{
+          title: 'Parsing Error',
+          content: `Failed to parse document data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          category: 'error'
+        }],
+        confidence: 0.1,
+        extractedAt: new Date().toISOString()
+      } as any;
     }
   };
 

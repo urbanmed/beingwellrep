@@ -7,43 +7,206 @@ export function stripMarkdownCodeBlocks(text: string): string {
   return text.replace(/```(?:json)?\n?/g, '').trim();
 }
 
-// Attempt to parse JSON from extracted text
+// Attempt to parse JSON from extracted text with resilience for truncated/corrupted data
 export function parseExtractedTextAsJSON(extractedText: string): any | null {
+  if (!extractedText || typeof extractedText !== 'string') {
+    return null;
+  }
+
+  // Clean up markdown code blocks
+  let cleanedText = stripMarkdownCodeBlocks(extractedText);
+  
+  // Try standard JSON parsing first
   try {
-    // Clean up markdown code blocks
-    const cleanedText = stripMarkdownCodeBlocks(extractedText);
-    
-    // Try to parse as JSON
     return JSON.parse(cleanedText);
   } catch (error) {
-    console.warn('Failed to parse extracted text as JSON:', error);
+    console.warn('Standard JSON parsing failed, attempting repair...', error);
+  }
+
+  // Try to repair truncated JSON
+  const repairedJson = repairTruncatedJson(cleanedText);
+  if (repairedJson) {
+    try {
+      return JSON.parse(repairedJson);
+    } catch (error) {
+      console.warn('Repaired JSON parsing failed:', error);
+    }
+  }
+
+  // Try partial parsing strategies
+  const partialResult = attemptPartialParsing(cleanedText);
+  if (partialResult) {
+    return partialResult;
+  }
+
+  // Final fallback: try to extract any JSON-like structures
+  const extractedJson = extractJsonStructures(cleanedText);
+  if (extractedJson) {
+    return extractedJson;
+  }
+
+  console.warn('All JSON parsing attempts failed for text:', cleanedText.substring(0, 200) + '...');
+  return null;
+}
+
+// Repair truncated JSON by adding missing closing brackets/braces
+function repairTruncatedJson(text: string): string | null {
+  try {
+    let cleaned = text.trim();
+    
+    // Count open/close brackets and braces
+    const openBraces = (cleaned.match(/\{/g) || []).length;
+    const closeBraces = (cleaned.match(/\}/g) || []).length;
+    const openBrackets = (cleaned.match(/\[/g) || []).length;
+    const closeBrackets = (cleaned.match(/\]/g) || []).length;
+    
+    // Add missing closing characters
+    let repaired = cleaned;
+    
+    // Add missing closing brackets first (arrays)
+    for (let i = 0; i < openBrackets - closeBrackets; i++) {
+      repaired += ']';
+    }
+    
+    // Add missing closing braces (objects)
+    for (let i = 0; i < openBraces - closeBraces; i++) {
+      repaired += '}';
+    }
+    
+    // Remove trailing commas that might cause issues
+    repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+    
+    return repaired;
+  } catch (error) {
+    console.warn('JSON repair failed:', error);
     return null;
   }
 }
 
-// Transform lab report JSON to structured format
+// Try to parse partial JSON structures
+function attemptPartialParsing(text: string): any | null {
+  // Look for complete JSON objects within the text
+  const jsonObjectPattern = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
+  const matches = text.match(jsonObjectPattern);
+  
+  if (matches && matches.length > 0) {
+    // Try parsing the first complete-looking object
+    for (const match of matches) {
+      try {
+        const parsed = JSON.parse(match);
+        if (parsed && typeof parsed === 'object') {
+          return parsed;
+        }
+      } catch (error) {
+        console.warn('Partial parsing attempt failed for match:', match.substring(0, 100));
+      }
+    }
+  }
+  
+  return null;
+}
+
+// Extract JSON-like structures and convert to valid JSON
+function extractJsonStructures(text: string): any | null {
+  try {
+    // Look for key-value patterns that look like JSON
+    const keyValuePattern = /"([^"]+)"\s*:\s*("([^"]*)"|[\d.]+|true|false|null)/g;
+    const matches = [];
+    let match;
+    
+    while ((match = keyValuePattern.exec(text)) !== null) {
+      const key = match[1];
+      const value = match[2];
+      matches.push({ key, value });
+    }
+    
+    if (matches.length > 0) {
+      const extracted: any = {};
+      for (const { key, value } of matches) {
+        try {
+          // Try to parse the value
+          const parsedValue = JSON.parse(value);
+          extracted[key] = parsedValue;
+        } catch {
+          // If parsing fails, use as string
+          extracted[key] = value.replace(/^"(.*)"$/, '$1');
+        }
+      }
+      return extracted;
+    }
+  } catch (error) {
+    console.warn('JSON structure extraction failed:', error);
+  }
+  
+  return null;
+}
+
+// Transform lab report JSON to structured format with enhanced error handling
 export function transformLabReportData(rawData: any): any {
   if (!rawData || typeof rawData !== 'object') {
     return null;
   }
 
-  // Handle the actual structure we see in extracted data
-  if (rawData.patient || rawData.tests) {
-    const tests = flattenTestResults(rawData.tests || []);
+  // Helper to safely extract nested values
+  const safeExtract = (obj: any, paths: string[]) => {
+    for (const path of paths) {
+      const value = path.split('.').reduce((o, key) => o?.[key], obj);
+      if (value !== undefined && value !== null && value !== '') {
+        return value;
+      }
+    }
+    return null;
+  };
+
+  // Try multiple data structure patterns
+  const testArrayCandidates = [
+    rawData.tests,
+    rawData.test_results,
+    rawData.lab_tests,
+    rawData.results,
+    rawData.lab_results,
+    rawData.laboratory_results,
+    rawData.data?.tests,
+    rawData.data?.test_results
+  ].filter(Boolean);
+
+  const patientCandidates = [
+    rawData.patient,
+    rawData.patient_info,
+    rawData.demographics,
+    rawData.data?.patient,
+    rawData.patient_data
+  ].filter(Boolean);
+
+  // Handle the most common structure we see in extracted data
+  if (patientCandidates.length > 0 || testArrayCandidates.length > 0) {
+    const patient = patientCandidates[0] || {};
+    const testArray = testArrayCandidates[0] || [];
+    
+    // Process tests with error handling
+    let tests: any[] = [];
+    try {
+      tests = Array.isArray(testArray) ? flattenTestResults(testArray) : [];
+    } catch (error) {
+      console.warn('Error flattening test results, attempting recovery:', error);
+      tests = attemptTestRecovery(testArray);
+    }
     
     return {
       reportType: 'lab',
       patient: {
-        name: rawData.patient?.name,
-        dateOfBirth: rawData.patient?.date_of_birth || rawData.patient?.dob,
-        id: rawData.patient?.id || rawData.patient?.patient_id
+        name: safeExtract(patient, ['name', 'patient_name', 'full_name']),
+        dateOfBirth: safeExtract(patient, ['date_of_birth', 'dob', 'birth_date']),
+        id: safeExtract(patient, ['id', 'patient_id', 'mrn', 'medical_record_number']),
+        age: safeExtract(patient, ['age']),
+        gender: safeExtract(patient, ['gender', 'sex'])
       },
       tests: tests,
-      facility: rawData.facility || rawData.facility_name,
-      orderingPhysician: rawData.ordering_physician || rawData.physician,
-      collectionDate: rawData.collection_date || rawData.date_collected,
-      reportDate: rawData.report_date || rawData.date_reported,
-      confidence: 0.9,
+      facility: safeExtract(rawData, ['facility', 'facility_name', 'lab_name', 'laboratory', 'clinic']),
+      orderingPhysician: safeExtract(rawData, ['ordering_physician', 'physician', 'doctor', 'ordering_doctor']),
+      collectionDate: safeExtract(rawData, ['collection_date', 'date_collected', 'sample_date']),
+      reportDate: safeExtract(rawData, ['report_date', 'date_reported', 'result_date']),
+      confidence: tests.length > 0 ? 0.9 : 0.5,
       extractedAt: new Date().toISOString()
     };
   }
@@ -52,13 +215,13 @@ export function transformLabReportData(rawData: any): any {
   if (rawData.report_type === 'laboratory' && rawData.test_results) {
     return {
       reportType: 'lab',
-      tests: rawData.test_results.map((test: any) => ({
-        name: test.test_name || test.name,
-        value: test.result || test.value,
+      tests: (rawData.test_results || []).map((test: any) => ({
+        name: test.test_name || test.name || 'Unknown Test',
+        value: test.result || test.value || 'N/A',
         unit: test.unit || '',
         referenceRange: formatReferenceRange(test.reference_range || test.normal_range),
         status: determineTestStatus(test),
-        notes: test.comments || test.notes
+        notes: test.comments || test.notes || ''
       })),
       metadata: {
         facility: rawData.facility_name,
@@ -68,22 +231,112 @@ export function transformLabReportData(rawData: any): any {
     };
   }
 
-  // Handle simple test arrays
-  if (rawData.tests || rawData.test_results) {
+  // Handle simple test arrays with flexible field mapping
+  if (testArrayCandidates.length > 0) {
+    const testArray = testArrayCandidates[0];
     return {
       reportType: 'lab',
-      tests: (rawData.tests || rawData.test_results).map((test: any) => ({
-        name: test.test_name || test.name || 'Unknown Test',
-        value: test.result || test.value || 'N/A',
-        unit: test.unit || '',
-        referenceRange: formatReferenceRange(test.reference_range || test.normal_range),
+      tests: (Array.isArray(testArray) ? testArray : []).map((test: any) => ({
+        name: safeExtract(test, ['test_name', 'name', 'test', 'parameter']) || 'Unknown Test',
+        value: safeExtract(test, ['result', 'value', 'measurement', 'level']) || 'N/A',
+        unit: safeExtract(test, ['unit', 'units', 'measure_unit']) || '',
+        referenceRange: formatReferenceRange(test.reference_range || test.normal_range || test.ref_range),
         status: determineTestStatus(test),
-        notes: test.comments || test.notes || ''
-      }))
+        notes: safeExtract(test, ['comments', 'notes', 'interpretation', 'remarks']) || ''
+      })),
+      confidence: Array.isArray(testArray) ? 0.8 : 0.5
+    };
+  }
+
+  // Final attempt: look for any array-like data that might contain tests
+  const possibleTestData = Object.values(rawData).find(value => 
+    Array.isArray(value) && value.length > 0 && 
+    typeof value[0] === 'object' && value[0] !== null
+  );
+
+  if (possibleTestData) {
+    console.log('Found possible test data in fallback:', possibleTestData);
+    return {
+      reportType: 'lab',
+      tests: (possibleTestData as any[]).map((item: any, index: number) => ({
+        name: safeExtract(item, ['test_name', 'name', 'test', 'parameter']) || `Test ${index + 1}`,
+        value: safeExtract(item, ['result', 'value', 'measurement', 'level']) || 'N/A',
+        unit: safeExtract(item, ['unit', 'units']) || '',
+        referenceRange: formatReferenceRange(item.reference_range || item.normal_range),
+        status: determineTestStatus(item),
+        notes: safeExtract(item, ['comments', 'notes', 'interpretation']) || ''
+      })),
+      confidence: 0.6
     };
   }
 
   return null;
+}
+
+// Attempt to recover test data from corrupted or incomplete structures
+function attemptTestRecovery(testData: any): any[] {
+  const recovered: any[] = [];
+  
+  try {
+    // If it's not an array, try to convert it
+    if (!Array.isArray(testData)) {
+      if (typeof testData === 'object' && testData !== null) {
+        // Convert object to array of key-value pairs
+        Object.entries(testData).forEach(([key, value]) => {
+          recovered.push({
+            name: key.replace(/_/g, ' '),
+            value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+            unit: '',
+            referenceRange: '',
+            status: 'normal',
+            notes: ''
+          });
+        });
+      }
+      return recovered;
+    }
+
+    // Process each item in the array
+    testData.forEach((item: any, index: number) => {
+      if (typeof item === 'object' && item !== null) {
+        // Try to extract meaningful test information
+        const testName = item.test_name || item.name || item.test || `Test ${index + 1}`;
+        const testValue = item.result || item.value || item.measurement || 'N/A';
+        
+        recovered.push({
+          name: String(testName),
+          value: String(testValue),
+          unit: String(item.unit || item.units || ''),
+          referenceRange: formatReferenceRange(item.reference_range || item.normal_range) || '',
+          status: determineTestStatus(item),
+          notes: String(item.comments || item.notes || item.interpretation || '')
+        });
+      } else {
+        // Handle primitive values
+        recovered.push({
+          name: `Item ${index + 1}`,
+          value: String(item),
+          unit: '',
+          referenceRange: '',
+          status: 'normal',
+          notes: ''
+        });
+      }
+    });
+  } catch (error) {
+    console.warn('Test recovery failed:', error);
+    // Return a basic structure to avoid complete failure
+    return [{
+      name: 'Data Recovery Failed',
+      value: 'Unable to parse test data',
+      unit: '',
+      referenceRange: '',
+      status: 'unknown',
+      notes: 'Original data may be corrupted or incomplete'
+    }];
+  }
+
+  return recovered;
 }
 
 // Flatten nested test results (handles test profiles with sub-tests)
