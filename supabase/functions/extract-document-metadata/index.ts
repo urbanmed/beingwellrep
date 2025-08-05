@@ -136,36 +136,54 @@ serve(async (req) => {
         }),
       });
     } else if (isPDF) {
-      // For PDFs, use safe base64 conversion
-      const base64PDF = arrayBufferToBase64(fileBuffer);
+      // For PDFs, we need to extract text first since OpenAI Vision API doesn't support PDFs
+      console.log('PDF detected, extracting text first...');
       
-      openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: METADATA_EXTRACTION_PROMPT },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:application/pdf;base64,${base64PDF}`,
-                    detail: 'low' // Use low detail to reduce processing overhead
-                  }
-                }
-              ]
-            }
-          ],
-          max_tokens: 500,
-          temperature: 0.1
-        }),
-      });
+      // Import unpdf for text extraction
+      const { extractText } = await import('https://esm.sh/unpdf@0.11.0');
+      
+      try {
+        const pdfData = new Uint8Array(fileBuffer);
+        const result = await extractText(pdfData);
+        
+        let extractedText = '';
+        if (result && typeof result === 'object' && 'text' in result) {
+          extractedText = typeof result.text === 'string' ? result.text : String(result.text || '');
+        } else if (typeof result === 'string') {
+          extractedText = result;
+        }
+        
+        const cleanedText = extractedText?.trim?.() || '';
+        
+        if (!cleanedText || cleanedText.length < 10) {
+          throw new Error('Unable to extract meaningful text from PDF');
+        }
+        
+        console.log(`Extracted ${cleanedText.length} characters from PDF`);
+        
+        // Use text-based analysis instead of vision
+        openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'user',
+                content: METADATA_EXTRACTION_PROMPT + '\n\nDocument text to analyze:\n' + cleanedText.substring(0, 8000) // Limit to first 8000 chars
+              }
+            ],
+            max_tokens: 500,
+            temperature: 0.1
+          }),
+        });
+      } catch (pdfError) {
+        console.error('PDF text extraction failed:', pdfError);
+        throw new Error('Failed to extract text from PDF for metadata analysis');
+      }
     } else {
       throw new Error('Unsupported file type for metadata extraction');
     }

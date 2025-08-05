@@ -123,16 +123,16 @@ serve(async (req) => {
       throw new Error('No reports found');
     }
 
-    // Check if all reports have OCR text
-    const reportsWithoutOCR = reports.filter(r => !r.ocr_text || r.ocr_text.trim() === '');
-    if (reportsWithoutOCR.length > 0) {
-      const reportTitles = reportsWithoutOCR.map(r => r.title).join(', ');
+    // Check if all reports have extracted text
+    const reportsWithoutText = reports.filter(r => !r.extracted_text || r.extracted_text.trim() === '');
+    if (reportsWithoutText.length > 0) {
+      const reportTitles = reportsWithoutText.map(r => r.title).join(', ');
       throw new Error(`The following reports do not have processed OCR text yet: ${reportTitles}. Please wait for OCR processing to complete or retry OCR processing for these reports.`);
     }
 
-    // Combine all OCR text
+    // Combine all extracted text
     const combinedText = reports.map(r => 
-      `Report: ${r.title} (${r.report_date})\n${r.ocr_text}`
+      `Report: ${r.title} (${r.report_date})\n${r.extracted_text}`
     ).join('\n\n---\n\n');
 
     // Get the appropriate prompt
