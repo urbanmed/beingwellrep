@@ -7,10 +7,12 @@
 export function stripMarkdownCodeBlocks(text: string): string {
   if (!text) return '';
   
+  console.log('Stripping markdown from text, original length:', text.length);
+  
   // Remove markdown code blocks with language specifiers (more comprehensive)
   let cleaned = text.replace(/```(?:json|javascript|js|typescript|ts)?\s*\n?/gi, '');
   
-  // Remove any remaining markdown formatting
+  // Remove any remaining markdown code block markers
   cleaned = cleaned.replace(/```/g, '');
   
   // Remove markdown backticks for inline code
@@ -20,9 +22,14 @@ export function stripMarkdownCodeBlocks(text: string): string {
   cleaned = cleaned.replace(/^\s*#+\s*/gm, ''); // Headers
   cleaned = cleaned.replace(/^\s*[-*]\s*/gm, ''); // List items
   
+  // Remove markdown bold/italic markers
+  cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1'); // Bold
+  cleaned = cleaned.replace(/\*([^*]+)\*/g, '$1'); // Italic
+  
   // Remove extra whitespace and normalize line breaks
   cleaned = cleaned.trim().replace(/\n\s*\n/g, '\n');
   
+  console.log('Markdown stripped, new length:', cleaned.length);
   return cleaned;
 }
 
@@ -33,12 +40,19 @@ export function parseExtractedTextAsJSON(extractedText: string): any | null {
   }
 
   console.log('Parsing extracted text, length:', extractedText.length);
+  console.log('First 200 chars:', extractedText.substring(0, 200));
 
-  // Enhanced cleaning approach
+  // Enhanced cleaning approach for markdown-wrapped JSON
   let cleanedText = stripMarkdownCodeBlocks(extractedText);
   
+  // Look for JSON objects more aggressively
+  const jsonObjectMatch = cleanedText.match(/\{[\s\S]*\}/);
+  if (jsonObjectMatch) {
+    cleanedText = jsonObjectMatch[0];
+    console.log('Found JSON object match, length:', cleanedText.length);
+  }
+  
   // Additional cleaning for common issues
-  cleanedText = cleanedText.replace(/^\s*.*?({[\s\S]*})\s*.*?$/s, '$1'); // Extract main JSON object
   cleanedText = cleanedText.replace(/,\s*}/g, '}'); // Remove trailing commas before closing braces
   cleanedText = cleanedText.replace(/,\s*]/g, ']'); // Remove trailing commas before closing brackets
   
@@ -52,10 +66,13 @@ export function parseExtractedTextAsJSON(extractedText: string): any | null {
     cleanedText = cleanedText.substring(0, lastValidChar + 1);
   }
   
+  console.log('Cleaned text for parsing, length:', cleanedText.length);
+  console.log('First 200 chars of cleaned:', cleanedText.substring(0, 200));
+  
   // Try standard JSON parsing first
   try {
     const result = JSON.parse(cleanedText);
-    console.log('Standard JSON parsing successful');
+    console.log('Standard JSON parsing successful, keys:', Object.keys(result));
     return result;
   } catch (error) {
     console.warn('Standard JSON parsing failed:', error.message);
@@ -420,12 +437,15 @@ export function transformLabReportData(rawData: any): any {
     rawData.data?.test_results
   ].filter(Boolean);
 
-  // Find patient data
+  // Find patient data with expanded search
   const patientCandidates = [
     rawData.patient,
     rawData.patient_info,
+    rawData.patientInfo,
     rawData.demographics,
+    rawData.patientDemographics,
     rawData.data?.patient,
+    rawData.data?.patientInfo,
     rawData.patient_data
   ].filter(Boolean);
 
@@ -451,17 +471,29 @@ export function transformLabReportData(rawData: any): any {
     const labData = {
       reportType: 'lab',
       patient: {
-        name: safeExtract(patient, ['name', 'patient_name', 'full_name']),
-        dateOfBirth: safeExtract(patient, ['date_of_birth', 'dob', 'birth_date', 'dateOfBirth']),
-        id: safeExtract(patient, ['id', 'patient_id', 'mrn', 'medical_record_number']),
+        name: safeExtract(patient, ['name', 'patient_name', 'patientName', 'full_name', 'fullName']),
+        dateOfBirth: safeExtract(patient, ['date_of_birth', 'dateOfBirth', 'dob', 'birth_date', 'birthDate']),
+        id: safeExtract(patient, ['id', 'patient_id', 'patientId', 'mrn', 'medical_record_number', 'medicalRecordNumber']),
         age: safeExtract(patient, ['age']),
         gender: safeExtract(patient, ['gender', 'sex'])
       },
       tests: tests,
-      facility: safeExtract(rawData, ['facility', 'facility_name', 'lab_name', 'laboratory', 'clinic']),
-      orderingPhysician: safeExtract(rawData, ['ordering_physician', 'physician', 'doctor', 'ordering_doctor', 'orderingPhysician']),
-      collectionDate: safeExtract(rawData, ['collection_date', 'date_collected', 'sample_date', 'collectionDate']),
-      reportDate: safeExtract(rawData, ['report_date', 'date_reported', 'result_date', 'reportDate']),
+      facility: safeExtract(rawData, [
+        'facility', 'facility_name', 'facilityName', 'lab_name', 'labName', 
+        'laboratory', 'clinic', 'hospitalName', 'hospital_name'
+      ]),
+      orderingPhysician: safeExtract(rawData, [
+        'ordering_physician', 'orderingPhysician', 'physician', 'doctor', 
+        'ordering_doctor', 'orderingDoctor', 'physicianName', 'physician_name'
+      ]),
+      collectionDate: safeExtract(rawData, [
+        'collection_date', 'collectionDate', 'date_collected', 'dateCollected',
+        'sample_date', 'sampleDate', 'specimenDate', 'specimen_date'
+      ]),
+      reportDate: safeExtract(rawData, [
+        'report_date', 'reportDate', 'date_reported', 'dateReported',
+        'result_date', 'resultDate', 'testDate', 'test_date'
+      ]),
       confidence: tests.length > 0 ? 0.9 : 0.5,
       extractedAt: new Date().toISOString()
     };
