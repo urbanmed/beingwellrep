@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import Summaries from "./pages/Summaries";
 import Reports from "./pages/Reports";
+import Vault from "./pages/Vault";
 import ReportDetail from "./pages/ReportDetail";
 import Timeline from "./pages/Timeline";
 import Profile from "./pages/Profile";
@@ -64,6 +65,13 @@ const AppRoutes: React.FC = () => (
       <ProtectedRoute>
         <MobileLayout>
           <Summaries />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
+    <Route path="/vault" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Vault />
         </MobileLayout>
       </ProtectedRoute>
     } />

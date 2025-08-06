@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Brain, TrendingUp, Plus, Loader2 } from "lucide-react";
+import { FileText, Brain, TrendingUp, Plus, Loader2, FolderOpen, Shield, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useReports } from "@/hooks/useReports";
 
@@ -26,19 +26,19 @@ const Index = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-4">
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/vault')}>
+          <CardContent className="pt-6 text-center">
+            <FolderOpen className="h-8 w-8 text-primary mx-auto mb-2" />
+            <h3 className="font-semibold">Document Vault</h3>
+            <p className="text-sm text-muted-foreground">View all files</p>
+          </CardContent>
+        </Card>
+
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/upload')}>
           <CardContent className="pt-6 text-center">
             <Plus className="h-8 w-8 text-primary mx-auto mb-2" />
             <h3 className="font-semibold">Upload</h3>
             <p className="text-sm text-muted-foreground">Add documents</p>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/summaries')}>
-          <CardContent className="pt-6 text-center">
-            <Brain className="h-8 w-8 text-primary mx-auto mb-2" />
-            <h3 className="font-semibold">AI Insights</h3>
-            <p className="text-sm text-muted-foreground">View analysis</p>
           </CardContent>
         </Card>
       </div>
@@ -51,18 +51,18 @@ const Index = () => {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center">
-                <FileText className="h-5 w-5 mr-2 text-primary" />
-                Medical Reports
+                <FolderOpen className="h-5 w-5 mr-2 text-primary" />
+                Document Vault
               </div>
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {hasReports && (
-                <Badge variant="secondary">{reports.length} report{reports.length !== 1 ? 's' : ''}</Badge>
+                <Badge variant="secondary">{reports.length} document{reports.length !== 1 ? 's' : ''}</Badge>
               )}
             </CardTitle>
             <CardDescription>
               {hasReports 
-                ? "Manage your uploaded medical documents and view their status"
-                : "Upload and organize your medical documents for easy access"
+                ? "Secure storage for all your medical documents with AI-powered processing"
+                : "Start building your digital health record with secure document storage"
               }
             </CardDescription>
           </CardHeader>
@@ -72,29 +72,34 @@ const Index = () => {
                 <div className="grid grid-cols-3 gap-2 text-sm">
                   <div className="text-center">
                     <div className="font-semibold text-green-600">{completedReports.length}</div>
-                    <div className="text-muted-foreground">Ready</div>
+                    <div className="text-muted-foreground">Processed</div>
                   </div>
                   <div className="text-center">
                     <div className="font-semibold text-blue-600">{processingReports.length}</div>
                     <div className="text-muted-foreground">Processing</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-semibold text-red-600">{failedReports.length}</div>
-                    <div className="text-muted-foreground">Failed</div>
+                    <div className="font-semibold text-muted-foreground">
+                      {(reports.reduce((acc, r) => acc + (r.file_size || 0), 0) / (1024 * 1024)).toFixed(1)} MB
+                    </div>
+                    <div className="text-muted-foreground">Storage</div>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button className="flex-1" onClick={() => navigate('/reports')}>
-                    View Reports
+                  <Button className="flex-1" onClick={() => navigate('/vault')}>
+                    <FolderOpen className="h-4 w-4 mr-2" />
+                    Open Vault
                   </Button>
                   <Button variant="outline" onClick={() => navigate('/upload')}>
-                    Upload More
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add More
                   </Button>
                 </div>
               </div>
             ) : (
               <Button className="w-full" onClick={() => navigate('/upload')}>
-                Upload Your First Report
+                <Shield className="h-4 w-4 mr-2" />
+                Start Your Vault
               </Button>
             )}
           </CardContent>
@@ -104,15 +109,16 @@ const Index = () => {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Brain className="h-5 w-5 mr-2 text-primary" />
-              AI Analysis
+              AI Insights
             </CardTitle>
             <CardDescription>
-              Get intelligent insights and summaries from your health data
+              Get intelligent analysis and summaries from your medical documents
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="secondary" className="w-full" onClick={() => navigate("/summaries")}>
-              View AI Summaries
+              <Zap className="h-4 w-4 mr-2" />
+              View AI Analysis
             </Button>
           </CardContent>
         </Card>
@@ -121,15 +127,15 @@ const Index = () => {
           <CardHeader>
             <CardTitle className="flex items-center">
               <TrendingUp className="h-5 w-5 mr-2 text-primary" />
-              Health Trends
+              Health Timeline
             </CardTitle>
             <CardDescription>
-              Track patterns and changes in your health over time
+              Track your health journey and view chronological insights
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="secondary" className="w-full">
-              View Health Analytics
+            <Button variant="secondary" className="w-full" onClick={() => navigate("/timeline")}>
+              View Timeline
             </Button>
           </CardContent>
         </Card>
