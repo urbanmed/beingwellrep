@@ -132,11 +132,6 @@ export default function Vault() {
     );
   }
 
-  const totalSize = reports.reduce((acc, report) => acc + (report.file_size || 0), 0);
-  const completedReports = reports.filter(r => r.parsing_status === 'completed');
-  const processingReports = reports.filter(r => r.parsing_status === 'processing');
-  const failedReports = reports.filter(r => r.parsing_status === 'failed');
-  const criticalReports = reports.filter(r => r.is_critical);
 
   return (
     <div className="container mx-auto px-4 py-8 pb-20">
@@ -160,51 +155,6 @@ export default function Vault() {
         </div>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{reports.length}</div>
-              <div className="text-sm text-muted-foreground">Total Documents</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-success">{completedReports.length}</div>
-              <div className="text-sm text-muted-foreground">Processed</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{processingReports.length}</div>
-              <div className="text-sm text-muted-foreground">Processing</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-destructive">{criticalReports.length}</div>
-              <div className="text-sm text-muted-foreground">Critical</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-muted-foreground">
-                {(totalSize / (1024 * 1024)).toFixed(1)} MB
-              </div>
-              <div className="text-sm text-muted-foreground">Storage Used</div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {reports.length === 0 ? (
         <Card className="text-center py-12">
