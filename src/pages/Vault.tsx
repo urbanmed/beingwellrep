@@ -1,45 +1,97 @@
-import { useState } from "react";
-import { Search, Filter, FileText, Calendar, AlertCircle, CheckCircle, Clock, Plus, Trash2, FolderOpen, Upload, Download, Eye, BarChart3 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, Filter, Clock, Plus, Trash2, FolderOpen, Upload, Grid, List, Activity } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useReports } from "@/hooks/useReports";
-import { useFileDownload } from "@/hooks/useFileDownload";
-import { ReportActions } from "@/components/reports/ReportActions";
 import { DeleteConfirmDialog } from "@/components/reports/DeleteConfirmDialog";
-import { format } from "date-fns";
+import { TimelineFilters } from "@/components/vault/TimelineFilters";
+import { TimelineView } from "@/components/vault/TimelineView";
+import { SmartAlerts } from "@/components/vault/SmartAlerts";
 import { useNavigate } from "react-router-dom";
+import { isWithinInterval, startOfDay, endOfDay, subDays, format } from "date-fns";
 
 export default function Vault() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all");
   const [selectedForDeletion, setSelectedForDeletion] = useState<string[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [viewMode, setViewMode] = useState<"timeline" | "grid">("timeline");
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
   
   const { reports, loading, deleteMultipleReports } = useReports();
-  const { downloadFile, isDownloading } = useFileDownload();
 
-  const filteredReports = reports.filter(report => {
-    const matchesSearch = 
-      report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.report_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (report.physician_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-      (report.facility_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+  const filteredReports = useMemo(() => {
+    return reports.filter(report => {
+      // Search filter
+      const matchesSearch = 
+        report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        report.report_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (report.physician_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+        (report.facility_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
 
-    const matchesFilter = 
-      activeFilter === "all" ||
-      (activeFilter === "completed" && report.parsing_status === "completed") ||
-      (activeFilter === "processing" && report.parsing_status === "processing") ||
-      (activeFilter === "failed" && report.parsing_status === "failed") ||
-      (activeFilter === "critical" && report.is_critical) ||
-      (activeFilter === "recent" && new Date(report.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+      if (!matchesSearch) return false;
 
-    return matchesSearch && matchesFilter;
-  });
+      // Date range filter
+      if (dateRange.start || dateRange.end) {
+        const reportDate = new Date(report.report_date);
+        if (dateRange.start && dateRange.end) {
+          if (!isWithinInterval(reportDate, { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) })) {
+            return false;
+          }
+        } else if (dateRange.start) {
+          if (reportDate < startOfDay(dateRange.start)) return false;
+        } else if (dateRange.end) {
+          if (reportDate > endOfDay(dateRange.end)) return false;
+        }
+      }
+
+      // Preset filters
+      const now = new Date();
+      for (const filterId of activeFilters) {
+        switch (filterId) {
+          case "blood-tests-year":
+            if (report.report_type !== "blood_test" || 
+                !isWithinInterval(new Date(report.report_date), { 
+                  start: startOfDay(subDays(now, 365)), 
+                  end: endOfDay(now) 
+                })) return false;
+            break;
+          case "recent-prescriptions":
+            if (report.report_type !== "prescription" || 
+                !isWithinInterval(new Date(report.report_date), { 
+                  start: startOfDay(subDays(now, 90)), 
+                  end: endOfDay(now) 
+                })) return false;
+            break;
+          case "imaging-year":
+            if (report.report_type !== "radiology" || 
+                !isWithinInterval(new Date(report.report_date), { 
+                  start: startOfDay(subDays(now, 365)), 
+                  end: endOfDay(now) 
+                })) return false;
+            break;
+          case "critical-reports":
+            if (!report.is_critical) return false;
+            break;
+          case "processing-errors":
+            if (report.parsing_status !== "failed") return false;
+            break;
+          case "recent-month":
+            if (!isWithinInterval(new Date(report.report_date), { 
+              start: startOfDay(subDays(now, 30)), 
+              end: endOfDay(now) 
+            })) return false;
+            break;
+        }
+      }
+
+      return true;
+    });
+  }, [reports, searchQuery, activeFilters, dateRange]);
 
   const handleSelectReport = (reportId: string, checked: boolean) => {
     if (checked) {
@@ -63,45 +115,10 @@ export default function Vault() {
     setSelectedForDeletion([]);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'failed':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      case 'processing':
-        return <Clock className="h-4 w-4 text-blue-500 animate-spin" />;
-      default:
-        return <Clock className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
-
-  const getStatusBadge = (status: string, confidence: number | null) => {
-    switch (status) {
-      case 'completed':
-        return (
-          <Badge variant="default" className="bg-green-500">
-            Ready {confidence && `(${Math.round(confidence * 100)}%)`}
-          </Badge>
-        );
-      case 'failed':
-        return <Badge variant="destructive">Failed</Badge>;
-      case 'processing':
-        return <Badge variant="secondary">Processing</Badge>;
-      default:
-        return <Badge variant="outline">Pending</Badge>;
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    const colors = {
-      blood_test: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-      radiology: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-      prescription: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-      discharge: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-      general: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
-    };
-    return colors[type as keyof typeof colors] || colors.general;
+  const handleClearAllFilters = () => {
+    setActiveFilters([]);
+    setDateRange({ start: null, end: null });
+    setSearchQuery("");
   };
 
   if (loading) {
@@ -119,6 +136,7 @@ export default function Vault() {
   const completedReports = reports.filter(r => r.parsing_status === 'completed');
   const processingReports = reports.filter(r => r.parsing_status === 'processing');
   const failedReports = reports.filter(r => r.parsing_status === 'failed');
+  const criticalReports = reports.filter(r => r.is_critical);
 
   return (
     <div className="container mx-auto px-4 py-8 pb-20">
@@ -128,17 +146,22 @@ export default function Vault() {
           <FolderOpen className="h-8 w-8 text-primary" />
           <div>
             <h1 className="text-2xl font-bold">Document Vault</h1>
-            <p className="text-muted-foreground">Secure storage for all your medical documents</p>
+            <p className="text-muted-foreground">Intelligent health document management</p>
           </div>
         </div>
-        <Button onClick={() => navigate("/upload")}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Documents
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" onClick={() => setViewMode(viewMode === "timeline" ? "grid" : "timeline")}>
+            {viewMode === "timeline" ? <Grid className="h-4 w-4" /> : <Activity className="h-4 w-4" />}
+          </Button>
+          <Button onClick={() => navigate("/upload")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Documents
+          </Button>
+        </div>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
@@ -150,7 +173,7 @@ export default function Vault() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{completedReports.length}</div>
+              <div className="text-2xl font-bold text-success">{completedReports.length}</div>
               <div className="text-sm text-muted-foreground">Processed</div>
             </div>
           </CardContent>
@@ -158,8 +181,16 @@ export default function Vault() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{processingReports.length}</div>
+              <div className="text-2xl font-bold text-primary">{processingReports.length}</div>
               <div className="text-sm text-muted-foreground">Processing</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-destructive">{criticalReports.length}</div>
+              <div className="text-sm text-muted-foreground">Critical</div>
             </div>
           </CardContent>
         </Card>
@@ -191,12 +222,18 @@ export default function Vault() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Search and Filters */}
+          {/* Smart Alerts */}
+          <SmartAlerts 
+            reports={reports} 
+            onNavigateToUpload={() => navigate("/upload")}
+          />
+
+          {/* Search Bar */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search documents..."
+                placeholder="Search documents by title, type, physician, or facility..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -213,204 +250,96 @@ export default function Vault() {
             )}
           </div>
 
-          {/* Filter Buttons */}
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              variant={activeFilter === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveFilter("all")}
-            >
-              All ({reports.length})
-            </Button>
-            <Button
-              variant={activeFilter === "recent" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveFilter("recent")}
-            >
-              Recent
-            </Button>
-            <Button
-              variant={activeFilter === "completed" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveFilter("completed")}
-            >
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Ready ({completedReports.length})
-            </Button>
-            <Button
-              variant={activeFilter === "processing" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveFilter("processing")}
-            >
-              <Clock className="h-3 w-3 mr-1" />
-              Processing ({processingReports.length})
-            </Button>
-            <Button
-              variant={activeFilter === "failed" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveFilter("failed")}
-            >
-              <AlertCircle className="h-3 w-3 mr-1" />
-              Failed ({failedReports.length})
-            </Button>
-            <Button
-              variant={activeFilter === "critical" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveFilter("critical")}
-            >
-              Critical
-            </Button>
-          </div>
+          {/* Smart Filters */}
+          <TimelineFilters
+            activeFilters={activeFilters}
+            onFilterChange={setActiveFilters}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            onClearAll={handleClearAllFilters}
+          />
 
-          {/* Selection Controls */}
-          {filteredReports.length > 0 && (
-            <div className="flex items-center gap-4 text-sm text-muted-foreground border-b pb-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={selectedForDeletion.length === filteredReports.length && filteredReports.length > 0}
-                  onCheckedChange={handleSelectAll}
-                />
-                Select All
-              </label>
-              <span>{filteredReports.length} document{filteredReports.length !== 1 ? 's' : ''}</span>
-              {selectedForDeletion.length > 0 && (
-                <span className="text-destructive">{selectedForDeletion.length} selected</span>
+          {/* View Toggle */}
+          <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "timeline" | "grid")}>
+            <div className="flex items-center justify-between">
+              <TabsList>
+                <TabsTrigger value="timeline" className="flex items-center space-x-2">
+                  <Activity className="h-4 w-4" />
+                  <span>Timeline View</span>
+                </TabsTrigger>
+                <TabsTrigger value="grid" className="flex items-center space-x-2">
+                  <Grid className="h-4 w-4" />
+                  <span>Grid View</span>
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Selection Controls */}
+              {filteredReports.length > 0 && (
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={selectedForDeletion.length === filteredReports.length && filteredReports.length > 0}
+                      onCheckedChange={handleSelectAll}
+                    />
+                    Select All
+                  </label>
+                  <span>{filteredReports.length} document{filteredReports.length !== 1 ? 's' : ''}</span>
+                  {selectedForDeletion.length > 0 && (
+                    <span className="text-destructive">{selectedForDeletion.length} selected</span>
+                  )}
+                </div>
               )}
             </div>
-          )}
 
-          {/* Document List */}
-          <div className="grid gap-4">
-            {filteredReports.map((report) => (
-              <Card 
-                key={report.id} 
-                className="cursor-pointer transition-all hover:bg-accent/5 hover:shadow-md"
-                onClick={() => navigate(`/reports/${report.id}`)}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-4 flex-1">
-                      <Checkbox
-                        checked={selectedForDeletion.includes(report.id)}
-                        onCheckedChange={(checked) => handleSelectReport(report.id, checked as boolean)}
-                        className="mt-1"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <div className="mt-1">
-                        {getStatusIcon(report.parsing_status)}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <h3 className="font-semibold text-lg">{report.title}</h3>
-                          <Badge className={getTypeColor(report.report_type)}>
-                            {report.report_type.replace('_', ' ')}
-                          </Badge>
-                          {report.is_critical && (
-                            <Badge variant="destructive" className="text-xs">
-                              Critical
-                            </Badge>
-                          )}
-                          {getStatusBadge(report.parsing_status, report.extraction_confidence)}
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 text-sm text-muted-foreground mb-3">
-                          <div className="flex items-center">
-                            <Calendar className="h-3 w-3 mr-1" />
-                            {format(new Date(report.report_date), 'MMM d, yyyy')}
-                          </div>
-                          {report.physician_name && (
-                            <div className="flex items-center">
-                              <span className="text-xs">👨‍⚕️</span>
-                              <span className="ml-1">{report.physician_name}</span>
-                            </div>
-                          )}
-                          {report.facility_name && (
-                            <div className="flex items-center">
-                              <span className="text-xs">🏥</span>
-                              <span className="ml-1">{report.facility_name}</span>
-                            </div>
-                          )}
-                          {report.file_size && (
-                            <div className="flex items-center">
-                              <span className="text-xs">📊</span>
-                              <span className="ml-1">{(report.file_size / 1024).toFixed(1)} KB</span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {report.description && (
-                          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                            {report.description}
-                          </p>
-                        )}
-                        
-                        {report.processing_error && (
-                          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3 mb-2">
-                            <p className="text-sm text-red-600 dark:text-red-400">
-                              {report.processing_error}
+            <TabsContent value="timeline" className="mt-6">
+              <TimelineView
+                reports={filteredReports}
+                selectedReports={selectedForDeletion}
+                onSelectReport={handleSelectReport}
+                onNavigateToReport={(reportId) => navigate(`/reports/${reportId}`)}
+              />
+            </TabsContent>
+
+            <TabsContent value="grid" className="mt-6">
+              <div className="grid gap-4">
+                {filteredReports.map((report) => (
+                  <Card 
+                    key={report.id} 
+                    className="cursor-pointer transition-all hover:shadow-md"
+                    onClick={() => navigate(`/reports/${report.id}`)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3 flex-1">
+                          <Checkbox
+                            checked={selectedForDeletion.includes(report.id)}
+                            onCheckedChange={(checked) => handleSelectReport(report.id, checked as boolean)}
+                            className="mt-1"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold truncate">{report.title}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {report.report_type.replace('_', ' ')} • {format(new Date(report.report_date), 'MMM d, yyyy')}
                             </p>
                           </div>
-                        )}
-                        
-                        {report.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {report.tags.map((tag, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Quick Actions */}
-                        <div className="flex gap-2 mt-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/reports/${report.id}`);
-                            }}
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                          {report.file_url && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                downloadFile(report.id, report.file_name, report.file_url);
-                              }}
-                              disabled={isDownloading(report.id)}
-                            >
-                              <Download className="h-3 w-3 mr-1" />
-                              {isDownloading(report.id) ? "Downloading..." : "Download"}
-                            </Button>
-                          )}
                         </div>
                       </div>
-                    </div>
-                    
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <ReportActions
-                        reportId={report.id}
-                        ocrStatus={report.parsing_status}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
 
           {filteredReports.length === 0 && (
             <Card className="text-center py-8">
               <CardContent>
                 <Filter className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">No documents found matching your search.</p>
+                <p className="text-muted-foreground">No documents found matching your filters.</p>
+                <Button variant="outline" className="mt-4" onClick={handleClearAllFilters}>
+                  Clear all filters
+                </Button>
               </CardContent>
             </Card>
           )}
