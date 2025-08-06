@@ -15,7 +15,7 @@ import ReportDetail from "./pages/ReportDetail";
 import Timeline from "./pages/Timeline";
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
-import Family from "./pages/Family";
+
 import NotFound from "./pages/NotFound";
 import { LoginPage } from "./pages/auth/LoginPage";
 import { SignupPage } from "./pages/auth/SignupPage";
@@ -96,13 +96,6 @@ const AppRoutes: React.FC = () => (
     <Route path="/profile/edit" element={
       <ProtectedRoute>
         <ProfileEdit />
-      </ProtectedRoute>
-    } />
-    <Route path="/family" element={
-      <ProtectedRoute>
-        <MobileLayout>
-          <Family />
-        </MobileLayout>
       </ProtectedRoute>
     } />
     

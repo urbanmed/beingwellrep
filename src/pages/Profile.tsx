@@ -4,16 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Settings, FileText, Activity, LogOut, User, Phone, Mail, Edit } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings, FileText, Activity, LogOut, User, Phone, Mail, Edit, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { ProfileCompletionBanner } from "@/components/profile/ProfileCompletionBanner";
+import { FamilySection } from "@/components/profile/FamilySection";
+import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 
 export default function Profile() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const { familyMembers } = useFamilyMembers();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -62,131 +66,157 @@ export default function Profile() {
       {/* Profile Completion Banner */}
       <ProfileCompletionBanner />
 
-      {/* Profile Header */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-16 w-16">
-              {avatarUrl ? (
-                <AvatarImage src={avatarUrl} alt="Profile photo" />
-              ) : (
-                <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-                  {user?.email ? getInitials(user.email) : <User className="h-8 w-8" />}
-                </AvatarFallback>
-              )}
-            </Avatar>
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold">
-                {user?.email?.split('@')[0] || 'User'}
-              </h2>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                {user?.email && (
-                  <div className="flex items-center">
-                    <Mail className="h-4 w-4 mr-2" />
-                    {user.email}
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="profile">My Profile</TabsTrigger>
+          <TabsTrigger value="family">Family Members</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile" className="space-y-6">
+          {/* Profile Header */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-16 w-16">
+                  {avatarUrl ? (
+                    <AvatarImage src={avatarUrl} alt="Profile photo" />
+                  ) : (
+                    <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+                      {user?.email ? getInitials(user.email) : <User className="h-8 w-8" />}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <div className="flex-1">
+                  <h2 className="text-xl font-semibold">
+                    {user?.email?.split('@')[0] || 'User'}
+                  </h2>
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    {user?.email && (
+                      <div className="flex items-center">
+                        <Mail className="h-4 w-4 mr-2" />
+                        {user.email}
+                      </div>
+                    )}
+                    {user?.phone && (
+                      <div className="flex items-center">
+                        <Phone className="h-4 w-4 mr-2" />
+                        {user.phone}
+                      </div>
+                    )}
                   </div>
-                )}
-                {user?.phone && (
-                  <div className="flex items-center">
-                    <Phone className="h-4 w-4 mr-2" />
-                    {user.phone}
-                  </div>
-                )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/profile/edit")}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Profile
+                </Button>
               </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate("/profile/edit")}
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Profile
-            </Button>
+            </CardContent>
+          </Card>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center">
+                  <FileText className="h-5 w-5 mr-2 text-primary" />
+                  Documents
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0</div>
+                <p className="text-muted-foreground text-sm">Uploaded files</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center">
+                  <Activity className="h-5 w-5 mr-2 text-primary" />
+                  Reports
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0</div>
+                <p className="text-muted-foreground text-sm">AI analyses</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center">
+                  <Users className="h-5 w-5 mr-2 text-primary" />
+                  Family
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{familyMembers.length}</div>
+                <p className="text-muted-foreground text-sm">Members</p>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center">
-              <FileText className="h-5 w-5 mr-2 text-primary" />
-              Documents
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-muted-foreground text-sm">Uploaded files</p>
-          </CardContent>
-        </Card>
+          {/* Menu Options */}
+          <div className="space-y-2">
+            <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <CardHeader className="py-4">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Settings className="h-5 w-5 mr-3 text-primary" />
+                    Account Settings
+                  </div>
+                  <span className="text-muted-foreground">→</span>
+                </CardTitle>
+              </CardHeader>
+            </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center">
-              <Activity className="h-5 w-5 mr-2 text-primary" />
-              Reports
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-muted-foreground text-sm">AI analyses</p>
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <CardHeader className="py-4">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center">
+                    <FileText className="h-5 w-5 mr-3 text-primary" />
+                    My Documents
+                  </div>
+                  <span className="text-muted-foreground">→</span>
+                </CardTitle>
+              </CardHeader>
+            </Card>
 
-      {/* Menu Options */}
-      <div className="space-y-2">
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-          <CardHeader className="py-4">
-            <CardTitle className="text-base flex items-center justify-between">
-              <div className="flex items-center">
-                <Settings className="h-5 w-5 mr-3 text-primary" />
-                Account Settings
-              </div>
-              <span className="text-muted-foreground">→</span>
-            </CardTitle>
-          </CardHeader>
-        </Card>
+            <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <CardHeader className="py-4">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Activity className="h-5 w-5 mr-3 text-primary" />
+                    Health Analytics
+                  </div>
+                  <span className="text-muted-foreground">→</span>
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
 
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-          <CardHeader className="py-4">
-            <CardTitle className="text-base flex items-center justify-between">
-              <div className="flex items-center">
-                <FileText className="h-5 w-5 mr-3 text-primary" />
-                My Documents
-              </div>
-              <span className="text-muted-foreground">→</span>
-            </CardTitle>
-          </CardHeader>
-        </Card>
+          {/* Sign Out */}
+          <Card>
+            <CardContent className="pt-6">
+              <Button 
+                variant="destructive" 
+                onClick={handleSignOut}
+                className="w-full"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-          <CardHeader className="py-4">
-            <CardTitle className="text-base flex items-center justify-between">
-              <div className="flex items-center">
-                <Activity className="h-5 w-5 mr-3 text-primary" />
-                Health Analytics
-              </div>
-              <span className="text-muted-foreground">→</span>
-            </CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
-
-      {/* Sign Out */}
-      <Card>
-        <CardContent className="pt-6">
-          <Button 
-            variant="destructive" 
-            onClick={handleSignOut}
-            className="w-full"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
-        </CardContent>
-      </Card>
+        <TabsContent value="family">
+          <FamilySection />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
