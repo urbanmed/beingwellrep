@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, FileText, Activity, LogOut, User, Phone, Mail, Edit, Users } from "lucide-react";
+import { Settings, FileText, Activity, LogOut, User, Phone, Mail, Edit, Users, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { ProfileCompletionBanner } from "@/components/profile/ProfileCompletionBanner";
 import { FamilySection } from "@/components/profile/FamilySection";
+import { EmergencyContactsSection } from "@/components/profile/EmergencyContactsSection";
 import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 
 export default function Profile() {
@@ -67,9 +68,10 @@ export default function Profile() {
       <ProfileCompletionBanner />
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile">My Profile</TabsTrigger>
-          <TabsTrigger value="family">Family Members</TabsTrigger>
+          <TabsTrigger value="family">Family</TabsTrigger>
+          <TabsTrigger value="emergency">Emergency</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -218,6 +220,10 @@ export default function Profile() {
 
         <TabsContent value="family">
           <FamilySection />
+        </TabsContent>
+
+        <TabsContent value="emergency">
+          <EmergencyContactsSection />
         </TabsContent>
       </Tabs>
     </div>
