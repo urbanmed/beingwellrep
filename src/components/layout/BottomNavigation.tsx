@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, User, FolderOpen, Brain } from "lucide-react";
+import { Home, User, FolderOpen, Brain, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -9,31 +9,74 @@ const navItems = [
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
+const centerItem = { icon: MessageCircle, label: "AI Assistant", path: "/ai-assistant" };
+
 export function BottomNavigation() {
   const location = useLocation();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border medical-card-shadow">
-      <div className="flex justify-around items-center h-16 px-4">
-        {navItems.map(({ icon: Icon, label, path }) => {
-          const isActive = location.pathname === path;
-          
-          return (
-            <NavLink
-              key={path}
-              to={path}
-              className={cn(
-                "flex flex-col items-center justify-center min-w-0 flex-1 py-2 px-1 rounded-lg transition-colors",
-                isActive
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-              )}
-            >
-              <Icon className="h-5 w-5 mb-1" />
-              <span className="medical-annotation font-medium truncate">{label}</span>
-            </NavLink>
-          );
-        })}
+      <div className="relative flex items-center h-16 px-4">
+        {/* Left side navigation items */}
+        <div className="flex flex-1 justify-around">
+          {navItems.slice(0, 2).map(({ icon: Icon, label, path }) => {
+            const isActive = location.pathname === path;
+            
+            return (
+              <NavLink
+                key={path}
+                to={path}
+                className={cn(
+                  "flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors",
+                  isActive
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                )}
+              >
+                <Icon className="h-5 w-5 mb-1" />
+                <span className="medical-annotation font-medium truncate">{label}</span>
+              </NavLink>
+            );
+          })}
+        </div>
+
+        {/* Center AI Assistant button */}
+        <div className="flex justify-center px-4">
+          <NavLink
+            to={centerItem.path}
+            className={cn(
+              "flex flex-col items-center justify-center w-14 h-14 rounded-full transition-all",
+              location.pathname === centerItem.path
+                ? "bg-primary text-primary-foreground shadow-lg scale-110"
+                : "bg-primary/90 text-primary-foreground hover:bg-primary hover:scale-105 shadow-md"
+            )}
+          >
+            <centerItem.icon className="h-6 w-6" />
+          </NavLink>
+        </div>
+
+        {/* Right side navigation items */}
+        <div className="flex flex-1 justify-around">
+          {navItems.slice(2).map(({ icon: Icon, label, path }) => {
+            const isActive = location.pathname === path;
+            
+            return (
+              <NavLink
+                key={path}
+                to={path}
+                className={cn(
+                  "flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors",
+                  isActive
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                )}
+              >
+                <Icon className="h-5 w-5 mb-1" />
+                <span className="medical-annotation font-medium truncate">{label}</span>
+              </NavLink>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

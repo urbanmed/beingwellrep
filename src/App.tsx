@@ -13,6 +13,7 @@ import Summaries from "./pages/Summaries";
 import Reports from "./pages/Reports";
 import Vault from "./pages/Vault";
 import ReportDetail from "./pages/ReportDetail";
+import AIAssistant from "./pages/AIAssistant";
 
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
@@ -97,6 +98,11 @@ const AppRoutes: React.FC = () => (
     <Route path="/profile/edit" element={
       <ProtectedRoute>
         <ProfileEdit />
+      </ProtectedRoute>
+    } />
+    <Route path="/ai-assistant" element={
+      <ProtectedRoute>
+        <AIAssistant />
       </ProtectedRoute>
     } />
     
