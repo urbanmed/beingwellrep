@@ -77,10 +77,6 @@ export default function Summaries() {
     <div className="p-4 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">AI Health Summaries</h1>
-          <p className="text-muted-foreground">AI-powered insights from your medical reports</p>
-        </div>
         <Button onClick={() => setIsGenerateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Generate Summary
