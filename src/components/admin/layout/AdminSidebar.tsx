@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Activity,
   Database,
+  MessageSquare,
   LogOut
 } from "lucide-react";
 import {
@@ -55,6 +56,12 @@ const adminNavItems = [
     title: "Medical Data", 
     url: "/admin/medical", 
     icon: Activity,
+    roles: ['admin', 'super_admin']
+  },
+  { 
+    title: "Custom Prompts", 
+    url: "/admin/prompts", 
+    icon: MessageSquare,
     roles: ['admin', 'super_admin']
   },
   { 

@@ -23,6 +23,27 @@ For each test/measurement, you MUST determine status by comparing values to refe
 
 Return valid JSON only.`;
 
+// Fetch active custom prompt from database
+const getActiveCustomPrompt = async (supabaseClient: any): Promise<string | null> => {
+  try {
+    const { data, error } = await supabaseClient
+      .from('custom_prompts')
+      .select('prompt_text')
+      .eq('is_active', true)
+      .limit(1);
+    
+    if (error) {
+      console.log('Error fetching custom prompt:', error);
+      return null;
+    }
+    
+    return data && data.length > 0 ? data[0].prompt_text : null;
+  } catch (error) {
+    console.log('Failed to fetch custom prompt:', error);
+    return null;
+  }
+};
+
 // Enhanced prompts with intelligent naming
 const getPromptForReportType = (reportType: string): string => {
   const baseInstructions = `CRITICAL: Return ONLY valid JSON. No markdown formatting, no code blocks, no explanations.
@@ -385,25 +406,26 @@ interface DocumentChunk {
 const processDocumentContent = async (
   text: string, 
   reportType: string, 
-  openaiApiKey: string
+  openaiApiKey: string,
+  customPrompt?: string
 ): Promise<{ response: string, processingType: string }> => {
   
   // Strategy 1: Single pass for smaller documents
   if (text.length <= PROCESSING_CONFIG.MAX_SINGLE_PASS_SIZE) {
     console.log(`Document size: ${text.length} chars - processing in single pass`);
-    return await processSingleDocument(text, reportType, openaiApiKey);
+    return await processSingleDocument(text, reportType, openaiApiKey, customPrompt);
   }
   
   // Strategy 2: Smart truncation for moderately large documents
   if (text.length <= PROCESSING_CONFIG.MAX_TRUNCATED_SIZE * 2) {
     console.log(`Document size: ${text.length} chars - using smart truncation`);
     const truncatedText = smartTruncateDocument(text, PROCESSING_CONFIG.MAX_TRUNCATED_SIZE);
-    return await processSingleDocument(truncatedText, reportType, openaiApiKey);
+    return await processSingleDocument(truncatedText, reportType, openaiApiKey, customPrompt);
   }
   
   // Strategy 3: Limited chunking for very large documents
   console.log(`Document size: ${text.length} chars - using limited chunking`);
-  return await processDocumentWithLimitedChunking(text, reportType, openaiApiKey);
+  return await processDocumentWithLimitedChunking(text, reportType, openaiApiKey, customPrompt);
 };
 
 // Smart truncation that preserves important medical information
@@ -446,10 +468,11 @@ const smartTruncateDocument = (text: string, maxSize: number): string => {
 const processSingleDocument = async (
   text: string, 
   reportType: string, 
-  openaiApiKey: string
+  openaiApiKey: string,
+  customPrompt?: string
 ): Promise<{ response: string, processingType: string }> => {
   
-  const prompt = getPromptForReportType(reportType);
+  const prompt = customPrompt || getPromptForReportType(reportType);
   
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -483,7 +506,8 @@ const processSingleDocument = async (
 const processDocumentWithLimitedChunking = async (
   text: string, 
   reportType: string, 
-  openaiApiKey: string
+  openaiApiKey: string,
+  customPrompt?: string
 ): Promise<{ response: string, processingType: string }> => {
   
   const chunks = createLimitedChunks(text);
@@ -836,7 +860,13 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured')
     }
 
-    const prompt = getPromptForReportType(report.report_type)
+    // Try to get custom prompt first, fallback to default prompts
+    let prompt = await getActiveCustomPrompt(supabaseClient);
+    if (!prompt) {
+      prompt = getPromptForReportType(report.report_type);
+    } else {
+      console.log('Using custom prompt for document processing');
+    }
     let aiResponse: string = ''
 
     if (isPDFFile(report.file_type)) {
@@ -853,7 +883,7 @@ serve(async (req) => {
         // Use optimized document processing
         console.log('Using extracted text for optimized processing');
         
-        const processingResult = await processDocumentContent(extractedText, report.report_type, openaiApiKey);
+        const processingResult = await processDocumentContent(extractedText, report.report_type, openaiApiKey, prompt);
         aiResponse = processingResult.response;
         
         console.log(`Document processing completed using: ${processingResult.processingType}`);

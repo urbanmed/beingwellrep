@@ -2,6 +2,7 @@ import { ReportHeader } from "./ReportHeader";
 import { EnhancedDocumentViewer } from "./EnhancedDocumentViewer";
 import { PatientInfoCard } from "./PatientInfoCard";
 import { DoctorInfoCard } from "./DoctorInfoCard";
+import { CustomStructuredDataViewer } from "./CustomStructuredDataViewer";
 import { extractPatientAndFacilityData } from "@/lib/utils/report-data-extractor";
 
 interface DocumentViewerProps {
@@ -22,6 +23,9 @@ interface DocumentViewerProps {
 }
 
 export function DocumentViewer({ report }: DocumentViewerProps) {
+  // Check if this is a custom processed report
+  const isCustomReport = report.parsed_data?.reportType === 'custom';
+  
   // Extract patient and facility data from the extracted text
   const { patient, facility } = extractPatientAndFacilityData(report.extracted_text);
 
@@ -29,23 +33,30 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
     <div className="space-y-6">
       <ReportHeader report={report} />
       
-      {/* Patient and Facility Information Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {patient && <PatientInfoCard patient={patient} />}
-        {facility && (
-          <DoctorInfoCard
-            facility={facility.facility}
-            orderingPhysician={facility.orderingPhysician}
-            collectionDate={facility.collectionDate}
-            reportDate={facility.reportDate}
-            address={facility.address}
-            phone={facility.phone}
-            email={facility.email}
-          />
-        )}
-      </div>
-      
-      <EnhancedDocumentViewer report={report} />
+      {isCustomReport ? (
+        // Use custom structured data viewer for custom reports
+        <CustomStructuredDataViewer parsedData={report.parsed_data} />
+      ) : (
+        <>
+          {/* Patient and Facility Information Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {patient && <PatientInfoCard patient={patient} />}
+            {facility && (
+              <DoctorInfoCard
+                facility={facility.facility}
+                orderingPhysician={facility.orderingPhysician}
+                collectionDate={facility.collectionDate}
+                reportDate={facility.reportDate}
+                address={facility.address}
+                phone={facility.phone}
+                email={facility.email}
+              />
+            )}
+          </div>
+          
+          <EnhancedDocumentViewer report={report} />
+        </>
+      )}
     </div>
   );
 }

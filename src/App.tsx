@@ -39,6 +39,7 @@ import SosMonitoring from "./pages/admin/SosMonitoring";
 import SystemHealth from "./pages/admin/SystemHealth";
 import AuditLogs from "./pages/admin/AuditLogs";
 import Settings from "./pages/admin/Settings";
+import CustomPrompts from "./pages/admin/CustomPrompts";
 
 // Create QueryClient instance outside of component
 const queryClient = new QueryClient({
@@ -190,6 +191,15 @@ const AppRoutes: React.FC = () => (
         <AdminRoute requiredRole="admin">
           <AdminLayout>
             <AuditLogs />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/prompts" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="admin">
+          <AdminLayout>
+            <CustomPrompts />
           </AdminLayout>
         </AdminRoute>
       </ProtectedRoute>
