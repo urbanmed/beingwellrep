@@ -1,9 +1,7 @@
 import { useMemo } from "react";
-import { format, isWithinInterval, subDays, startOfDay, endOfDay } from "date-fns";
+import { format, isSameDay, parseISO } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { DocumentCard } from "./DocumentCard";
+import { TimelineItem } from "./TimelineItem";
 import { EnhancedTrendsOverview } from "./EnhancedTrendsOverview";
 import { Activity } from "lucide-react";
 
@@ -37,109 +35,29 @@ interface TimelineViewProps {
   onNavigateToUpload?: () => void;
 }
 
-const REPORT_TYPE_ORDER = {
-  'blood_test': 1,
-  'prescription': 2,
-  'radiology': 3,
-  'insurance': 4,
-  'discharge': 5,
-  'general': 6
-};
-
-const REPORT_TYPE_CONFIG = {
-  blood_test: { 
-    color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-    icon: '🩸',
-    priority: 'high'
-  },
-  prescription: { 
-    color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    icon: '💊',
-    priority: 'high'
-  },
-  radiology: { 
-    color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    icon: '🔍',
-    priority: 'medium'
-  },
-  insurance: { 
-    color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-    icon: '📋',
-    priority: 'medium'
-  },
-  discharge: { 
-    color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-    icon: '🏥',
-    priority: 'high'
-  },
-  general: { 
-    color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
-    icon: '📄',
-    priority: 'low'
-  }
-};
 
 export function TimelineView({ reports, selectedReports, onSelectReport, onNavigateToReport, onNavigateToUpload }: TimelineViewProps) {
-  const groupedReports = useMemo(() => {
-    // Sort reports chronologically, then by type priority
+  const groupedByDate = useMemo(() => {
+    // Sort reports chronologically (newest first)
     const sortedReports = [...reports].sort((a, b) => {
-      const dateA = new Date(a.report_date);
-      const dateB = new Date(b.report_date);
-      
-      if (dateA.getTime() !== dateB.getTime()) {
-        return dateB.getTime() - dateA.getTime(); // Newest first
-      }
-      
-      const orderA = REPORT_TYPE_ORDER[a.report_type as keyof typeof REPORT_TYPE_ORDER] || 999;
-      const orderB = REPORT_TYPE_ORDER[b.report_type as keyof typeof REPORT_TYPE_ORDER] || 999;
-      return orderA - orderB;
+      return new Date(b.report_date).getTime() - new Date(a.report_date).getTime();
     });
 
-    // Group by date ranges
+    // Group by exact date
     const groups: { [key: string]: Report[] } = {};
-    const now = new Date();
     
     sortedReports.forEach(report => {
-      const reportDate = new Date(report.report_date);
-      let groupKey: string;
+      const reportDate = parseISO(report.report_date);
+      const dateKey = format(reportDate, 'yyyy-MM-dd');
       
-      if (isWithinInterval(reportDate, { start: startOfDay(subDays(now, 7)), end: endOfDay(now) })) {
-        groupKey = 'This Week';
-      } else if (isWithinInterval(reportDate, { start: startOfDay(subDays(now, 30)), end: endOfDay(now) })) {
-        groupKey = 'This Month';
-      } else if (isWithinInterval(reportDate, { start: startOfDay(subDays(now, 90)), end: endOfDay(now) })) {
-        groupKey = 'Last 3 Months';
-      } else if (isWithinInterval(reportDate, { start: startOfDay(subDays(now, 365)), end: endOfDay(now) })) {
-        groupKey = 'This Year';
-      } else {
-        groupKey = format(reportDate, 'yyyy');
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
       }
-      
-      if (!groups[groupKey]) groups[groupKey] = [];
-      groups[groupKey].push(report);
+      groups[dateKey].push(report);
     });
 
     return groups;
   }, [reports]);
-
-  const getRelatedDocuments = (report: Report) => {
-    // Simple relationship detection based on dates and types
-    const reportDate = new Date(report.report_date);
-    const samePeriod = reports.filter(r => {
-      const rDate = new Date(r.report_date);
-      const daysDiff = Math.abs((rDate.getTime() - reportDate.getTime()) / (1000 * 60 * 60 * 24));
-      return r.id !== report.id && daysDiff <= 7; // Within a week
-    });
-
-    const samePhysician = reports.filter(r => 
-      r.id !== report.id && 
-      r.physician_name && 
-      report.physician_name && 
-      r.physician_name === report.physician_name
-    );
-
-    return { samePeriod: samePeriod.slice(0, 3), samePhysician: samePhysician.slice(0, 2) };
-  };
 
   return (
     <div className="space-y-6">
@@ -151,50 +69,58 @@ export function TimelineView({ reports, selectedReports, onSelectReport, onNavig
         />
       )}
 
-      {/* Timeline Groups */}
-      {Object.entries(groupedReports).map(([period, periodReports]) => (
-        <div key={period} className="space-y-4">
-          <div className="flex items-center space-x-3">
-            <div className="relative">
-              <div className="w-3 h-3 bg-primary rounded-full" />
-              <div className="absolute top-3 left-1/2 transform -translate-x-1/2 w-px h-6 bg-border" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg">{period}</h3>
-              <p className="text-sm text-muted-foreground">
-                {periodReports.length} document{periodReports.length !== 1 ? 's' : ''}
-              </p>
-            </div>
-          </div>
-
-          <div className="ml-6 space-y-3">
-            {periodReports.map((report, index) => {
-              const config = REPORT_TYPE_CONFIG[report.report_type as keyof typeof REPORT_TYPE_CONFIG] || REPORT_TYPE_CONFIG.general;
-              const related = getRelatedDocuments(report);
-              const hasRelated = related.samePeriod.length > 0 || related.samePhysician.length > 0;
+      {/* Timeline */}
+      {Object.keys(groupedByDate).length > 0 ? (
+        <div className="relative">
+          {/* Vertical timeline line */}
+          <div className="absolute left-6 top-0 bottom-0 w-px bg-border" />
+          
+          <div className="space-y-8">
+            {Object.entries(groupedByDate).map(([dateKey, dayReports], groupIndex) => {
+              const date = parseISO(dateKey);
+              const isToday = isSameDay(date, new Date());
+              const isYesterday = isSameDay(date, new Date(Date.now() - 24 * 60 * 60 * 1000));
+              
+              let dateLabel: string;
+              if (isToday) {
+                dateLabel = 'Today';
+              } else if (isYesterday) {
+                dateLabel = 'Yesterday';
+              } else {
+                dateLabel = format(date, 'EEEE, MMMM d, yyyy');
+              }
 
               return (
-                <div key={report.id} className="relative">
-                  {index < periodReports.length - 1 && (
-                    <div className="absolute -left-6 top-8 w-px h-full bg-border" />
-                  )}
-                  
-                  <DocumentCard
-                    report={report}
-                    isSelected={selectedReports.includes(report.id)}
-                    onSelect={onSelectReport}
-                    onNavigate={onNavigateToReport}
-                    showRelated={hasRelated}
-                    relatedDocuments={related}
-                  />
+                <div key={dateKey} className="relative">
+                  {/* Date header */}
+                  <div className="flex items-center mb-4">
+                    <div className="relative z-10 bg-background pr-4">
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        {dateLabel}
+                      </h3>
+                    </div>
+                    <div className="flex-1 h-px bg-border ml-4" />
+                  </div>
+
+                  {/* Documents for this date */}
+                  <div className="ml-4 space-y-4">
+                    {dayReports.map((report, reportIndex) => (
+                      <TimelineItem
+                        key={report.id}
+                        report={report}
+                        isSelected={selectedReports.includes(report.id)}
+                        onSelect={onSelectReport}
+                        onNavigate={onNavigateToReport}
+                        showDate={false}
+                      />
+                    ))}
+                  </div>
                 </div>
               );
             })}
           </div>
         </div>
-      ))}
-
-      {Object.keys(groupedReports).length === 0 && (
+      ) : (
         <Card className="text-center py-8">
           <CardContent>
             <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
