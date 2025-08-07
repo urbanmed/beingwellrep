@@ -308,28 +308,31 @@ export default function Vault() {
             )}
           </div>
 
-          {/* Smart Filters */}
-          <TimelineFilters
-            activeFilters={activeFilters}
-            onFilterChange={setActiveFilters}
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-            onClearAll={handleClearAllFilters}
-          />
+          {/* Filters, View Toggle, and Selection Controls */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            {/* Smart Filters */}
+            <TimelineFilters
+              activeFilters={activeFilters}
+              onFilterChange={setActiveFilters}
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
+              onClearAll={handleClearAllFilters}
+            />
 
-          {/* View Toggle */}
-          <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "timeline" | "grid")}>
-            <div className="flex items-center justify-between">
-              <TabsList>
-                <TabsTrigger value="timeline" className="flex items-center space-x-2">
-                  <Activity className="h-4 w-4" />
-                  <span>Timeline View</span>
-                </TabsTrigger>
-                <TabsTrigger value="grid" className="flex items-center space-x-2">
-                  <Grid className="h-4 w-4" />
-                  <span>Grid View</span>
-                </TabsTrigger>
-              </TabsList>
+            {/* View Toggle and Selection Controls */}
+            <div className="flex items-center gap-6">
+              <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "timeline" | "grid")}>
+                <TabsList>
+                  <TabsTrigger value="timeline" className="flex items-center space-x-2">
+                    <Activity className="h-4 w-4" />
+                    <span>Timeline View</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="grid" className="flex items-center space-x-2">
+                    <Grid className="h-4 w-4" />
+                    <span>Grid View</span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
 
               {/* Selection Controls */}
               {filteredReports.length > 0 && (
@@ -348,6 +351,10 @@ export default function Vault() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Tab Content */}
+          <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "timeline" | "grid")}>
 
             <TabsContent value="timeline" className="mt-6">
               <TimelineView
