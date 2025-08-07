@@ -24,7 +24,7 @@ interface DocumentViewerProps {
 
 export function DocumentViewer({ report }: DocumentViewerProps) {
   // Check if this is a custom processed report
-  const isCustomReport = report.parsed_data?.reportType === 'custom';
+  const isCustomReport = report.report_type === 'custom';
   
   // Extract patient and facility data from the extracted text
   const { patient, facility } = extractPatientAndFacilityData(report.extracted_text);
