@@ -23,7 +23,6 @@ const Index = () => {
           <CardContent className="pt-6 text-center">
             <Brain className="h-8 w-8 text-primary mx-auto mb-2" />
             <h3 className="font-semibold">AI Summaries</h3>
-            <p className="text-sm text-muted-foreground">View insights</p>
           </CardContent>
         </Card>
 
@@ -31,7 +30,6 @@ const Index = () => {
           <CardContent className="pt-6 text-center">
             <Plus className="h-8 w-8 text-primary mx-auto mb-2" />
             <h3 className="font-semibold">Upload</h3>
-            <p className="text-sm text-muted-foreground">Add documents</p>
           </CardContent>
         </Card>
 
@@ -42,7 +40,6 @@ const Index = () => {
           <CardContent className="pt-6 text-center">
             <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
             <h3 className="font-semibold text-destructive">SOS</h3>
-            <p className="text-sm text-muted-foreground">Emergency help</p>
           </CardContent>
         </Card>
       </div>
