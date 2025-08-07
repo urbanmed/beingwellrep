@@ -22,7 +22,7 @@ export function FloatingUploadButton({ onUploadComplete }: FloatingUploadButtonP
     return (
       <>
         {/* Mobile: Fixed bottom button with lab integration hint */}
-        <div className="fixed bottom-20 left-4 right-4 z-40">
+        <div className="fixed bottom-24 left-4 right-4 z-50">
           <div className="flex flex-col items-center space-y-2">
             {/* Lab integration hint */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200/50 dark:border-blue-800/50 rounded-lg px-3 py-2 shadow-sm">
@@ -58,7 +58,7 @@ export function FloatingUploadButton({ onUploadComplete }: FloatingUploadButtonP
   return (
     <>
       {/* Desktop: Floating button in bottom right */}
-      <div className="fixed bottom-8 right-8 z-40 flex flex-col items-end space-y-3">
+      <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end space-y-3">
         {/* Lab integration hint */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200/50 dark:border-blue-800/50 rounded-lg px-4 py-2 shadow-sm">
           <div className="flex items-center space-x-2">
