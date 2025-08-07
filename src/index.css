@@ -2,45 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Medical App Design System - All colors MUST be HSL */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 210 100% 99%;
-    --foreground: 210 50% 15%;
+    /* Primary Backgrounds */
+    --background: 210 17% 98%;        /* #F8F9FA - Main screen backgrounds */
+    --foreground: 210 11% 15%;        /* #212529 - Dark grey text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 210 50% 15%;
+    /* Cards and Secondary Surfaces */
+    --card: 0 0% 100%;                /* #FFFFFF - Cards, modals, blocks */
+    --card-foreground: 210 11% 15%;   /* #212529 - Primary text on cards */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 210 50% 15%;
+    /* Popovers and Overlays */
+    --popover: 0 0% 100%;             /* #FFFFFF */
+    --popover-foreground: 210 11% 15%; /* #212529 */
 
-    --primary: 210 85% 55%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary Accent - Teal */
+    --primary: 181 29% 42%;           /* #4F8A8B - CTA buttons, links, highlights */
+    --primary-foreground: 0 0% 100%;  /* White text on primary */
 
-    --secondary: 150 40% 95%;
-    --secondary-foreground: 150 50% 20%;
+    /* Secondary/Muted Elements */
+    --secondary: 210 17% 98%;         /* #F8F9FA - Secondary backgrounds */
+    --secondary-foreground: 208 7% 46%; /* #6C757D - Medium grey text */
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 210 25% 50%;
+    --muted: 210 17% 96%;             /* Slightly darker than background */
+    --muted-foreground: 208 7% 46%;   /* #6C757D - Secondary text, labels */
 
-    --accent: 150 60% 85%;
-    --accent-foreground: 150 50% 20%;
+    /* Accent Elements */
+    --accent: 181 29% 95%;            /* Light teal for hover states */
+    --accent-foreground: 181 29% 42%; /* Primary teal for text on accent */
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Status Colors */
+    --destructive: 354 70% 54%;       /* #E63946 - Alert red */
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 142 76% 36%;
+    --success: 86 100% 35%;           /* #38B000 - Success green */
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 27 87% 67%;            /* #F4A261 - Warning amber */
+    --warning-foreground: 210 11% 15%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --info: 196 100% 36%;             /* #0077B6 - Info blue */
+    --info-foreground: 0 0% 100%;
+
+    /* Borders and Inputs */
+    --border: 210 18% 87%;            /* #DEE2E6 - Dividers, borders */
+    --input: 210 18% 87%;             /* #DEE2E6 - Input borders */
+    --ring: 181 29% 42%;              /* Primary teal for focus rings */
 
     --radius: 0.5rem;
 
@@ -62,47 +72,51 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 210 50% 8%;
-    --foreground: 210 40% 95%;
+    /* Dark mode maintains same medical color principles */
+    --background: 210 11% 10%;
+    --foreground: 210 17% 95%;
 
-    --card: 210 45% 10%;
-    --card-foreground: 210 40% 95%;
+    --card: 210 11% 12%;
+    --card-foreground: 210 17% 95%;
 
-    --popover: 210 45% 10%;
-    --popover-foreground: 210 40% 95%;
+    --popover: 210 11% 12%;
+    --popover-foreground: 210 17% 95%;
 
-    --primary: 210 85% 65%;
-    --primary-foreground: 210 50% 8%;
+    --primary: 181 29% 52%;           /* Slightly brighter teal for dark mode */
+    --primary-foreground: 210 11% 10%;
 
-    --secondary: 150 25% 20%;
-    --secondary-foreground: 150 40% 85%;
+    --secondary: 210 11% 15%;
+    --secondary-foreground: 208 7% 60%;
 
-    --muted: 210 30% 18%;
-    --muted-foreground: 210 25% 65%;
+    --muted: 210 11% 18%;
+    --muted-foreground: 208 7% 60%;
 
-    --accent: 150 40% 25%;
-    --accent-foreground: 150 40% 85%;
+    --accent: 181 29% 20%;
+    --accent-foreground: 181 29% 52%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 354 70% 54%;       /* Same alert red */
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 45%;
+    --success: 86 100% 40%;           /* Slightly brighter green */
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 85% 55%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 27 87% 67%;            /* Same warning amber */
+    --warning-foreground: 210 11% 15%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --info: 196 100% 46%;             /* Brighter info blue */
+    --info-foreground: 0 0% 100%;
+
+    --border: 210 18% 25%;
+    --input: 210 18% 25%;
+    --ring: 181 29% 52%;
+    --sidebar-background: 210 11% 12%;
+    --sidebar-foreground: 210 17% 95%;
+    --sidebar-primary: 181 29% 52%;
+    --sidebar-primary-foreground: 210 11% 10%;
+    --sidebar-accent: 210 11% 18%;
+    --sidebar-accent-foreground: 210 17% 95%;
+    --sidebar-border: 210 18% 25%;
+    --sidebar-ring: 181 29% 52%;
   }
 }
 
@@ -112,6 +126,53 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-inter;
+  }
+  
+  /* Medical App Typography System */
+  .medical-title {
+    @apply font-bold text-xl text-foreground; /* 20-22px, bold */
+  }
+  
+  .medical-heading {
+    @apply font-medium text-lg text-foreground; /* 16-18px, medium */
+  }
+  
+  .medical-body {
+    @apply font-normal text-base text-foreground; /* 14-15px, regular */
+  }
+  
+  .medical-label {
+    @apply font-medium text-sm text-muted-foreground; /* 12-13px, medium */
+  }
+  
+  .medical-button {
+    @apply font-semibold text-base; /* 14px, semi-bold */
+  }
+  
+  .medical-annotation {
+    @apply font-normal text-xs text-muted-foreground; /* 11-12px, regular */
+  }
+  
+  /* Medical Status Colors */
+  .status-critical {
+    @apply text-destructive bg-destructive/10 border-destructive/20;
+  }
+  
+  .status-warning {
+    @apply text-warning bg-warning/10 border-warning/20;
+  }
+  
+  .status-normal {
+    @apply text-success bg-success/10 border-success/20;
+  }
+  
+  .status-info {
+    @apply text-info bg-info/10 border-info/20;
+  }
+  
+  /* Medical Card Shadow */
+  .medical-card-shadow {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 }

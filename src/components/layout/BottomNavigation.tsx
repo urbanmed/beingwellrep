@@ -13,7 +13,7 @@ export function BottomNavigation() {
   const location = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border medical-card-shadow">
       <div className="flex justify-around items-center h-16 px-4">
         {navItems.map(({ icon: Icon, label, path }) => {
           const isActive = location.pathname === path;
@@ -30,7 +30,7 @@ export function BottomNavigation() {
               )}
             >
               <Icon className="h-5 w-5 mb-1" />
-              <span className="text-xs font-medium truncate">{label}</span>
+              <span className="medical-annotation font-medium truncate">{label}</span>
             </NavLink>
           );
         })}
