@@ -7,16 +7,107 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const SYSTEM_PROMPT = `You are a medical document analysis AI that extracts structured data from medical reports, lab results, prescriptions, and other healthcare documents. Analyze the provided document and extract relevant medical information accurately. Structure the data according to medical document standards and return valid JSON only.`;
+const SYSTEM_PROMPT = `You are a medical document analysis AI that extracts structured data from medical reports, lab results, prescriptions, and other healthcare documents. Along with extracting medical information, you must also generate an intelligent document name based on the content. Return valid JSON that includes both the extracted data AND a suggested document name.`;
 
-const getPromptForReportType = (reportType: string) => {
-  const prompts = {
-    'lab_results': 'Extract lab test results with values, units, reference ranges, and status indicators.',
-    'prescription': 'Extract medications with dosages, frequencies, instructions, and prescriber information.',
-    'radiology': 'Extract study details, findings, and radiologist impressions.',
-    'vitals': 'Extract vital signs measurements with values, units, and timestamps.',
+// Enhanced prompts with intelligent naming
+const getPromptForReportType = (reportType: string): string => {
+  switch (reportType.toLowerCase()) {
+    case 'lab_results':
+    case 'lab':
+      return `Extract structured data from this lab results document with proper hierarchical organization. You MUST include a "suggestedName" field following the pattern "Lab Results - [Primary Test/Panel] - [Date]" (e.g., "Lab Results - Complete Blood Count - 2024-01-15"). Return valid JSON only.`;
+    case 'prescription':
+    case 'pharmacy':
+      return `Extract structured data from this prescription document. You MUST include a "suggestedName" field following the pattern "Prescription - [Primary Medication] - [Date]" (e.g., "Prescription - Lisinopril - 2024-01-15"). Return valid JSON only.`;
+    case 'radiology':
+    case 'imaging':
+    case 'xray':
+    case 'mri':
+    case 'ct':
+      return `Extract structured data from this radiology report. You MUST include a "suggestedName" field following the pattern "[Study Type] - [Body Part] - [Date]" (e.g., "CT Scan - Chest - 2024-01-15"). Return valid JSON only.`;
+    case 'vitals':
+    case 'vital_signs':
+      return `Extract structured data from this vital signs document. You MUST include a "suggestedName" field following the pattern "Vital Signs - [Primary Measurement] - [Date]" (e.g., "Vital Signs - Blood Pressure - 2024-01-15"). Return valid JSON only.`;
+    default:
+      return `Extract structured data from this general medical document. You MUST include a "suggestedName" field following the pattern "[Document Type] - [Provider/Facility] - [Date]" (e.g., "Medical Record - Dr. Smith - 2024-01-15"). Return valid JSON only.`;
+  }
+};
+
+const generateFallbackDocumentName = (
+  reportType: string, 
+  parsedData: any, 
+  reportDate: string
+): string => {
+  const formatDate = (dateStr: string): string => {
+    try {
+      const date = new Date(dateStr);
+      return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    } catch {
+      return new Date().toISOString().split('T')[0];
+    }
   };
-  return prompts[reportType] || 'Extract relevant medical information and structure it appropriately.';
+
+  const formattedDate = formatDate(reportDate);
+
+  switch (reportType?.toLowerCase()) {
+    case 'lab_results':
+    case 'lab':
+      if (parsedData?.tests?.length > 0) {
+        const primaryTest = parsedData.tests[0];
+        if (primaryTest.isProfileHeader && primaryTest.name) {
+          return `Lab Results - ${primaryTest.name} - ${formattedDate}`;
+        } else if (primaryTest.name) {
+          return `Lab Results - ${primaryTest.name} - ${formattedDate}`;
+        }
+      }
+      return `Lab Results - ${formattedDate}`;
+
+    case 'prescription':
+    case 'pharmacy':
+      if (parsedData?.medications?.length > 0) {
+        const primaryMed = parsedData.medications[0];
+        if (primaryMed.name) {
+          return `Prescription - ${primaryMed.name} - ${formattedDate}`;
+        }
+      }
+      return `Prescription - ${formattedDate}`;
+
+    case 'radiology':
+    case 'imaging':
+    case 'xray':
+    case 'mri':
+    case 'ct':
+      if (parsedData?.study) {
+        const studyType = parsedData.study.type || reportType.toUpperCase();
+        const bodyPart = parsedData.study.bodyPart || '';
+        if (bodyPart) {
+          return `${studyType} - ${bodyPart} - ${formattedDate}`;
+        }
+        return `${studyType} - ${formattedDate}`;
+      }
+      return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Scan - ${formattedDate}`;
+
+    case 'vitals':
+    case 'vital_signs':
+      if (parsedData?.vitals?.length > 0) {
+        const primaryVital = parsedData.vitals[0];
+        if (primaryVital.type) {
+          const vitalType = primaryVital.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+          return `Vital Signs - ${vitalType} - ${formattedDate}`;
+        }
+      }
+      return `Vital Signs - ${formattedDate}`;
+
+    default:
+      const provider = parsedData?.provider || parsedData?.prescriber || parsedData?.orderingPhysician;
+      const facility = parsedData?.facility;
+      
+      if (provider) {
+        return `Medical Record - ${provider} - ${formattedDate}`;
+      } else if (facility) {
+        return `Medical Record - ${facility} - ${formattedDate}`;
+      }
+      return `Medical Document - ${formattedDate}`;
+  }
 };
 
 // File size limit: 20MB
@@ -232,27 +323,52 @@ serve(async (req) => {
 
     let parsedData = null
     let confidence = 0.8
+    let suggestedName = null
 
     try {
       parsedData = JSON.parse(aiResponse)
       confidence = parsedData.confidence || 0.8
+      suggestedName = parsedData.suggestedName
     } catch (parseError) {
       console.warn('Failed to parse AI response as JSON, storing as text')
       // Store the raw response if JSON parsing fails
       parsedData = { rawResponse: aiResponse }
     }
 
-    // Update report with results
+    // Generate intelligent document name
+    let finalDocumentName = suggestedName
+    if (!finalDocumentName) {
+      // Fallback to our own naming logic if AI didn't provide a name
+      finalDocumentName = generateFallbackDocumentName(report.report_type, parsedData, report.report_date)
+    }
+
+    // Clean up the suggested name (remove invalid characters, limit length)
+    if (finalDocumentName) {
+      finalDocumentName = finalDocumentName
+        .replace(/[<>:"/\\|?*]/g, '-') // Replace invalid file chars
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim()
+        .substring(0, 200) // Limit length
+    }
+
+    // Update report with results including the intelligent name
+    const updateFields: any = {
+      parsing_status: 'completed',
+      extracted_text: aiResponse,
+      parsed_data: parsedData,
+      parsing_confidence: confidence,
+      parsing_model: 'gpt-4o-mini',
+      processing_error: null
+    }
+
+    // Only update title if we have a meaningful name
+    if (finalDocumentName && finalDocumentName !== 'Processing...') {
+      updateFields.title = finalDocumentName
+    }
+
     const { error: updateError } = await supabaseClient
       .from('reports')
-      .update({
-        parsing_status: 'completed',
-        extracted_text: aiResponse,
-        parsed_data: parsedData,
-        parsing_confidence: confidence,
-        parsing_model: 'gpt-4o-mini',
-        processing_error: null
-      })
+      .update(updateFields)
       .eq('id', reportId)
 
     if (updateError) {

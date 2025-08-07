@@ -1,4 +1,13 @@
-export const SYSTEM_PROMPT = `You are an advanced medical document analysis expert with deep understanding of clinical data organization. Your task is to extract and structure medical information with clinical precision, maintaining proper hierarchical organization of complex medical data. Use your medical knowledge to group related tests, normalize units, and provide clinically meaningful interpretations.`;
+export const SYSTEM_PROMPT = `You are an advanced medical document analysis expert with deep understanding of clinical data organization. Your task is to extract and structure medical information with clinical precision, maintaining proper hierarchical organization of complex medical data. Use your medical knowledge to group related tests, normalize units, and provide clinically meaningful interpretations.
+
+CRITICAL: You must also generate an intelligent document name based on the content. The document name should be concise, informative, and follow these patterns:
+- Lab Reports: "Lab Results - [Primary Test/Panel] - [Date]" (e.g., "Lab Results - Complete Blood Count - 2024-01-15")
+- Prescriptions: "Prescription - [Primary Medication] - [Date]" (e.g., "Prescription - Lisinopril - 2024-01-15")
+- Radiology: "[Study Type] - [Body Part] - [Date]" (e.g., "CT Scan - Chest - 2024-01-15")
+- Vitals: "Vital Signs - [Primary Measurement] - [Date]" (e.g., "Vital Signs - Blood Pressure - 2024-01-15")
+- General: "[Document Type] - [Provider/Facility] - [Date]" (e.g., "Medical Record - Dr. Smith - 2024-01-15")
+
+The document name must be included in your JSON response under the "suggestedName" field.`;
 
 export const LAB_RESULTS_PROMPT = `Extract structured data from this lab results document with proper hierarchical organization. Return JSON in this exact format:
 
@@ -6,6 +15,7 @@ export const LAB_RESULTS_PROMPT = `Extract structured data from this lab results
   "reportType": "lab",
   "confidence": 0.95,
   "extractedAt": "2024-01-01T00:00:00Z",
+  "suggestedName": "Lab Results - Complete Blood Count - 2024-01-01",
   "patient": {
     "name": "John Doe",
     "dateOfBirth": "1980-01-01",
@@ -71,6 +81,7 @@ export const PRESCRIPTION_PROMPT = `Extract structured data from this prescripti
   "reportType": "prescription",
   "confidence": 0.95,
   "extractedAt": "2024-01-01T00:00:00Z",
+  "suggestedName": "Prescription - Lisinopril - 2024-01-01",
   "patient": {
     "name": "John Doe",
     "dateOfBirth": "1980-01-01",
@@ -102,6 +113,7 @@ export const RADIOLOGY_PROMPT = `Extract structured data from this radiology rep
   "reportType": "radiology",
   "confidence": 0.95,
   "extractedAt": "2024-01-01T00:00:00Z",
+  "suggestedName": "CT Scan - Chest - 2024-01-01",
   "patient": {
     "name": "John Doe",
     "dateOfBirth": "1980-01-01",
@@ -135,6 +147,7 @@ export const VITALS_PROMPT = `Extract structured data from this vital signs docu
   "reportType": "vitals",
   "confidence": 0.95,
   "extractedAt": "2024-01-01T00:00:00Z",
+  "suggestedName": "Vital Signs - Blood Pressure - 2024-01-01",
   "patient": {
     "name": "John Doe",
     "dateOfBirth": "1980-01-01",
@@ -162,6 +175,7 @@ export const GENERAL_MEDICAL_PROMPT = `Extract structured data from this general
   "reportType": "general",
   "confidence": 0.95,
   "extractedAt": "2024-01-01T00:00:00Z",
+  "suggestedName": "Medical Record - Dr. Smith - 2024-01-01",
   "patient": {
     "name": "John Doe",
     "dateOfBirth": "1980-01-01",
@@ -315,4 +329,82 @@ export function generateSmartTags(parsedData: any): string[] {
   }
   
   return Array.from(tags);
+}
+
+export function generateFallbackDocumentName(
+  reportType: string, 
+  parsedData: any, 
+  reportDate: string
+): string {
+  const formatDate = (dateStr: string): string => {
+    try {
+      const date = new Date(dateStr);
+      return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    } catch {
+      return new Date().toISOString().split('T')[0];
+    }
+  };
+
+  const formattedDate = formatDate(reportDate);
+
+  switch (reportType?.toLowerCase()) {
+    case 'lab_results':
+    case 'lab':
+      if (parsedData?.tests?.length > 0) {
+        const primaryTest = parsedData.tests[0];
+        if (primaryTest.isProfileHeader && primaryTest.name) {
+          return `Lab Results - ${primaryTest.name} - ${formattedDate}`;
+        } else if (primaryTest.name) {
+          return `Lab Results - ${primaryTest.name} - ${formattedDate}`;
+        }
+      }
+      return `Lab Results - ${formattedDate}`;
+
+    case 'prescription':
+    case 'pharmacy':
+      if (parsedData?.medications?.length > 0) {
+        const primaryMed = parsedData.medications[0];
+        if (primaryMed.name) {
+          return `Prescription - ${primaryMed.name} - ${formattedDate}`;
+        }
+      }
+      return `Prescription - ${formattedDate}`;
+
+    case 'radiology':
+    case 'imaging':
+    case 'xray':
+    case 'mri':
+    case 'ct':
+      if (parsedData?.study) {
+        const studyType = parsedData.study.type || reportType.toUpperCase();
+        const bodyPart = parsedData.study.bodyPart || '';
+        if (bodyPart) {
+          return `${studyType} - ${bodyPart} - ${formattedDate}`;
+        }
+        return `${studyType} - ${formattedDate}`;
+      }
+      return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Scan - ${formattedDate}`;
+
+    case 'vitals':
+    case 'vital_signs':
+      if (parsedData?.vitals?.length > 0) {
+        const primaryVital = parsedData.vitals[0];
+        if (primaryVital.type) {
+          const vitalType = primaryVital.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+          return `Vital Signs - ${vitalType} - ${formattedDate}`;
+        }
+      }
+      return `Vital Signs - ${formattedDate}`;
+
+    default:
+      const provider = parsedData?.provider || parsedData?.prescriber || parsedData?.orderingPhysician;
+      const facility = parsedData?.facility;
+      
+      if (provider) {
+        return `Medical Record - ${provider} - ${formattedDate}`;
+      } else if (facility) {
+        return `Medical Record - ${facility} - ${formattedDate}`;
+      }
+      return `Medical Document - ${formattedDate}`;
+  }
 }
