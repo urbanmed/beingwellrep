@@ -41,7 +41,7 @@ export default function Vault() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedForDeletion, setSelectedForDeletion] = useState<string[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>("timeline");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"documents" | "processing">("documents");
   
