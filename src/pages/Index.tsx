@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Brain, TrendingUp, Plus, Loader2, FolderOpen, Shield, Zap, AlertTriangle } from "lucide-react";
+import { FileText, Brain, TrendingUp, Plus, Loader2, FolderOpen, Shield, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useReports } from "@/hooks/useReports";
 import { SosButton } from "@/components/sos/SosButton";
@@ -20,13 +20,12 @@ const Index = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="bg-destructive border-destructive">
+        <Card className="bg-destructive border-destructive cursor-pointer hover:bg-destructive/90 transition-colors">
           <CardContent className="px-6 pb-4 pt-4 text-center">
-            <AlertTriangle className="h-6 w-6 text-destructive-foreground mx-auto mb-2" />
             <SosButton 
-              variant="destructive" 
+              variant="outline" 
               size="sm"
-              className="bg-destructive-foreground text-destructive hover:bg-destructive-foreground/90"
+              className="bg-transparent border-destructive-foreground text-destructive-foreground hover:bg-destructive-foreground hover:text-destructive"
             />
           </CardContent>
         </Card>
