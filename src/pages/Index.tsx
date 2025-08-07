@@ -16,13 +16,6 @@ const Index = () => {
 
   return (
     <div className="p-4 space-y-6">
-      {/* Welcome Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-foreground">Health Buddy</h1>
-        <p className="text-muted-foreground">
-          Your AI-powered health companion
-        </p>
-      </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-4">
