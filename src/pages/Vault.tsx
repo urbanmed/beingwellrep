@@ -9,7 +9,7 @@ import { useReports } from "@/hooks/useReports";
 import { DeleteConfirmDialog } from "@/components/reports/DeleteConfirmDialog";
 import { TimelineFilters } from "@/components/vault/TimelineFilters";
 import { TimelineView } from "@/components/vault/TimelineView";
-import { SmartAlerts } from "@/components/vault/SmartAlerts";
+
 import { useNavigate } from "react-router-dom";
 import { isWithinInterval, startOfDay, endOfDay, subDays, format } from "date-fns";
 
@@ -280,11 +280,6 @@ export default function Vault() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Smart Alerts */}
-          <SmartAlerts 
-            reports={reports} 
-            onNavigateToUpload={() => navigate("/upload")}
-          />
 
           {/* Search Bar */}
           <div className="flex flex-col sm:flex-row gap-4">
