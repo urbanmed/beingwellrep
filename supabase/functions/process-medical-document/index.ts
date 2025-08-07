@@ -23,23 +23,43 @@ For each test/measurement, you MUST determine status by comparing values to refe
 
 Return valid JSON only.`;
 
-// Fetch active custom prompt from database
+// Fetch active custom prompt from database with comprehensive logging
 const getActiveCustomPrompt = async (supabaseClient: any): Promise<string | null> => {
+  console.log('🔍 CUSTOM PROMPT DEBUG: Starting custom prompt fetch...');
+  
   try {
+    console.log('🔍 CUSTOM PROMPT DEBUG: Executing database query for active custom prompts...');
+    
     const { data, error } = await supabaseClient
       .from('custom_prompts')
-      .select('prompt_text')
+      .select('prompt_text, name, created_at, is_active')
       .eq('is_active', true)
       .limit(1);
     
+    console.log('🔍 CUSTOM PROMPT DEBUG: Query executed. Error:', error, 'Data count:', data?.length || 0);
+    
     if (error) {
-      console.log('Error fetching custom prompt:', error);
+      console.error('❌ CUSTOM PROMPT ERROR: Database error fetching custom prompt:', JSON.stringify(error, null, 2));
       return null;
     }
     
-    return data && data.length > 0 ? data[0].prompt_text : null;
+    if (!data || data.length === 0) {
+      console.log('⚠️ CUSTOM PROMPT DEBUG: No active custom prompts found in database');
+      return null;
+    }
+    
+    const customPrompt = data[0];
+    console.log('✅ CUSTOM PROMPT DEBUG: Found active custom prompt:', {
+      name: customPrompt.name,
+      created_at: customPrompt.created_at,
+      is_active: customPrompt.is_active,
+      prompt_length: customPrompt.prompt_text?.length || 0
+    });
+    
+    return customPrompt.prompt_text;
   } catch (error) {
-    console.log('Failed to fetch custom prompt:', error);
+    console.error('❌ CUSTOM PROMPT FATAL: Exception in custom prompt fetch:', error);
+    console.error('❌ CUSTOM PROMPT FATAL: Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     return null;
   }
 };
@@ -861,11 +881,17 @@ serve(async (req) => {
     }
 
     // Try to get custom prompt first, fallback to default prompts
+    console.log('🔍 CUSTOM PROMPT DEBUG: Attempting to fetch custom prompt...');
     let prompt = await getActiveCustomPrompt(supabaseClient);
-    if (!prompt) {
-      prompt = getPromptForReportType(report.report_type);
+    let reportType = report.report_type;
+    
+    if (prompt) {
+      console.log('✅ CUSTOM PROMPT DEBUG: Using active custom prompt for document processing');
+      // When using custom prompt, set report type to "custom" to trigger custom viewer
+      reportType = 'custom';
     } else {
-      console.log('Using custom prompt for document processing');
+      console.log('⚠️ CUSTOM PROMPT DEBUG: No custom prompt found, using default prompt for report type:', report.report_type);
+      prompt = getPromptForReportType(report.report_type);
     }
     let aiResponse: string = ''
 
@@ -996,8 +1022,16 @@ serve(async (req) => {
       parsed_data: parsedData,
       parsing_confidence: confidence,
       parsing_model: 'gpt-4o-mini',
-      processing_error: null
+      processing_error: null,
+      report_type: reportType  // Ensure report type is updated (will be "custom" if using custom prompt)
     }
+    
+    console.log('🔍 CUSTOM PROMPT DEBUG: Updating report with fields:', {
+      report_type: reportType,
+      parsing_status: 'completed',
+      has_parsed_data: !!parsedData,
+      confidence: confidence
+    });
 
     // Only update title if we have a meaningful name
     if (finalDocumentName && finalDocumentName !== 'Processing...') {
