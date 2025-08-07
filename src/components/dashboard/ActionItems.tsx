@@ -18,6 +18,69 @@ interface FlaggedResult {
   severity: 'critical' | 'warning' | 'info';
 }
 
+// Helper functions (hoisted to avoid TDZ issues)
+function normalizeTestStatus(status: string | undefined): 'critical' | 'high' | 'low' | 'abnormal' | null {
+  if (!status) return null;
+  const normalized = status.toLowerCase().trim();
+  if (normalized.includes('critical') || normalized.includes('severe')) return 'critical';
+  if (normalized.includes('high') || normalized.includes('elevated')) return 'high';
+  if (normalized.includes('low') || normalized.includes('decreased')) return 'low';
+  if (normalized.includes('abnormal')) return 'abnormal';
+  if (normalized.includes('normal')) return null; // exclude normal
+  return null;
+}
+
+function determineSeverityLevel(status: string): 'critical' | 'warning' | 'info' {
+  switch (status.toLowerCase()) {
+    case 'critical':
+      return 'critical';
+    case 'high':
+    case 'low':
+      return 'warning';
+    default:
+      return 'info';
+  }
+}
+
+function parseAbnormalFromText(text: string, report: any): FlaggedResult[] {
+  const results: FlaggedResult[] = [];
+  const abnormalPatterns = [
+    /([A-Za-z\s]+)\s*:\s*([0-9.]+)\s*([A-Za-z/%]*)\s*(?:\(([^)]*)\))?.*(high|low|elevated|decreased|abnormal|critical)/gi,
+    /(high|low|elevated|decreased|abnormal|critical).+?([A-Za-z\s]+)\s*:\s*([0-9.]+)/gi,
+  ];
+  for (const pattern of abnormalPatterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      try {
+        const isSecondPattern =
+          match[1] && ['high', 'low', 'elevated', 'decreased', 'abnormal', 'critical'].includes(match[1].toLowerCase());
+        const testName = (isSecondPattern ? match[2] : match[1])?.trim();
+        const value = isSecondPattern ? match[3] : match[2];
+        const unit = isSecondPattern ? '' : match[3] || '';
+        const statusRaw = (isSecondPattern ? match[1] : match[5])?.toLowerCase();
+        if (testName && value && statusRaw) {
+          const normalizedStatus = normalizeTestStatus(statusRaw);
+          if (normalizedStatus) {
+            results.push({
+              id: `${report.id}-${testName}-${Date.now()}`,
+              testName,
+              value: value + (unit ? ` ${unit}` : ''),
+              status: normalizedStatus as any,
+              reportId: report.id,
+              reportTitle: report.title || 'Medical Report',
+              reportDate: report.report_date,
+              severity: determineSeverityLevel(normalizedStatus),
+            });
+          }
+        }
+      } catch (parseError) {
+        console.warn('Error parsing abnormal result from text:', parseError);
+      }
+    }
+  }
+  return results;
+}
+
 export function ActionItems() {
   const { reports } = useReports();
   const navigate = useNavigate();
@@ -120,72 +183,6 @@ export function ActionItems() {
       })
       .slice(0, 5); // Show top 5 most important
   }, [reports]);
-
-  // Helper functions for enhanced parsing
-  const normalizeTestStatus = (status: string | undefined): string | null => {
-    if (!status) return null;
-    
-    const normalized = status.toLowerCase().trim();
-    if (normalized.includes('critical') || normalized.includes('severe')) return 'critical';
-    if (normalized.includes('high') || normalized.includes('elevated') || normalized.includes('abnormal')) return 'high';
-    if (normalized.includes('low') || normalized.includes('decreased')) return 'low';
-    if (normalized.includes('normal')) return null; // Don't include normal results
-    
-    return null;
-  };
-
-  const determineSeverityLevel = (status: string): 'critical' | 'warning' | 'info' => {
-    switch (status.toLowerCase()) {
-      case 'critical': return 'critical';
-      case 'high':
-      case 'low': return 'warning';
-      default: return 'info';
-    }
-  };
-
-  const parseAbnormalFromText = (text: string, report: any): FlaggedResult[] => {
-    const results: FlaggedResult[] = [];
-    
-    // Simple pattern matching for abnormal values
-    const abnormalPatterns = [
-      /([A-Za-z\s]+)\s*:\s*([0-9.]+)\s*([A-Za-z/%]*).*(high|low|elevated|decreased|abnormal|critical)/gi,
-      /(high|low|elevated|decreased|abnormal|critical).+?([A-Za-z\s]+)\s*:\s*([0-9.]+)/gi
-    ];
-    
-    for (const pattern of abnormalPatterns) {
-      let match;
-      while ((match = pattern.exec(text)) !== null) {
-        try {
-          const isSecondPattern = match[1] && ['high', 'low', 'elevated', 'decreased', 'abnormal', 'critical'].includes(match[1].toLowerCase());
-          
-          const testName = isSecondPattern ? match[2]?.trim() : match[1]?.trim();
-          const value = isSecondPattern ? match[3] : match[2];
-          const unit = isSecondPattern ? '' : match[3] || '';
-          const status = isSecondPattern ? match[1]?.toLowerCase() : match[4]?.toLowerCase();
-          
-          if (testName && value && status) {
-            const normalizedStatus = normalizeTestStatus(status);
-            if (normalizedStatus) {
-              results.push({
-                id: `${report.id}-${testName}-${Date.now()}`,
-                testName: testName,
-                value: value + (unit ? ` ${unit}` : ''),
-                status: normalizedStatus as any,
-                reportId: report.id,
-                reportTitle: report.title || 'Medical Report',
-                reportDate: report.report_date,
-                severity: determineSeverityLevel(normalizedStatus)
-              });
-            }
-          }
-        } catch (parseError) {
-          console.warn('Error parsing abnormal result from text:', parseError);
-        }
-      }
-    }
-    
-    return results;
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
