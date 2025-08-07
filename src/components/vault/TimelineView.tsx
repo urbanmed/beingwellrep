@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { format, isSameDay, parseISO } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { TimelineItem } from "./TimelineItem";
-import { EnhancedTrendsOverview } from "./EnhancedTrendsOverview";
 import { Activity } from "lucide-react";
 
 interface Report {
@@ -61,14 +60,6 @@ export function TimelineView({ reports, selectedReports, onSelectReport, onNavig
 
   return (
     <div className="space-y-6">
-      {/* Enhanced Trends Overview */}
-      {reports.length > 0 && (
-        <EnhancedTrendsOverview 
-          reports={reports} 
-          onNavigateToUpload={onNavigateToUpload}
-        />
-      )}
-
       {/* Timeline */}
       {Object.keys(groupedByDate).length > 0 ? (
         <div className="relative">
