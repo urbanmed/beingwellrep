@@ -5,7 +5,7 @@ export function Header() {
 
   return (
     <header className="bg-background border-b border-border sticky top-0 z-50">
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-center px-4 py-3">
         <div 
           className="cursor-pointer"
           onClick={() => navigate("/")}
@@ -13,7 +13,7 @@ export function Header() {
           <img 
             src="/lovable-uploads/62e37d74-1210-43f7-acb4-21ffaa3c1aaa.png" 
             alt="BeingWell" 
-            className="h-10 w-auto object-contain"
+            className="h-8 w-auto object-contain"
             style={{ imageRendering: 'crisp-edges' }}
           />
         </div>
