@@ -11,6 +11,7 @@ import { TimelineFilters } from "@/components/vault/TimelineFilters";
 import { TimelineView } from "@/components/vault/TimelineView";
 import { GridView } from "@/components/vault/GridView";
 import { DocumentProcessing } from "@/components/vault/DocumentProcessing";
+import { VaultSummary } from "@/components/vault/VaultSummary";
 
 import { useNavigate } from "react-router-dom";
 import { isWithinInterval, startOfDay, endOfDay, subDays, format } from "date-fns";
@@ -272,9 +273,14 @@ export default function Vault() {
         </TabsList>
 
         <TabsContent value="documents" className="mt-6">
+          {/* Summary Section */}
+          {reports.length > 0 && (
+            <div className="mb-6">
+              <VaultSummary />
+            </div>
+          )}
 
-
-      {reports.length === 0 ? (
+          {reports.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
             <FolderOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
