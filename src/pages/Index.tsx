@@ -128,7 +128,7 @@ const Index = () => {
         >
           <CardContent className="px-6 pb-4 pt-4 text-center">
             <AlertTriangle className="h-6 w-6 text-destructive-foreground mx-auto mb-1" />
-            <h3 className="font-semibold text-destructive-foreground">Emergency</h3>
+            <h3 className="font-semibold text-destructive-foreground">SOS</h3>
           </CardContent>
         </Card>
 
