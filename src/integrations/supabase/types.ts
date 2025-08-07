@@ -56,6 +56,39 @@ export type Database = {
         }
         Relationships: []
       }
+      emergency_contacts: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          phone_number: string
+          priority: number
+          relationship: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          phone_number: string
+          priority?: number
+          relationship: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          phone_number?: string
+          priority?: number
+          relationship?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       family_members: {
         Row: {
           created_at: string
@@ -130,6 +163,9 @@ export type Database = {
           physician_phone: string | null
           preferred_language: string | null
           privacy_settings: Json | null
+          sos_countdown_duration: number
+          sos_enabled: boolean
+          sos_message: string | null
           updated_at: string
           user_id: string
         }
@@ -155,6 +191,9 @@ export type Database = {
           physician_phone?: string | null
           preferred_language?: string | null
           privacy_settings?: Json | null
+          sos_countdown_duration?: number
+          sos_enabled?: boolean
+          sos_message?: string | null
           updated_at?: string
           user_id: string
         }
@@ -180,6 +219,9 @@ export type Database = {
           physician_phone?: string | null
           preferred_language?: string | null
           privacy_settings?: Json | null
+          sos_countdown_duration?: number
+          sos_enabled?: boolean
+          sos_message?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -276,6 +318,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sos_activations: {
+        Row: {
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          location_data: Json | null
+          sms_sent: boolean
+          status: string
+          triggered_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          location_data?: Json | null
+          sms_sent?: boolean
+          status?: string
+          triggered_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          location_data?: Json | null
+          sms_sent?: boolean
+          status?: string
+          triggered_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       summaries: {
         Row: {
