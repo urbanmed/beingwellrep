@@ -2,9 +2,40 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { useSosMonitoring } from '@/hooks/useSosMonitoring';
 
 export default function SosMonitoring() {
+  const { alerts, stats, loading, respondToAlert } = useSosMonitoring();
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">SOS Monitoring</h1>
+          <p className="text-muted-foreground">
+            Monitor emergency alerts and response times
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16 mb-2" />
+                <Skeleton className="h-3 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -21,7 +52,7 @@ export default function SosMonitoring() {
             <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">3</div>
+            <div className="text-2xl font-bold text-destructive">{stats?.activeAlerts || 0}</div>
             <p className="text-xs text-muted-foreground">
               Requires immediate attention
             </p>
@@ -34,9 +65,9 @@ export default function SosMonitoring() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2.3m</div>
+            <div className="text-2xl font-bold">{stats?.averageResponseTime || 0}m</div>
             <p className="text-xs text-muted-foreground">
-              -30s from last week
+              Average response time
             </p>
           </CardContent>
         </Card>
@@ -47,9 +78,9 @@ export default function SosMonitoring() {
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{stats?.resolvedToday || 0}</div>
             <p className="text-xs text-muted-foreground">
-              +2 from yesterday
+              Successfully handled today
             </p>
           </CardContent>
         </Card>
@@ -60,9 +91,9 @@ export default function SosMonitoring() {
             <XCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
+            <div className="text-2xl font-bold">{stats?.falseAlarms || 0}</div>
             <p className="text-xs text-muted-foreground">
-              -2 from last week
+              Cancelled alerts
             </p>
           </CardContent>
         </Card>
@@ -77,55 +108,83 @@ export default function SosMonitoring() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[
-              { 
-                id: "SOS001", 
-                user: "John Doe", 
-                location: "Downtown Medical Center", 
-                time: "2 min ago", 
-                severity: "High",
-                status: "Active"
-              },
-              { 
-                id: "SOS002", 
-                user: "Jane Smith", 
-                location: "Home", 
-                time: "15 min ago", 
-                severity: "Medium",
-                status: "Responding"
-              },
-              { 
-                id: "SOS003", 
-                user: "Bob Johnson", 
-                location: "Work Office", 
-                time: "1 hour ago", 
-                severity: "Low",
-                status: "Investigating"
-              },
-            ].map((alert) => (
-              <div key={alert.id} className="flex items-center justify-between p-4 border rounded-lg bg-red-50">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <h3 className="font-medium">{alert.id}</h3>
-                    <Badge variant={
-                      alert.severity === 'High' ? 'destructive' :
-                      alert.severity === 'Medium' ? 'secondary' : 'outline'
-                    }>
-                      {alert.severity}
-                    </Badge>
+            {alerts && alerts.filter(alert => alert.status === 'triggered').length > 0 ? (
+              alerts.filter(alert => alert.status === 'triggered').map((alert) => (
+                <div key={alert.id} className="flex items-center justify-between p-4 border rounded-lg bg-red-50">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-medium">SOS{alert.id.slice(-3)}</h3>
+                      <Badge variant="destructive">High</Badge>
+                    </div>
+                    <p className="text-sm">
+                      {alert.profile?.first_name} {alert.profile?.last_name} - {alert.location_data?.address || 'Location not available'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(alert.triggered_at).toLocaleString()}
+                    </p>
                   </div>
-                  <p className="text-sm">{alert.user} - {alert.location}</p>
-                  <p className="text-xs text-muted-foreground">{alert.time}</p>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="outline">Active</Badge>
+                    <Button size="sm" onClick={() => respondToAlert(alert.id)}>
+                      Respond
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="outline">{alert.status}</Badge>
-                  <Button size="sm">Respond</Button>
-                </div>
+              ))
+            ) : (
+              <div className="text-center text-muted-foreground py-8">
+                <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No active SOS alerts</p>
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>
+
+      {/* All Recent Alerts */}
+      {alerts && alerts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent SOS Alerts</CardTitle>
+            <CardDescription>
+              All recent emergency alerts and their status
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {alerts.slice(0, 10).map((alert) => (
+                <div key={alert.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-medium">SOS{alert.id.slice(-3)}</h3>
+                      <Badge variant={
+                        alert.status === 'triggered' ? 'destructive' :
+                        alert.status === 'responding' ? 'default' : 'secondary'
+                      }>
+                        {alert.status === 'triggered' ? 'High' : 'Medium'}
+                      </Badge>
+                    </div>
+                    <p className="text-sm">
+                      {alert.profile?.first_name} {alert.profile?.last_name} - {alert.location_data?.address || 'Location not available'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(alert.triggered_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="outline">
+                      {alert.status.charAt(0).toUpperCase() + alert.status.slice(1)}
+                    </Badge>
+                    {alert.cancelled_at && (
+                      <Badge variant="outline">Cancelled</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

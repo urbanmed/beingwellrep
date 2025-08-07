@@ -50,6 +50,39 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_settings: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
       analytics: {
         Row: {
           created_at: string
@@ -89,6 +122,45 @@ export type Database = {
           session_id?: string | null
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      content_library: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          status: string
+          tags: string[] | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          status?: string
+          tags?: string[] | null
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          status?: string
+          tags?: string[] | null
+          title?: string
+          type?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -504,6 +576,39 @@ export type Database = {
           user_feedback?: string | null
           user_id?: string
           user_rating?: number | null
+        }
+        Relationships: []
+      }
+      system_metrics: {
+        Row: {
+          details: Json | null
+          id: string
+          metric_name: string
+          metric_type: string
+          recorded_at: string
+          status: string
+          unit: string
+          value: number
+        }
+        Insert: {
+          details?: Json | null
+          id?: string
+          metric_name: string
+          metric_type: string
+          recorded_at?: string
+          status?: string
+          unit: string
+          value: number
+        }
+        Update: {
+          details?: Json | null
+          id?: string
+          metric_name?: string
+          metric_type?: string
+          recorded_at?: string
+          status?: string
+          unit?: string
+          value?: number
         }
         Relationships: []
       }
