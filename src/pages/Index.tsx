@@ -19,11 +19,11 @@ const Index = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/vault')}>
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/summaries')}>
           <CardContent className="pt-6 text-center">
-            <FolderOpen className="h-8 w-8 text-primary mx-auto mb-2" />
-            <h3 className="font-semibold">Document Vault</h3>
-            <p className="text-sm text-muted-foreground">View all files</p>
+            <Brain className="h-8 w-8 text-primary mx-auto mb-2" />
+            <h3 className="font-semibold">AI Summaries</h3>
+            <p className="text-sm text-muted-foreground">View insights</p>
           </CardContent>
         </Card>
 
