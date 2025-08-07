@@ -134,8 +134,20 @@
     @apply font-bold text-xl text-foreground; /* 20-22px, bold */
   }
   
+  .medical-title-sm {
+    @apply font-bold text-lg text-foreground; /* 18px, bold - smaller title */
+  }
+  
   .medical-heading {
     @apply font-medium text-lg text-foreground; /* 16-18px, medium */
+  }
+  
+  .medical-heading-sm {
+    @apply font-medium text-base text-foreground; /* 16px, medium - smaller heading */
+  }
+  
+  .medical-subheading {
+    @apply font-medium text-sm text-foreground; /* 14px, medium - for menu options */
   }
   
   .medical-body {
@@ -144,6 +156,10 @@
   
   .medical-label {
     @apply font-medium text-sm text-muted-foreground; /* 12-13px, medium */
+  }
+  
+  .medical-label-xs {
+    @apply font-medium text-xs text-muted-foreground; /* 11px, medium - smaller label */
   }
   
   .medical-button {

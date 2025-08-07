@@ -121,40 +121,40 @@ export default function Profile() {
           <div className="grid grid-cols-3 gap-4">
              <Card>
                <CardHeader className="pb-2">
-                 <CardTitle className="medical-heading flex items-center">
-                   <FileText className="h-5 w-5 mr-2 text-primary" />
-                   Documents
-                 </CardTitle>
-               </CardHeader>
-               <CardContent>
-                 <div className="medical-title">0</div>
-                 <p className="medical-label">Uploaded files</p>
+                  <CardTitle className="medical-heading-sm flex items-center">
+                    <FileText className="h-5 w-5 mr-2 text-primary" />
+                    Documents
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="medical-title-sm">0</div>
+                  <p className="medical-label-xs">Uploaded files</p>
                </CardContent>
              </Card>
 
              <Card>
                <CardHeader className="pb-2">
-                 <CardTitle className="medical-heading flex items-center">
-                   <Activity className="h-5 w-5 mr-2 text-primary" />
-                   Reports
-                 </CardTitle>
-               </CardHeader>
-               <CardContent>
-                 <div className="medical-title">0</div>
-                 <p className="medical-label">AI analyses</p>
+                  <CardTitle className="medical-heading-sm flex items-center">
+                    <Activity className="h-5 w-5 mr-2 text-primary" />
+                    Reports
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="medical-title-sm">0</div>
+                  <p className="medical-label-xs">AI analyses</p>
                </CardContent>
              </Card>
 
              <Card>
                <CardHeader className="pb-2">
-                 <CardTitle className="medical-heading flex items-center">
-                   <Users className="h-5 w-5 mr-2 text-primary" />
-                   Family
-                 </CardTitle>
-               </CardHeader>
-               <CardContent>
-                 <div className="medical-title">{familyMembers.length}</div>
-                 <p className="medical-label">Members</p>
+                  <CardTitle className="medical-heading-sm flex items-center">
+                    <Users className="h-5 w-5 mr-2 text-primary" />
+                    Family
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="medical-title-sm">{familyMembers.length}</div>
+                  <p className="medical-label-xs">Members</p>
                </CardContent>
              </Card>
           </div>
