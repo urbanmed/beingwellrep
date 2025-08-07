@@ -11,8 +11,12 @@ import {
   FileX,
   Heart,
   Stethoscope,
-  Plus
+  Plus,
+  Settings
 } from "lucide-react";
+import { useDismissedRecommendations } from "@/hooks/useDismissedRecommendations";
+import { useRecommendationPreferences } from "@/hooks/useRecommendationPreferences";
+import { RecommendationCard } from "./RecommendationCard";
 
 interface Report {
   id: string;
@@ -31,68 +35,125 @@ interface EnhancedTrendsOverviewProps {
   onNavigateToUpload?: () => void;
 }
 
-// Common test recommendations based on age and medical history patterns
+// Enhanced test recommendations with severity levels
 const getTestRecommendations = (reports: Report[]) => {
-  const recommendations: Array<{ test: string; reason: string; urgency: 'high' | 'medium' | 'low' }> = [];
+  const recommendations: Array<{ 
+    test: string; 
+    reason: string; 
+    urgency: 'critical' | 'high' | 'medium' | 'low' | 'informational';
+    lastDone?: string;
+    specialty?: string;
+  }> = [];
   
-  const lastBloodTest = reports
-    .filter(r => r.report_type === 'blood_test')
-    .sort((a, b) => new Date(b.report_date).getTime() - new Date(a.report_date).getTime())[0];
-  
-  const lastPrescription = reports
-    .filter(r => r.report_type === 'prescription')
-    .sort((a, b) => new Date(b.report_date).getTime() - new Date(a.report_date).getTime())[0];
+  const now = new Date();
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+  const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
 
-  const lastRadiology = reports
-    .filter(r => r.report_type === 'radiology')
-    .sort((a, b) => new Date(b.report_date).getTime() - new Date(a.report_date).getTime())[0];
+  // Check for recent blood tests
+  const recentBloodTests = reports.filter(report => {
+    const reportDate = new Date(report.report_date);
+    return reportDate >= threeMonthsAgo && 
+           (report.report_type?.toLowerCase().includes('blood') || 
+            report.report_type?.toLowerCase().includes('lab') ||
+            report.extracted_text?.toLowerCase().includes('hemoglobin') ||
+            report.extracted_text?.toLowerCase().includes('glucose'));
+  });
 
-  // Blood test recommendations
-  if (!lastBloodTest || isWithinInterval(new Date(lastBloodTest.report_date), {
-    start: startOfDay(subDays(new Date(), 365)),
-    end: endOfDay(new Date())
-  })) {
-    recommendations.push({
-      test: "Annual Blood Panel",
-      reason: "Last blood test over 12 months ago",
-      urgency: 'medium'
-    });
-  }
-
-  // Prescription follow-ups
-  if (lastPrescription && isWithinInterval(new Date(lastPrescription.report_date), {
-    start: startOfDay(subDays(new Date(), 90)),
-    end: endOfDay(new Date())
-  })) {
-    recommendations.push({
-      test: "Medication Review",
-      reason: "Recent prescription may need follow-up",
-      urgency: 'medium'
-    });
-  }
-
-  // Preventive care based on document patterns
-  const hasCardiacHistory = reports.some(r => 
-    r.extracted_text?.toLowerCase().includes('cardiac') ||
-    r.extracted_text?.toLowerCase().includes('heart') ||
-    r.extracted_text?.toLowerCase().includes('blood pressure')
+  // Check for cardiac-related history
+  const hasCardiacHistory = reports.some(report => 
+    report.extracted_text?.toLowerCase().includes('cardiac') ||
+    report.extracted_text?.toLowerCase().includes('heart') ||
+    report.extracted_text?.toLowerCase().includes('ecg') ||
+    report.extracted_text?.toLowerCase().includes('ekg')
   );
 
-  if (hasCardiacHistory && (!lastRadiology || !isWithinInterval(new Date(lastRadiology.report_date), {
-    start: startOfDay(subDays(new Date(), 180)),
-    end: endOfDay(new Date())
-  }))) {
+  // Check for diabetes indicators
+  const hasDiabetesHistory = reports.some(report => 
+    report.extracted_text?.toLowerCase().includes('diabetes') ||
+    report.extracted_text?.toLowerCase().includes('glucose') ||
+    report.extracted_text?.toLowerCase().includes('insulin') ||
+    report.extracted_text?.toLowerCase().includes('hba1c')
+  );
+
+  // Check for cholesterol levels
+  const hasRecentCholesterol = reports.some(report => {
+    const reportDate = new Date(report.report_date);
+    return reportDate >= oneYearAgo && 
+           (report.extracted_text?.toLowerCase().includes('cholesterol') ||
+            report.extracted_text?.toLowerCase().includes('lipid') ||
+            report.extracted_text?.toLowerCase().includes('ldl') ||
+            report.extracted_text?.toLowerCase().includes('hdl'));
+  });
+
+  // Critical findings require immediate attention
+  const criticalFindings = reports.filter(report => 
+    report.is_critical || 
+    report.extracted_text?.toLowerCase().includes('urgent') ||
+    report.extracted_text?.toLowerCase().includes('immediate')
+  );
+
+  if (criticalFindings.length > 0) {
     recommendations.push({
-      test: "Cardiac Screening",
-      reason: "History suggests cardiac monitoring needed",
-      urgency: 'high'
+      test: "Follow-up Consultation",
+      urgency: "critical",
+      reason: "Critical findings detected in recent reports require immediate medical attention.",
+      lastDone: "N/A",
+      specialty: "Specialist Referral"
     });
   }
 
-  return recommendations.slice(0, 2); // Limit to 2 most important
+  // Recommend routine blood work if none in 3 months
+  if (recentBloodTests.length === 0) {
+    recommendations.push({
+      test: "Complete Blood Count (CBC)",
+      urgency: "medium",
+      reason: "No recent blood work found. Regular monitoring helps detect early health issues.",
+      lastDone: recentBloodTests.length > 0 ? "More than 3 months ago" : "Unknown",
+      specialty: "General Medicine"
+    });
+  }
+
+  // Recommend cardiac screening if history exists but no recent tests
+  if (hasCardiacHistory && !reports.some(r => new Date(r.report_date) >= threeMonthsAgo && r.report_type?.toLowerCase().includes('cardiac'))) {
+    recommendations.push({
+      test: "Cardiac Follow-up",
+      urgency: "high",
+      reason: "Cardiac history detected. Regular monitoring recommended.",
+      lastDone: "More than 3 months ago",
+      specialty: "Cardiology"
+    });
+  }
+
+  // Recommend diabetes monitoring if history exists
+  if (hasDiabetesHistory && recentBloodTests.length === 0) {
+    recommendations.push({
+      test: "HbA1c Test",
+      urgency: "high",
+      reason: "Diabetes history detected. Regular glucose monitoring is essential.",
+      lastDone: "More than 3 months ago",
+      specialty: "Endocrinology"
+    });
+  }
+
+  // Recommend cholesterol screening
+  if (!hasRecentCholesterol) {
+    recommendations.push({
+      test: "Lipid Profile",
+      urgency: "low",
+      reason: "Annual cholesterol screening recommended for cardiovascular health.",
+      lastDone: "More than 1 year ago",
+      specialty: "General Medicine"
+    });
+  }
+
+  return recommendations.slice(0, 4); // Increased to 4 recommendations
 };
 
 export function EnhancedTrendsOverview({ reports, onNavigateToUpload }: EnhancedTrendsOverviewProps) {
+  const { preferences } = useRecommendationPreferences();
+  const { isDismissed } = useDismissedRecommendations();
+  
   const analytics = useMemo(() => {
     const now = new Date();
     
@@ -119,8 +180,29 @@ export function EnhancedTrendsOverview({ reports, onNavigateToUpload }: Enhanced
     const commonTypes = ['blood_test', 'prescription', 'radiology', 'consultation'];
     const missingTypes = commonTypes.filter(type => !typeDistribution[type]);
 
-    // Get test recommendations
-    const recommendations = getTestRecommendations(reports);
+    // Get test recommendations (filtered by preferences and dismissals)
+    const allRecommendations = getTestRecommendations(reports);
+    const recommendations = allRecommendations.filter(rec => {
+      const urgencyLevels = ['informational', 'low', 'medium', 'high', 'critical'];
+      const thresholdIndex = urgencyLevels.indexOf(preferences.urgency_threshold);
+      const recUrgencyIndex = urgencyLevels.indexOf(rec.urgency);
+      
+      // Filter by urgency threshold
+      if (recUrgencyIndex < thresholdIndex) return false;
+      
+      // Filter by specialty preference if set
+      if (preferences.preferred_specialties.length > 0 && rec.specialty) {
+        if (!preferences.preferred_specialties.includes(rec.specialty)) return false;
+      }
+      
+      // Filter dismissed items if preference is set
+      if (preferences.hide_dismissed) {
+        const key = `${rec.test}-${rec.specialty || 'general'}`;
+        if (isDismissed('medical_test', key)) return false;
+      }
+      
+      return true;
+    });
 
     return {
       criticalDocs,
@@ -130,7 +212,7 @@ export function EnhancedTrendsOverview({ reports, onNavigateToUpload }: Enhanced
       missingTypes,
       recommendations
     };
-  }, [reports]);
+  }, [reports, preferences, isDismissed]);
 
 
   return (
@@ -228,32 +310,40 @@ export function EnhancedTrendsOverview({ reports, onNavigateToUpload }: Enhanced
         {/* Recommendations */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Stethoscope className="h-4 w-4 text-primary" />
-              <span>Recommendations</span>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center space-x-2">
+                <Stethoscope className="h-4 w-4 text-primary" />
+                <span>Recommendations</span>
+                {analytics.recommendations.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {analytics.recommendations.length}
+                  </Badge>
+                )}
+              </CardTitle>
+              <Button variant="ghost" size="sm">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {analytics.recommendations.length > 0 ? (
-              analytics.recommendations.map((rec, index) => (
-                <div key={index} className="flex items-start space-x-2 p-3 bg-primary/5 rounded-lg">
-                  <Calendar className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <p className="text-sm font-medium">{rec.test}</p>
-                      <Badge variant={rec.urgency === 'high' ? 'destructive' : rec.urgency === 'medium' ? 'default' : 'secondary'}>
-                        {rec.urgency}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{rec.reason}</p>
-                  </div>
-                </div>
-              ))
+              <div className="space-y-3">
+                {analytics.recommendations.map((rec, index) => (
+                  <RecommendationCard 
+                    key={`${rec.test}-${index}`}
+                    recommendation={rec}
+                    onDismiss={() => {
+                      // Trigger re-render - in a real app you'd use proper state management
+                      window.location.reload();
+                    }}
+                  />
+                ))}
+              </div>
             ) : (
               <div className="text-center py-4">
                 <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No specific recommendations at this time</p>
-                <p className="text-xs text-muted-foreground">Keep up with regular health monitoring</p>
+                <p className="text-sm text-muted-foreground">No recommendations match your current preferences</p>
+                <p className="text-xs text-muted-foreground">Adjust your settings or upload more documents for personalized insights</p>
               </div>
             )}
 

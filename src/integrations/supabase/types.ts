@@ -188,6 +188,39 @@ export type Database = {
         }
         Relationships: []
       }
+      dismissed_recommendations: {
+        Row: {
+          created_at: string
+          dismissed_at: string
+          expires_at: string | null
+          id: string
+          reason: string | null
+          recommendation_key: string
+          recommendation_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dismissed_at?: string
+          expires_at?: string | null
+          id?: string
+          reason?: string | null
+          recommendation_key: string
+          recommendation_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dismissed_at?: string
+          expires_at?: string | null
+          id?: string
+          reason?: string | null
+          recommendation_key?: string
+          recommendation_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       emergency_contacts: {
         Row: {
           created_at: string
@@ -333,6 +366,7 @@ export type Database = {
           physician_phone: string | null
           preferred_language: string | null
           privacy_settings: Json | null
+          recommendation_preferences: Json | null
           sos_countdown_duration: number
           sos_enabled: boolean
           sos_message: string | null
@@ -361,6 +395,7 @@ export type Database = {
           physician_phone?: string | null
           preferred_language?: string | null
           privacy_settings?: Json | null
+          recommendation_preferences?: Json | null
           sos_countdown_duration?: number
           sos_enabled?: boolean
           sos_message?: string | null
@@ -389,6 +424,7 @@ export type Database = {
           physician_phone?: string | null
           preferred_language?: string | null
           privacy_settings?: Json | null
+          recommendation_preferences?: Json | null
           sos_countdown_duration?: number
           sos_enabled?: boolean
           sos_message?: string | null
