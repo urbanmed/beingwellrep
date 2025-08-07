@@ -102,7 +102,9 @@ const AppRoutes: React.FC = () => (
     } />
     <Route path="/ai-assistant" element={
       <ProtectedRoute>
-        <AIAssistant />
+        <MobileLayout>
+          <AIAssistant />
+        </MobileLayout>
       </ProtectedRoute>
     } />
     

@@ -90,26 +90,28 @@ export default function AIAssistant() {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <header className="flex items-center justify-between p-4 border-b border-border bg-card">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-            <User className="h-4 w-4 text-primary-foreground" />
+      {/* Page Header */}
+      <div className="p-4 border-b border-border bg-card">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+              <User className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="font-semibold text-foreground">AI Medical Assistant</h1>
+              <p className="text-xs text-muted-foreground">
+                Ask questions about your health records
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-semibold text-foreground">AI Medical Assistant</h1>
-            <p className="text-xs text-muted-foreground">
-              Ask questions about your health records
-            </p>
-          </div>
+          {currentConversation && (
+            <Badge variant="outline" className="text-xs">
+              <Calendar className="h-3 w-3 mr-1" />
+              {format(new Date(currentConversation.created_at), 'MMM d, yyyy')}
+            </Badge>
+          )}
         </div>
-        {currentConversation && (
-          <Badge variant="outline" className="text-xs">
-            <Calendar className="h-3 w-3 mr-1" />
-            {format(new Date(currentConversation.created_at), 'MMM d, yyyy')}
-          </Badge>
-        )}
-      </header>
+      </div>
 
       {/* Chat Messages */}
       <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
