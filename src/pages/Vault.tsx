@@ -9,6 +9,7 @@ import { useReports } from "@/hooks/useReports";
 import { DeleteConfirmDialog } from "@/components/reports/DeleteConfirmDialog";
 import { TimelineFilters } from "@/components/vault/TimelineFilters";
 import { TimelineView } from "@/components/vault/TimelineView";
+import { GridView } from "@/components/vault/GridView";
 
 import { useNavigate } from "react-router-dom";
 import { isWithinInterval, startOfDay, endOfDay, subDays, format } from "date-fns";
@@ -361,34 +362,12 @@ export default function Vault() {
             </TabsContent>
 
             <TabsContent value="grid" className="mt-6">
-              <div className="grid gap-4">
-                {filteredReports.map((report) => (
-                  <Card 
-                    key={report.id} 
-                    className="cursor-pointer transition-all hover:shadow-md"
-                    onClick={() => navigate(`/reports/${report.id}`)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-3 flex-1">
-                          <Checkbox
-                            checked={selectedForDeletion.includes(report.id)}
-                            onCheckedChange={(checked) => handleSelectReport(report.id, checked as boolean)}
-                            className="mt-1"
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold truncate">{report.title}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {report.report_type.replace('_', ' ')} • {format(new Date(report.report_date), 'MMM d, yyyy')}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              <GridView
+                reports={filteredReports}
+                selectedReports={selectedForDeletion}
+                onSelectReport={handleSelectReport}
+                onNavigateToReport={(reportId) => navigate(`/reports/${reportId}`)}
+              />
             </TabsContent>
           </Tabs>
 
