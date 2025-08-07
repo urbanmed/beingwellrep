@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useAutoMetadataExtraction } from './useAutoMetadataExtraction';
+import { useAutoMetadataExtraction } from '@/hooks/useAutoMetadataExtraction';
 
 interface UploadFile {
   name: string;

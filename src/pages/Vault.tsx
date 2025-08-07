@@ -14,6 +14,7 @@ import { ReportCardView } from "@/components/vault/ReportCardView";
 import { ReportTimelineView } from "@/components/vault/ReportTimelineView";
 import { DocumentProcessing } from "@/components/vault/DocumentProcessing";
 import { VaultSummary } from "@/components/vault/VaultSummary";
+import { FloatingUploadButton } from "@/components/vault/FloatingUploadButton";
 
 import { useNavigate } from "react-router-dom";
 import { isWithinInterval, startOfDay, endOfDay, subDays, format } from "date-fns";
@@ -45,7 +46,7 @@ export default function Vault() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"documents" | "processing">("documents");
   
-  const { reports, loading, deleteMultipleReports } = useReports();
+  const { reports, loading, deleteMultipleReports, refetch } = useReports();
 
   const filteredReports = useMemo(() => {
     return reports.filter(report => {
@@ -95,6 +96,11 @@ export default function Vault() {
   const handleClearAllFilters = () => {
     setSelectedCategories([]);
     setSearchQuery("");
+  };
+
+  const handleFloatingUploadComplete = async () => {
+    // Refresh the reports data when upload completes
+    await refetch();
   };
 
   if (loading) {
@@ -277,6 +283,9 @@ export default function Vault() {
         isMultiple={true}
         count={selectedForDeletion.length}
       />
+
+      {/* Floating Upload Button */}
+      <FloatingUploadButton onUploadComplete={handleFloatingUploadComplete} />
     </div>
   );
 }
