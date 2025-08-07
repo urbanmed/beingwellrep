@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSosActivation } from '@/hooks/useSosActivation';
 import { useEmergencyContacts } from '@/hooks/useEmergencyContacts';
 import { SosCountdownModal } from '@/components/sos/SosCountdownModal';
+import { PersonalizedGreeting } from '@/components/layout/PersonalizedGreeting';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -118,9 +119,10 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="p-4 space-y-6">
-
-      {/* Quick Actions */}
+    <div className="space-y-6">
+      <PersonalizedGreeting />
+      <div className="p-4 space-y-6">
+        {/* Quick Actions */}
       <div className="grid grid-cols-3 gap-4">
         <Card 
           className="bg-destructive border-destructive cursor-pointer hover:bg-destructive/90 transition-colors"
@@ -243,6 +245,7 @@ const Index = () => {
             </Button>
           </CardContent>
         </Card>
+        </div>
       </div>
 
       <SosCountdownModal
