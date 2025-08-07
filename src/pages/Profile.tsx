@@ -118,43 +118,46 @@ export default function Profile() {
           </Card>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-4">
-             <Card>
-               <CardHeader className="pb-2">
-                  <CardTitle className="medical-heading-sm flex items-center">
-                    <FileText className="h-5 w-5 mr-2 text-primary" />
-                    Documents
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="medical-title-sm">0</div>
-                  <p className="medical-label-xs">Uploaded files</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+             <Card className="text-center">
+               <CardContent className="p-6">
+                 <div className="flex flex-col items-center space-y-3">
+                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
+                     <FileText className="h-6 w-6 text-primary" />
+                   </div>
+                   <div className="space-y-1">
+                     <div className="text-2xl font-bold text-foreground">0</div>
+                     <p className="text-sm text-muted-foreground">Documents</p>
+                   </div>
+                 </div>
                </CardContent>
              </Card>
 
-             <Card>
-               <CardHeader className="pb-2">
-                  <CardTitle className="medical-heading-sm flex items-center">
-                    <Activity className="h-5 w-5 mr-2 text-primary" />
-                    Reports
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="medical-title-sm">0</div>
-                  <p className="medical-label-xs">AI analyses</p>
+             <Card className="text-center">
+               <CardContent className="p-6">
+                 <div className="flex flex-col items-center space-y-3">
+                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
+                     <Activity className="h-6 w-6 text-primary" />
+                   </div>
+                   <div className="space-y-1">
+                     <div className="text-2xl font-bold text-foreground">0</div>
+                     <p className="text-sm text-muted-foreground">Reports</p>
+                   </div>
+                 </div>
                </CardContent>
              </Card>
 
-             <Card>
-               <CardHeader className="pb-2">
-                  <CardTitle className="medical-heading-sm flex items-center">
-                    <Users className="h-5 w-5 mr-2 text-primary" />
-                    Family
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="medical-title-sm">{familyMembers.length}</div>
-                  <p className="medical-label-xs">Members</p>
+             <Card className="text-center">
+               <CardContent className="p-6">
+                 <div className="flex flex-col items-center space-y-3">
+                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
+                     <Users className="h-6 w-6 text-primary" />
+                   </div>
+                   <div className="space-y-1">
+                     <div className="text-2xl font-bold text-foreground">{familyMembers.length}</div>
+                     <p className="text-sm text-muted-foreground">Family Members</p>
+                   </div>
+                 </div>
                </CardContent>
              </Card>
           </div>
