@@ -32,6 +32,13 @@ import { PhoneVerifyPage } from "./pages/auth/PhoneVerifyPage";
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
+import Analytics from "./pages/admin/Analytics";
+import ContentManagement from "./pages/admin/ContentManagement";
+import MedicalData from "./pages/admin/MedicalData";
+import SosMonitoring from "./pages/admin/SosMonitoring";
+import SystemHealth from "./pages/admin/SystemHealth";
+import AuditLogs from "./pages/admin/AuditLogs";
+import Settings from "./pages/admin/Settings";
 
 // Create QueryClient instance outside of component
 const queryClient = new QueryClient({
@@ -129,6 +136,69 @@ const AppRoutes: React.FC = () => (
         <AdminRoute requiredRole="admin">
           <AdminLayout>
             <UserManagement />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/analytics" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="moderator">
+          <AdminLayout>
+            <Analytics />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/content" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="moderator">
+          <AdminLayout>
+            <ContentManagement />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/medical" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="admin">
+          <AdminLayout>
+            <MedicalData />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/sos" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="moderator">
+          <AdminLayout>
+            <SosMonitoring />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/system" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="admin">
+          <AdminLayout>
+            <SystemHealth />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/audit" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="admin">
+          <AdminLayout>
+            <AuditLogs />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/settings" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="super_admin">
+          <AdminLayout>
+            <Settings />
           </AdminLayout>
         </AdminRoute>
       </ProtectedRoute>
