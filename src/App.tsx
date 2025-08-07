@@ -1,4 +1,4 @@
-import React from "react";
+import { type FC } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -51,7 +51,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const AuthRedirect: React.FC = () => {
+const AuthRedirect: FC = () => {
   const { user, loading } = useAuth();
   
   if (loading) return <div>Loading...</div>;
@@ -59,7 +59,7 @@ const AuthRedirect: React.FC = () => {
   return user ? <Navigate to="/" replace /> : <Navigate to="/auth/login" replace />;
 };
 
-const AppRoutes: React.FC = () => (
+const AppRoutes: FC = () => (
   <Routes>
     {/* Protected Routes */}
     <Route path="/" element={
@@ -233,21 +233,19 @@ const AppRoutes: React.FC = () => (
   </Routes>
 );
 
-const App: React.FC = () => {
+const App: FC = () => {
   return (
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </TooltipProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 
