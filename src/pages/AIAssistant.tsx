@@ -78,7 +78,7 @@ export default function AIAssistant() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <Card className="w-96">
           <CardContent className="pt-6 text-center">
             <p className="text-muted-foreground">Please log in to use the AI Assistant</p>
@@ -89,7 +89,7 @@ export default function AIAssistant() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-full bg-background">
       {/* Header */}
       <header className="flex items-center justify-between p-4 border-b border-border bg-card">
         <div className="flex items-center gap-3">
@@ -113,7 +113,7 @@ export default function AIAssistant() {
 
       {/* Chat Messages */}
       <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
-        <div className="space-y-4 pb-20">
+        <div className="space-y-4 pb-24">
           {messages.length === 0 && (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -216,7 +216,7 @@ export default function AIAssistant() {
       </ScrollArea>
 
       {/* Input Form */}
-      <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t border-border">
+      <div className="sticky bottom-0 p-4 bg-background border-t border-border">
         <form onSubmit={handleSubmit} className="flex gap-2 max-w-4xl mx-auto">
           <Input
             ref={inputRef}
