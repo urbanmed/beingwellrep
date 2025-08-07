@@ -11,9 +11,9 @@ export function Header() {
           onClick={() => navigate("/")}
         >
           <img 
-            src="/lovable-uploads/734e632d-00c3-4bdb-88c7-058da86d8be6.png" 
+            src="/lovable-uploads/62e37d74-1210-43f7-acb4-21ffaa3c1aaa.png" 
             alt="BeingWell" 
-            className="h-8 w-auto object-contain"
+            className="h-10 w-auto object-contain"
             style={{ imageRendering: 'crisp-edges' }}
           />
         </div>
