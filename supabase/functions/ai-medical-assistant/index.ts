@@ -331,12 +331,54 @@ function formatParsedData(parsedData: any, reportType: string): string {
     }
 
     let formattedContent = '';
+    let actualData = parsedData;
+
+    // Parse the rawResponse if it exists and is a string
+    if (parsedData.rawResponse && typeof parsedData.rawResponse === 'string') {
+      try {
+        actualData = JSON.parse(parsedData.rawResponse);
+        console.log('Successfully parsed rawResponse');
+      } catch (parseError) {
+        console.log('Failed to parse rawResponse, using original data');
+        actualData = parsedData;
+      }
+    }
 
     // Handle lab results with comprehensive formatting
     if (reportType === 'lab_results' || reportType === 'blood_test') {
-      if (parsedData.test_panels && Array.isArray(parsedData.test_panels)) {
+      // Check for the correct data structure: reports array
+      if (actualData.reports && Array.isArray(actualData.reports)) {
+        formattedContent += 'BLOOD TEST RESULTS - ALL PANELS:\n';
+        
+        actualData.reports.forEach((report: any, reportIndex: number) => {
+          if (report.panel) {
+            formattedContent += `\n${reportIndex + 1}. ${report.panel}:\n`;
+          }
+          
+          if (report.tests && Array.isArray(report.tests)) {
+            report.tests.forEach((test: any) => {
+              const testName = test.test_name || test.name || 'Unknown Test';
+              const value = test.value || test.result || 'N/A';
+              const unit = test.unit || test.units || '';
+              const range = test.reference_range || test.ref_range || test.normal_range || '';
+              const status = test.status || test.flag || '';
+              
+              formattedContent += `   - ${testName}: ${value}`;
+              if (unit) formattedContent += ` ${unit}`;
+              if (range) formattedContent += ` (Ref: ${range})`;
+              if (status && status.toLowerCase() !== 'normal') {
+                formattedContent += ` [${status.toUpperCase()}]`;
+              }
+              formattedContent += '\n';
+            });
+          }
+        });
+      }
+      
+      // Fallback: Check for legacy data structures
+      else if (actualData.test_panels && Array.isArray(actualData.test_panels)) {
         formattedContent += 'TEST PANELS:\n';
-        parsedData.test_panels.forEach((panel: any, index: number) => {
+        actualData.test_panels.forEach((panel: any, index: number) => {
           formattedContent += `\n${index + 1}. ${panel.panel_name || 'Unknown Panel'}:\n`;
           if (panel.tests && Array.isArray(panel.tests)) {
             panel.tests.forEach((test: any) => {
@@ -354,9 +396,9 @@ function formatParsedData(parsedData: any, reportType: string): string {
       }
 
       // Add individual test results if not in panels
-      if (parsedData.test_results && Array.isArray(parsedData.test_results)) {
-        formattedContent += '\nINDIVIDUAL TEST RESULTS:\n';
-        parsedData.test_results.forEach((test: any) => {
+      else if (actualData.test_results && Array.isArray(actualData.test_results)) {
+        formattedContent += 'INDIVIDUAL TEST RESULTS:\n';
+        actualData.test_results.forEach((test: any) => {
           const value = test.value || 'N/A';
           const unit = test.unit || '';
           const range = test.reference_range || '';
@@ -370,42 +412,44 @@ function formatParsedData(parsedData: any, reportType: string): string {
     }
 
     // Handle other report types
-    if (parsedData.medications && Array.isArray(parsedData.medications)) {
+    if (actualData.medications && Array.isArray(actualData.medications)) {
       formattedContent += '\nMEDICATIONS:\n';
-      parsedData.medications.forEach((med: any) => {
+      actualData.medications.forEach((med: any) => {
         formattedContent += `- ${med.name || med.medication_name}: ${med.dosage || 'N/A'} ${med.frequency || ''}\n`;
       });
     }
 
-    if (parsedData.findings && Array.isArray(parsedData.findings)) {
+    if (actualData.findings && Array.isArray(actualData.findings)) {
       formattedContent += '\nFINDINGS:\n';
-      parsedData.findings.forEach((finding: any) => {
+      actualData.findings.forEach((finding: any) => {
         formattedContent += `- ${finding.description || finding}\n`;
       });
     }
 
-    if (parsedData.recommendations && Array.isArray(parsedData.recommendations)) {
+    if (actualData.recommendations && Array.isArray(actualData.recommendations)) {
       formattedContent += '\nRECOMMENDATIONS:\n';
-      parsedData.recommendations.forEach((rec: any) => {
+      actualData.recommendations.forEach((rec: any) => {
         formattedContent += `- ${rec.description || rec}\n`;
       });
     }
 
     // Add summary or impression
-    if (parsedData.summary) {
-      formattedContent += `\nSUMMARY: ${parsedData.summary}\n`;
+    if (actualData.summary) {
+      formattedContent += `\nSUMMARY: ${actualData.summary}\n`;
     }
 
-    if (parsedData.impression) {
-      formattedContent += `\nIMPRESSION: ${parsedData.impression}\n`;
+    if (actualData.impression) {
+      formattedContent += `\nIMPRESSION: ${actualData.impression}\n`;
     }
 
-    // If no structured content was found, return raw JSON with truncation
+    // If no structured content was found, return raw JSON with increased limit
     if (!formattedContent.trim()) {
-      return JSON.stringify(parsedData, null, 2).substring(0, 4000);
+      console.log('No structured content found, returning raw JSON');
+      return JSON.stringify(actualData, null, 2).substring(0, 6000);
     }
 
-    return formattedContent.substring(0, 4500);
+    // Increase content limit to ensure all panels are included
+    return formattedContent.substring(0, 8000);
   } catch (error) {
     console.error('Error formatting parsed data:', error);
     return 'Error processing structured data';
