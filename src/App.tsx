@@ -13,7 +13,7 @@ import Summaries from "./pages/Summaries";
 import Reports from "./pages/Reports";
 import Vault from "./pages/Vault";
 import ReportDetail from "./pages/ReportDetail";
-
+import Timeline from "./pages/Timeline";
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
 
@@ -87,7 +87,13 @@ const AppRoutes: React.FC = () => (
         <ReportDetail />
       </ProtectedRoute>
     } />
-    <Route path="/timeline" element={<Navigate to="/vault" replace />} />
+    <Route path="/timeline" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Timeline />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
     <Route path="/profile" element={
       <ProtectedRoute>
         <MobileLayout>
