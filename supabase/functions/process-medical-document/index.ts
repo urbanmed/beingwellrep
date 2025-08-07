@@ -362,6 +362,331 @@ const generateFallbackDocumentName = (
 // File size limit: 20MB
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
+// Document chunking configuration
+const CHUNK_CONFIG = {
+  MAX_CHUNK_SIZE: 2500, // Characters per chunk
+  OVERLAP_SIZE: 200,    // Overlap between chunks
+  MIN_DOCUMENT_SIZE_FOR_CHUNKING: 8000, // Only chunk if document is larger than this
+  MAX_TOKENS: 12000     // Increased from 8000
+};
+
+// Document chunk interface
+interface DocumentChunk {
+  id: number;
+  content: string;
+  startPos: number;
+  endPos: number;
+  sectionHeader?: string;
+}
+
+// Smart document segmentation based on medical document patterns
+const segmentDocument = (text: string): DocumentChunk[] => {
+  const chunks: DocumentChunk[] = [];
+  
+  // Check if document needs chunking
+  if (text.length <= CHUNK_CONFIG.MIN_DOCUMENT_SIZE_FOR_CHUNKING) {
+    console.log('Document too small for chunking, processing as single chunk');
+    return [{
+      id: 0,
+      content: text,
+      startPos: 0,
+      endPos: text.length
+    }];
+  }
+
+  console.log(`Document size: ${text.length} chars - applying intelligent segmentation`);
+
+  // Common medical document section patterns
+  const sectionPatterns = [
+    /(?:^|\n)\s*(?:DEPARTMENT|LAB|TEST|REPORT|SECTION|FINDINGS|IMPRESSION|CONCLUSION|RECOMMENDATIONS?|MEDICATION|PRESCRIPTION|VITAL|BLOOD|CHEMISTRY|HEMATOLOGY|IMMUNOLOGY|MICROBIOLOGY|PATHOLOGY|RADIOLOGY|IMAGING|THYROID|LIVER|KIDNEY|CARDIAC|LIPID|GLUCOSE|COMPLETE BLOOD COUNT|CBC|CMP|BMP)\s*[:\-\s]/gmi,
+    /(?:^|\n)\s*(?:TEST NAME|RESULT|UNITS|REFERENCE|BIOLOGICAL REFERENCE|METHOD|INTERPRETATION|NOTE|REMARK)\s*[:\-\s]/gmi,
+    /(?:^|\n)\s*(?:\*{2,}|#{2,}|={2,}|-{3,})\s*(?:END|REPORT|PAGE)/mi,
+    /(?:^|\n)\s*Page \d+/mi
+  ];
+
+  // Find all potential split points
+  const splitPoints: Array<{pos: number, type: string, priority: number}> = [];
+  
+  // Add section headers as split points
+  sectionPatterns.forEach((pattern, patternIndex) => {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      splitPoints.push({
+        pos: match.index,
+        type: `section_${patternIndex}`,
+        priority: patternIndex === 0 ? 3 : 2 // Department/Lab sections get higher priority
+      });
+    }
+  });
+
+  // Add natural paragraph breaks as lower priority split points
+  const paragraphPattern = /\n\s*\n\s*(?=[A-Z])/g;
+  let match;
+  while ((match = paragraphPattern.exec(text)) !== null) {
+    splitPoints.push({
+      pos: match.index,
+      type: 'paragraph',
+      priority: 1
+    });
+  }
+
+  // Sort split points by position
+  splitPoints.sort((a, b) => a.pos - b.pos);
+
+  let currentPos = 0;
+  let chunkId = 0;
+
+  while (currentPos < text.length) {
+    const targetEndPos = Math.min(currentPos + CHUNK_CONFIG.MAX_CHUNK_SIZE, text.length);
+    
+    // Find the best split point within our target range
+    let bestSplitPos = targetEndPos;
+    let bestSplitPriority = 0;
+    
+    for (const split of splitPoints) {
+      if (split.pos > currentPos && split.pos <= targetEndPos) {
+        if (split.priority > bestSplitPriority || 
+            (split.priority === bestSplitPriority && split.pos > bestSplitPos)) {
+          bestSplitPos = split.pos;
+          bestSplitPriority = split.priority;
+        }
+      }
+    }
+
+    // If no good split point found, try to split at sentence boundary
+    if (bestSplitPriority === 0 && targetEndPos < text.length) {
+      const sentenceEnd = text.lastIndexOf('.', targetEndPos);
+      if (sentenceEnd > currentPos + CHUNK_CONFIG.MAX_CHUNK_SIZE * 0.7) {
+        bestSplitPos = sentenceEnd + 1;
+      }
+    }
+
+    const chunkEnd = bestSplitPos;
+    const chunkContent = text.slice(currentPos, chunkEnd).trim();
+    
+    if (chunkContent.length > 0) {
+      // Extract section header if present
+      const headerMatch = chunkContent.match(/^(?:DEPARTMENT|LAB|TEST|REPORT|SECTION)[^:\n]*[:\-\s]?([^\n]*)/i);
+      const sectionHeader = headerMatch ? headerMatch[0].trim() : undefined;
+
+      chunks.push({
+        id: chunkId++,
+        content: chunkContent,
+        startPos: currentPos,
+        endPos: chunkEnd,
+        sectionHeader
+      });
+    }
+
+    // Move to next chunk with overlap
+    currentPos = Math.max(chunkEnd - CHUNK_CONFIG.OVERLAP_SIZE, chunkEnd);
+    
+    // Prevent infinite loop
+    if (currentPos >= text.length) break;
+  }
+
+  console.log(`Document segmented into ${chunks.length} chunks`);
+  chunks.forEach((chunk, index) => {
+    console.log(`Chunk ${index}: ${chunk.content.length} chars, section: ${chunk.sectionHeader || 'N/A'}`);
+  });
+
+  return chunks;
+};
+
+// Process multiple chunks in parallel
+const processDocumentChunks = async (
+  chunks: DocumentChunk[],
+  reportType: string,
+  openaiApiKey: string
+): Promise<any[]> => {
+  console.log(`Processing ${chunks.length} chunks in parallel`);
+
+  // Create promises for parallel processing
+  const chunkPromises = chunks.map(async (chunk, index) => {
+    try {
+      console.log(`Processing chunk ${index + 1}/${chunks.length} (${chunk.content.length} chars)`);
+      
+      const chunkPrompt = getChunkPromptForReportType(reportType, chunk.sectionHeader);
+      
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: `${chunkPrompt}\n\nDocument chunk (${index + 1}/${chunks.length}):\n${chunk.content}` }
+          ],
+          max_tokens: CHUNK_CONFIG.MAX_TOKENS,
+          temperature: 0.1
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenAI API error for chunk ${index}: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      const aiResponse = data.choices?.[0]?.message?.content || '';
+      
+      // Parse the response
+      let parsedData = null;
+      try {
+        let cleanedResponse = aiResponse.trim();
+        if (cleanedResponse.startsWith('```json')) {
+          cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanedResponse.startsWith('```')) {
+          cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        parsedData = JSON.parse(cleanedResponse.trim());
+      } catch (parseError) {
+        console.warn(`Failed to parse chunk ${index} response as JSON:`, parseError);
+        parsedData = extractDataFromTextResponse(aiResponse, reportType);
+      }
+
+      return {
+        chunkId: chunk.id,
+        chunkIndex: index,
+        sectionHeader: chunk.sectionHeader,
+        rawResponse: aiResponse,
+        parsedData,
+        processed: true
+      };
+    } catch (error) {
+      console.error(`Error processing chunk ${index}:`, error);
+      return {
+        chunkId: chunk.id,
+        chunkIndex: index,
+        sectionHeader: chunk.sectionHeader,
+        error: error.message,
+        processed: false
+      };
+    }
+  });
+
+  // Wait for all chunks to complete
+  const results = await Promise.all(chunkPromises);
+  console.log(`Completed processing ${results.length} chunks`);
+  
+  return results;
+};
+
+// Generate chunk-specific prompts
+const getChunkPromptForReportType = (reportType: string, sectionHeader?: string): string => {
+  const basePrompt = getPromptForReportType(reportType);
+  
+  if (sectionHeader) {
+    return `${basePrompt}\n\nThis chunk contains data from section: "${sectionHeader}"\nFocus on extracting relevant data from this specific section.`;
+  }
+  
+  return `${basePrompt}\n\nThis is a partial document chunk. Extract all relevant medical data from this section.`;
+};
+
+// Merge results from multiple chunks
+const mergeChunkResults = (chunkResults: any[], reportType: string): any => {
+  console.log('Merging results from chunks...');
+  
+  const successfulResults = chunkResults.filter(r => r.processed && r.parsedData);
+  
+  if (successfulResults.length === 0) {
+    console.warn('No successful chunk processing results to merge');
+    return {
+      reportType: reportType || 'general',
+      confidence: 0.1,
+      parseError: true,
+      mergeError: 'No chunks processed successfully'
+    };
+  }
+
+  // Initialize merged result with first successful result as base
+  const baseResult = successfulResults[0].parsedData;
+  const mergedResult: any = {
+    reportType: baseResult.reportType || reportType,
+    suggestedName: baseResult.suggestedName,
+    patient: baseResult.patient || {},
+    confidence: 0.8,
+    processedChunks: successfulResults.length,
+    totalChunks: chunkResults.length
+  };
+
+  // Merge arrays of medical data
+  const mergeArrays = (fieldName: string) => {
+    const allItems: any[] = [];
+    const seenItems = new Set<string>();
+
+    successfulResults.forEach(result => {
+      const items = result.parsedData[fieldName];
+      if (Array.isArray(items)) {
+        items.forEach(item => {
+          // Create a unique key for deduplication
+          const key = JSON.stringify({
+            name: item.name || item.type || item.title,
+            value: item.value,
+            dosage: item.dosage
+          });
+          
+          if (!seenItems.has(key)) {
+            seenItems.add(key);
+            allItems.push(item);
+          }
+        });
+      }
+    });
+
+    return allItems;
+  };
+
+  // Merge specific field types based on report type
+  switch (reportType?.toLowerCase()) {
+    case 'lab_results':
+    case 'lab':
+      mergedResult.tests = mergeArrays('tests');
+      mergedResult.orderingPhysician = baseResult.orderingPhysician;
+      mergedResult.facility = baseResult.facility;
+      mergedResult.collectionDate = baseResult.collectionDate;
+      mergedResult.reportDate = baseResult.reportDate;
+      break;
+
+    case 'prescription':
+      mergedResult.medications = mergeArrays('medications');
+      mergedResult.prescriber = baseResult.prescriber;
+      mergedResult.pharmacy = baseResult.pharmacy;
+      mergedResult.prescriptionDate = baseResult.prescriptionDate;
+      break;
+
+    case 'vitals':
+      mergedResult.vitals = mergeArrays('vitals');
+      mergedResult.recordedBy = baseResult.recordedBy;
+      mergedResult.facility = baseResult.facility;
+      mergedResult.recordDate = baseResult.recordDate;
+      break;
+
+    default:
+      mergedResult.sections = mergeArrays('sections');
+      mergedResult.provider = baseResult.provider;
+      mergedResult.facility = baseResult.facility;
+      mergedResult.visitDate = baseResult.visitDate;
+      mergedResult.reportDate = baseResult.reportDate;
+  }
+
+  // Use the most complete suggested name found
+  const names = successfulResults
+    .map(r => r.parsedData.suggestedName)
+    .filter(name => name && name.length > 10)
+    .sort((a, b) => b.length - a.length);
+  
+  if (names.length > 0) {
+    mergedResult.suggestedName = names[0];
+  }
+
+  console.log(`Merged results: ${Object.keys(mergedResult).length} fields`);
+  return enhanceStatusDetermination(mergedResult);
+};
+
 const extractTextFromPDF = async (pdfBuffer: ArrayBuffer): Promise<string> => {
   try {
     console.log('Extracting text from PDF using unpdf');
@@ -493,33 +818,50 @@ serve(async (req) => {
       if (!extractedText.trim()) {
         throw new Error('Unable to extract text from PDF. Please ensure the PDF contains readable text or try uploading it as an image instead.');
       } else {
-        // Use text-based completion for extracted PDF text
+        // Apply intelligent document chunking for large documents
         console.log('Using extracted text for processing')
         
-        const textResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openaiApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              { role: 'system', content: SYSTEM_PROMPT },
-              { role: 'user', content: `${prompt}\n\nDocument text:\n${extractedText}` }
-            ],
-            max_tokens: 8000,
-            temperature: 0.1
-          })
-        })
+        const chunks = segmentDocument(extractedText);
+        
+        if (chunks.length === 1) {
+          // Single chunk - use traditional processing
+          console.log('Processing single chunk with traditional approach');
+          
+          const textResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openaiApiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user', content: `${prompt}\n\nDocument text:\n${extractedText}` }
+              ],
+              max_tokens: CHUNK_CONFIG.MAX_TOKENS,
+              temperature: 0.1
+            })
+          });
 
-        if (!textResponse.ok) {
-          const errorText = await textResponse.text()
-          throw new Error(`OpenAI Text API error: ${textResponse.status} - ${errorText}`)
+          if (!textResponse.ok) {
+            const errorText = await textResponse.text();
+            throw new Error(`OpenAI Text API error: ${textResponse.status} - ${errorText}`);
+          }
+
+          const textData = await textResponse.json();
+          aiResponse = textData.choices?.[0]?.message?.content || '';
+        } else {
+          // Multiple chunks - use parallel processing
+          console.log(`Processing ${chunks.length} chunks with parallel approach`);
+          
+          const chunkResults = await processDocumentChunks(chunks, report.report_type, openaiApiKey);
+          const mergedData = mergeChunkResults(chunkResults, report.report_type);
+          
+          // Convert merged data back to string format for compatibility
+          aiResponse = JSON.stringify(mergedData);
+          console.log('Multi-chunk processing completed, merged results ready');
         }
-
-        const textData = await textResponse.json()
-        aiResponse = textData.choices?.[0]?.message?.content || ''
       }
     } else if (isImageFile(report.file_type)) {
       // Handle image files with vision API
@@ -550,7 +892,7 @@ serve(async (req) => {
               ]
             }
           ],
-          max_tokens: 8000,
+          max_tokens: CHUNK_CONFIG.MAX_TOKENS,
           temperature: 0.1
         })
       })
