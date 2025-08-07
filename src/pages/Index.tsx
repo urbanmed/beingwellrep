@@ -22,7 +22,7 @@ const Index = () => {
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/summaries')}>
           <CardContent className="pt-6 text-center">
             <Brain className="h-8 w-8 text-primary mx-auto mb-2" />
-            <h3 className="font-semibold">AI Summaries</h3>
+            <h3 className="font-semibold">Insights</h3>
           </CardContent>
         </Card>
 
