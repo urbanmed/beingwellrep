@@ -10,6 +10,7 @@ import { DeleteConfirmDialog } from "@/components/reports/DeleteConfirmDialog";
 import { TimelineFilters } from "@/components/vault/TimelineFilters";
 import { TimelineView } from "@/components/vault/TimelineView";
 import { GridView } from "@/components/vault/GridView";
+import { DocumentProcessing } from "@/components/vault/DocumentProcessing";
 
 import { useNavigate } from "react-router-dom";
 import { isWithinInterval, startOfDay, endOfDay, subDays, format } from "date-fns";
@@ -139,6 +140,7 @@ export default function Vault() {
   const [viewMode, setViewMode] = useState<"timeline" | "grid">("timeline");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+  const [activeTab, setActiveTab] = useState<"documents" | "processing">("documents");
   
   const { reports, loading, deleteMultipleReports } = useReports();
 
@@ -250,15 +252,26 @@ export default function Vault() {
           <FolderOpen className="h-8 w-8 text-primary" />
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={() => setViewMode(viewMode === "timeline" ? "grid" : "timeline")}>
-            {viewMode === "timeline" ? <Grid className="h-4 w-4" /> : <Activity className="h-4 w-4" />}
-          </Button>
+          {activeTab === "documents" && (
+            <Button variant="outline" onClick={() => setViewMode(viewMode === "timeline" ? "grid" : "timeline")}>
+              {viewMode === "timeline" ? <Grid className="h-4 w-4" /> : <Activity className="h-4 w-4" />}
+            </Button>
+          )}
           <Button onClick={() => navigate("/upload")}>
             <Plus className="h-4 w-4 mr-2" />
             Add Documents
           </Button>
         </div>
       </div>
+
+      {/* Main Tabs */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "documents" | "processing")} className="mb-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="processing">Processing Status</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="documents" className="mt-6">
 
 
       {reports.length === 0 ? (
@@ -380,6 +393,12 @@ export default function Vault() {
           )}
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="processing" className="mt-6">
+          <DocumentProcessing />
+        </TabsContent>
+      </Tabs>
       
       <DeleteConfirmDialog
         isOpen={showDeleteDialog}

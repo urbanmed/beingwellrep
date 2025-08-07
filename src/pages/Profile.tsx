@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { ProfileCompletionBanner } from "@/components/profile/ProfileCompletionBanner";
 import { FamilySection } from "@/components/profile/FamilySection";
-import { DocumentProcessing } from "@/components/profile/DocumentProcessing";
 import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 
 export default function Profile() {
@@ -68,10 +67,9 @@ export default function Profile() {
       <ProfileCompletionBanner />
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="profile">My Profile</TabsTrigger>
           <TabsTrigger value="family">Family Members</TabsTrigger>
-          <TabsTrigger value="processing">Processing Status</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -217,10 +215,6 @@ export default function Profile() {
 
         <TabsContent value="family">
           <FamilySection />
-        </TabsContent>
-
-        <TabsContent value="processing">
-          <DocumentProcessing />
         </TabsContent>
       </Tabs>
     </div>
