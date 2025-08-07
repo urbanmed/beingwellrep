@@ -33,6 +33,7 @@ interface CustomStructuredDataViewerProps {
 }
 
 export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataViewerProps) {
+  console.log('CustomStructuredDataViewer rendering with:', { parsedData });
   const isMobile = useIsMobile();
   const [openSections, setOpenSections] = useState<Record<number, boolean>>({});
 
