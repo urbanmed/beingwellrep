@@ -89,7 +89,7 @@ export function ReportCategoriesFilter({
             className="h-9 gap-2 text-xs"
           >
             <Filter className="h-4 w-4" />
-            Report Categories
+            Categories
             {selectedCount > 0 && (
               <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-xs">
                 {selectedCount}
