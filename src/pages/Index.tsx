@@ -23,22 +23,22 @@ const Index = () => {
           // Placeholder SOS functionality
           alert("Emergency contacts feature coming soon!");
         }}>
-          <CardContent className="pt-6 text-center">
-            <AlertTriangle className="h-8 w-8 text-destructive-foreground mx-auto mb-2" />
+          <CardContent className="px-6 pb-4 pt-4 text-center">
+            <AlertTriangle className="h-6 w-6 text-destructive-foreground mx-auto mb-1" />
             <h3 className="font-semibold text-destructive-foreground">SOS</h3>
           </CardContent>
         </Card>
 
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/summaries')}>
-          <CardContent className="pt-6 text-center">
-            <Brain className="h-8 w-8 text-primary mx-auto mb-2" />
+          <CardContent className="px-6 pb-4 pt-4 text-center">
+            <Brain className="h-6 w-6 text-primary mx-auto mb-1" />
             <h3 className="font-semibold">Insights</h3>
           </CardContent>
         </Card>
 
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/upload')}>
-          <CardContent className="pt-6 text-center">
-            <Plus className="h-8 w-8 text-primary mx-auto mb-2" />
+          <CardContent className="px-6 pb-4 pt-4 text-center">
+            <Plus className="h-6 w-6 text-primary mx-auto mb-1" />
             <h3 className="font-semibold">Upload</h3>
           </CardContent>
         </Card>
