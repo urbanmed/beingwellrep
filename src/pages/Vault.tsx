@@ -157,7 +157,7 @@ export default function Vault() {
       ) : (
         <div className="space-y-6">
 
-          {/* Search Bar */}
+          {/* Search and Filter Row */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -168,6 +168,11 @@ export default function Vault() {
                 className="pl-10 text-xs placeholder:text-xs"
               />
             </div>
+            <ReportCategoriesFilter
+              selectedCategories={selectedCategories}
+              onCategoryChange={setSelectedCategories}
+              onClearAll={handleClearAllFilters}
+            />
             {selectedForDeletion.length > 0 && (
               <Button
                 variant="destructive"
@@ -179,38 +184,28 @@ export default function Vault() {
             )}
           </div>
 
-          {/* Report Categories Section */}
+          {/* View Mode and Selection Controls Row */}
           <div className="flex items-center justify-between gap-4 flex-wrap">
-            {/* Category Filter */}
-            <ReportCategoriesFilter
-              selectedCategories={selectedCategories}
-              onCategoryChange={setSelectedCategories}
-              onClearAll={handleClearAllFilters}
+            <ViewModeSelector
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
             />
 
-            {/* View Mode Selector and Selection Controls */}
-            <div className="flex items-center gap-6">
-              <ViewModeSelector
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-              />
-
-              {/* Selection Controls */}
-              {filteredReports.length > 0 && (
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <Checkbox
-                      checked={selectedForDeletion.length === filteredReports.length && filteredReports.length > 0}
-                      onCheckedChange={handleSelectAll}
-                    />
-                    Select All
-                  </label>
-                  {selectedForDeletion.length > 0 && (
-                    <span className="text-destructive">{selectedForDeletion.length} selected</span>
-                  )}
-                </div>
-              )}
-            </div>
+            {/* Selection Controls */}
+            {filteredReports.length > 0 && (
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={selectedForDeletion.length === filteredReports.length && filteredReports.length > 0}
+                    onCheckedChange={handleSelectAll}
+                  />
+                  Select All
+                </label>
+                {selectedForDeletion.length > 0 && (
+                  <span className="text-destructive">{selectedForDeletion.length} selected</span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Content based on view mode */}
