@@ -19,6 +19,16 @@ const Index = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-3 gap-4">
+        <Card className="cursor-pointer hover:bg-destructive/10 border-destructive/20 transition-colors" onClick={() => {
+          // Placeholder SOS functionality
+          alert("Emergency contacts feature coming soon!");
+        }}>
+          <CardContent className="pt-6 text-center">
+            <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
+            <h3 className="font-semibold text-destructive">SOS</h3>
+          </CardContent>
+        </Card>
+
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/summaries')}>
           <CardContent className="pt-6 text-center">
             <Brain className="h-8 w-8 text-primary mx-auto mb-2" />
@@ -30,16 +40,6 @@ const Index = () => {
           <CardContent className="pt-6 text-center">
             <Plus className="h-8 w-8 text-primary mx-auto mb-2" />
             <h3 className="font-semibold">Upload</h3>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:bg-destructive/10 border-destructive/20 transition-colors" onClick={() => {
-          // Placeholder SOS functionality
-          alert("Emergency contacts feature coming soon!");
-        }}>
-          <CardContent className="pt-6 text-center">
-            <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
-            <h3 className="font-semibold text-destructive">SOS</h3>
           </CardContent>
         </Card>
       </div>
