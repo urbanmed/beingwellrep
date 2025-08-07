@@ -86,10 +86,10 @@ export default function Profile() {
                     </AvatarFallback>
                   )}
                 </Avatar>
-                 <div className="flex-1">
-                   <h2 className="medical-heading">
-                     {user?.email?.split('@')[0] || 'User'}
-                   </h2>
+                <div className="flex-1">
+                  <h2 className="text-xl font-semibold">
+                    {user?.email?.split('@')[0] || 'User'}
+                  </h2>
                   <div className="space-y-1 text-sm text-muted-foreground">
                     {user?.email && (
                       <div className="flex items-center">
@@ -119,83 +119,83 @@ export default function Profile() {
 
           {/* Quick Stats */}
           <div className="grid grid-cols-3 gap-4">
-             <Card>
-               <CardHeader className="pb-2">
-                 <CardTitle className="medical-heading flex items-center">
-                   <FileText className="h-5 w-5 mr-2 text-primary" />
-                   Documents
-                 </CardTitle>
-               </CardHeader>
-               <CardContent>
-                 <div className="medical-title">0</div>
-                 <p className="medical-label">Uploaded files</p>
-               </CardContent>
-             </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center">
+                  <FileText className="h-5 w-5 mr-2 text-primary" />
+                  Documents
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0</div>
+                <p className="text-muted-foreground text-sm">Uploaded files</p>
+              </CardContent>
+            </Card>
 
-             <Card>
-               <CardHeader className="pb-2">
-                 <CardTitle className="medical-heading flex items-center">
-                   <Activity className="h-5 w-5 mr-2 text-primary" />
-                   Reports
-                 </CardTitle>
-               </CardHeader>
-               <CardContent>
-                 <div className="medical-title">0</div>
-                 <p className="medical-label">AI analyses</p>
-               </CardContent>
-             </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center">
+                  <Activity className="h-5 w-5 mr-2 text-primary" />
+                  Reports
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0</div>
+                <p className="text-muted-foreground text-sm">AI analyses</p>
+              </CardContent>
+            </Card>
 
-             <Card>
-               <CardHeader className="pb-2">
-                 <CardTitle className="medical-heading flex items-center">
-                   <Users className="h-5 w-5 mr-2 text-primary" />
-                   Family
-                 </CardTitle>
-               </CardHeader>
-               <CardContent>
-                 <div className="medical-title">{familyMembers.length}</div>
-                 <p className="medical-label">Members</p>
-               </CardContent>
-             </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center">
+                  <Users className="h-5 w-5 mr-2 text-primary" />
+                  Family
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{familyMembers.length}</div>
+                <p className="text-muted-foreground text-sm">Members</p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Menu Options */}
           <div className="space-y-2">
-             <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-               <CardHeader className="py-4">
-                 <CardTitle className="medical-subheading flex items-center justify-between">
-                   <div className="flex items-center">
-                     <Settings className="h-5 w-5 mr-3 text-primary" />
-                     Account Settings
-                   </div>
-                   <span className="text-muted-foreground">→</span>
-                 </CardTitle>
-               </CardHeader>
-             </Card>
+            <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <CardHeader className="py-4">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Settings className="h-5 w-5 mr-3 text-primary" />
+                    Account Settings
+                  </div>
+                  <span className="text-muted-foreground">→</span>
+                </CardTitle>
+              </CardHeader>
+            </Card>
 
-             <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-               <CardHeader className="py-4">
-                 <CardTitle className="medical-subheading flex items-center justify-between">
-                   <div className="flex items-center">
-                     <FileText className="h-5 w-5 mr-3 text-primary" />
-                     My Documents
-                   </div>
-                   <span className="text-muted-foreground">→</span>
-                 </CardTitle>
-               </CardHeader>
-             </Card>
+            <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <CardHeader className="py-4">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center">
+                    <FileText className="h-5 w-5 mr-3 text-primary" />
+                    My Documents
+                  </div>
+                  <span className="text-muted-foreground">→</span>
+                </CardTitle>
+              </CardHeader>
+            </Card>
 
-             <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-               <CardHeader className="py-4">
-                 <CardTitle className="medical-subheading flex items-center justify-between">
-                   <div className="flex items-center">
-                     <Activity className="h-5 w-5 mr-3 text-primary" />
-                     Health Analytics
-                   </div>
-                   <span className="text-muted-foreground">→</span>
-                 </CardTitle>
-               </CardHeader>
-             </Card>
+            <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <CardHeader className="py-4">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Activity className="h-5 w-5 mr-3 text-primary" />
+                    Health Analytics
+                  </div>
+                  <span className="text-muted-foreground">→</span>
+                </CardTitle>
+              </CardHeader>
+            </Card>
           </div>
 
           {/* Sign Out */}
