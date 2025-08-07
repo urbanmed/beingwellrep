@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { DocumentCard } from "./DocumentCard";
-import { TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { EnhancedTrendsOverview } from "./EnhancedTrendsOverview";
+import { Activity } from "lucide-react";
 
 interface Report {
   id: string;
@@ -33,6 +34,7 @@ interface TimelineViewProps {
   selectedReports: string[];
   onSelectReport: (reportId: string, checked: boolean) => void;
   onNavigateToReport: (reportId: string) => void;
+  onNavigateToUpload?: () => void;
 }
 
 const REPORT_TYPE_ORDER = {
@@ -77,8 +79,8 @@ const REPORT_TYPE_CONFIG = {
   }
 };
 
-export function TimelineView({ reports, selectedReports, onSelectReport, onNavigateToReport }: TimelineViewProps) {
-  const { groupedReports, trends } = useMemo(() => {
+export function TimelineView({ reports, selectedReports, onSelectReport, onNavigateToReport, onNavigateToUpload }: TimelineViewProps) {
+  const groupedReports = useMemo(() => {
     // Sort reports chronologically, then by type priority
     const sortedReports = [...reports].sort((a, b) => {
       const dateA = new Date(a.report_date);
@@ -117,29 +119,7 @@ export function TimelineView({ reports, selectedReports, onSelectReport, onNavig
       groups[groupKey].push(report);
     });
 
-    // Calculate trends
-    const lastMonth = reports.filter(r => 
-      isWithinInterval(new Date(r.report_date), { 
-        start: startOfDay(subDays(now, 30)), 
-        end: endOfDay(now) 
-      })
-    );
-    const previousMonth = reports.filter(r => 
-      isWithinInterval(new Date(r.report_date), { 
-        start: startOfDay(subDays(now, 60)), 
-        end: startOfDay(subDays(now, 30))
-      })
-    );
-
-    const trendData = {
-      total: lastMonth.length - previousMonth.length,
-      bloodTests: lastMonth.filter(r => r.report_type === 'blood_test').length - 
-                  previousMonth.filter(r => r.report_type === 'blood_test').length,
-      prescriptions: lastMonth.filter(r => r.report_type === 'prescription').length - 
-                    previousMonth.filter(r => r.report_type === 'prescription').length,
-    };
-
-    return { groupedReports: groups, trends: trendData };
+    return groups;
   }, [reports]);
 
   const getRelatedDocuments = (report: Report) => {
@@ -163,56 +143,12 @@ export function TimelineView({ reports, selectedReports, onSelectReport, onNavig
 
   return (
     <div className="space-y-6">
-      {/* Trends Overview */}
+      {/* Enhanced Trends Overview */}
       {reports.length > 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Activity className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-sm font-medium">Total Activity</span>
-                    {trends.total > 0 ? (
-                      <TrendingUp className="h-3 w-3 text-success" />
-                    ) : trends.total < 0 ? (
-                      <TrendingDown className="h-3 w-3 text-destructive" />
-                    ) : null}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {Math.abs(trends.total)} {trends.total !== 0 ? 'vs last month' : 'no change'}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
-                  <span className="text-sm">🩸</span>
-                </div>
-                <div>
-                  <div className="text-sm font-medium">Blood Tests</div>
-                  <div className="text-xs text-muted-foreground">
-                    {Math.abs(trends.bloodTests)} {trends.bloodTests !== 0 ? 'vs last month' : 'no change'}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                  <span className="text-sm">💊</span>
-                </div>
-                <div>
-                  <div className="text-sm font-medium">Prescriptions</div>
-                  <div className="text-xs text-muted-foreground">
-                    {Math.abs(trends.prescriptions)} {trends.prescriptions !== 0 ? 'vs last month' : 'no change'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <EnhancedTrendsOverview 
+          reports={reports} 
+          onNavigateToUpload={onNavigateToUpload}
+        />
       )}
 
       {/* Timeline Groups */}

@@ -361,6 +361,7 @@ export default function Vault() {
                 selectedReports={selectedForDeletion}
                 onSelectReport={handleSelectReport}
                 onNavigateToReport={(reportId) => navigate(`/reports/${reportId}`)}
+                onNavigateToUpload={() => navigate("/upload")}
               />
             </TabsContent>
 
