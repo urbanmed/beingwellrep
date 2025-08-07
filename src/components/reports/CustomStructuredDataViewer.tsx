@@ -93,42 +93,42 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
   const renderTestValue = (test: any) => {
     if (typeof test === 'object' && test.result !== undefined) {
       return (
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{test.result} {test.units}</span>
-            <Badge variant={getStatusBadgeVariant(test.status)}>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1">
+            <span className="font-medium text-xs">{test.result} {test.units}</span>
+            <Badge variant={getStatusBadgeVariant(test.status)} className="text-xs px-1.5 py-0.5">
               {test.status}
             </Badge>
           </div>
           {test.referenceRange && (
             <span className="text-xs text-muted-foreground">
-              Reference: {test.referenceRange}
+              Ref: {test.referenceRange}
             </span>
           )}
         </div>
       );
     }
-    return <span>{test}</span>;
+    return <span className="text-xs">{test}</span>;
   };
 
   const renderMobileLabCard = (test: any, testIndex: number) => (
-    <Card key={testIndex} className="p-4">
-      <div className="space-y-3">
-        <div className="flex items-start justify-between">
-          <h5 className="font-medium text-sm">{test.testName}</h5>
-          <Badge variant={getStatusBadgeVariant(test.status)} className="ml-2">
+    <Card key={testIndex} className="p-2">
+      <div className="space-y-1.5">
+        <div className="flex items-start justify-between gap-2">
+          <h5 className="font-medium text-xs leading-tight">{test.testName}</h5>
+          <Badge variant={getStatusBadgeVariant(test.status)} className="text-xs px-1.5 py-0.5 shrink-0">
             {test.status}
           </Badge>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1">
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground text-sm">Result:</span>
-            <span className="font-medium">{test.result} {test.units}</span>
+            <span className="text-muted-foreground text-xs">Result:</span>
+            <span className="font-medium text-xs">{test.result} {test.units}</span>
           </div>
           {(test.referenceRange || test.referenceInterval) && (
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground text-sm">Reference:</span>
-              <span className="text-sm">{test.referenceRange || test.referenceInterval}</span>
+              <span className="text-muted-foreground text-xs">Reference:</span>
+              <span className="text-xs">{test.referenceRange || test.referenceInterval}</span>
             </div>
           )}
         </div>
@@ -221,35 +221,37 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
                       onOpenChange={() => toggleSection(index)}
                     >
                       <CollapsibleTrigger className="w-full">
-                        <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-medium text-sm text-left">{section.title}</h4>
-                            <Badge variant="outline" className="text-xs">
+                        <div className="flex items-center justify-between p-2 border rounded-lg bg-muted/30">
+                          <div className="flex items-center gap-1.5">
+                            <h4 className="font-medium text-xs text-left">{section.title}</h4>
+                            <Badge variant="outline" className="text-xs px-1.5 py-0.5">
                               {section.category}
                             </Badge>
                           </div>
-                          <ChevronDown className={`h-4 w-4 transition-transform ${openSections[index] ?? true ? 'transform rotate-180' : ''}`} />
+                          <ChevronDown className={`h-3 w-3 transition-transform ${openSections[index] ?? true ? 'transform rotate-180' : ''}`} />
                         </div>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <div className="mt-3 space-y-2">
+                        <div className="mt-2 space-y-1.5">
                           {Array.isArray(section.content) ? (
                             section.content.map((test: any, testIndex: number) => 
                               renderMobileLabCard(test, testIndex)
                             )
                           ) : typeof section.content === 'object' ? (
-                            <div className="space-y-2">
+                            <div className="space-y-1.5">
                               {Object.entries(section.content).map(([key, value]: [string, any]) => (
-                                <Card key={key} className="p-3">
-                                  <div className="flex justify-between items-center">
-                                    <span className="font-medium text-sm capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                                    {renderTestValue(value)}
+                                <Card key={key} className="p-2">
+                                  <div className="flex justify-between items-center gap-2">
+                                    <span className="font-medium text-xs capitalize leading-tight">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                                    <div className="text-right">
+                                      {renderTestValue(value)}
+                                    </div>
                                   </div>
                                 </Card>
                               ))}
                             </div>
                           ) : (
-                            <div className="text-sm text-muted-foreground p-3 border rounded-lg">
+                            <div className="text-xs text-muted-foreground p-2 border rounded-lg">
                               {section.content}
                             </div>
                           )}
