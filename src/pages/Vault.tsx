@@ -110,32 +110,37 @@ export default function Vault() {
 
 
   return (
-    <div className="container mx-auto px-4 py-8 pb-20">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
         <div className="flex items-center space-x-3">
-          <FolderOpen className="h-8 w-8 text-primary" />
-          <h1 className="medical-title">Health Vault</h1>
+          <FolderOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+          <h1 className="text-lg sm:text-2xl font-semibold">Health Vault</h1>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button onClick={() => navigate("/upload")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Documents
+        <div className="flex items-center">
+          <Button 
+            onClick={() => navigate("/upload")}
+            className="h-9 sm:h-10 text-sm"
+            size="sm"
+          >
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Add Documents</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
       </div>
 
       {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "documents" | "processing")} className="mb-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="processing">Processed documents</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "documents" | "processing")} className="mb-4 sm:mb-6">
+        <TabsList className="grid w-full grid-cols-2 h-9 sm:h-10">
+          <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
+          <TabsTrigger value="processing" className="text-xs sm:text-sm">Processed</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="documents" className="mt-6">
+        <TabsContent value="documents" className="mt-4 sm:mt-6">
           {/* Summary Section */}
           {reports.length > 0 && (
-            <div className="mb-6">
+            <div className="mb-4 sm:mb-6">
               <VaultSummary />
             </div>
           )}
@@ -155,37 +160,42 @@ export default function Vault() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
 
           {/* Search and Filter Row */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-row sm:gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search documents by title, type, physician, or facility..."
+                placeholder="Search documents..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 text-xs placeholder:text-xs"
+                className="pl-10 h-9 sm:h-10 text-sm placeholder:text-sm"
               />
             </div>
-            <ReportCategoriesFilter
-              selectedCategories={selectedCategories}
-              onCategoryChange={setSelectedCategories}
-              onClearAll={handleClearAllFilters}
-            />
-            {selectedForDeletion.length > 0 && (
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeleteDialog(true)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Selected ({selectedForDeletion.length})
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              <ReportCategoriesFilter
+                selectedCategories={selectedCategories}
+                onCategoryChange={setSelectedCategories}
+                onClearAll={handleClearAllFilters}
+              />
+              {selectedForDeletion.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="h-9 text-sm shrink-0"
+                >
+                  <Trash2 className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Delete ({selectedForDeletion.length})</span>
+                  <span className="sm:hidden">{selectedForDeletion.length}</span>
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* View Mode and Selection Controls Row */}
-          <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <ViewModeSelector
               viewMode={viewMode}
               onViewModeChange={setViewMode}
@@ -193,23 +203,24 @@ export default function Vault() {
 
             {/* Selection Controls */}
             {filteredReports.length > 0 && (
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex items-center justify-between sm:justify-end gap-3 text-sm text-muted-foreground">
+                <label className="flex items-center gap-2 cursor-pointer touch-target min-h-[44px] sm:min-h-0">
                   <Checkbox
                     checked={selectedForDeletion.length === filteredReports.length && filteredReports.length > 0}
                     onCheckedChange={handleSelectAll}
+                    className="h-4 w-4"
                   />
-                  Select All
+                  <span className="text-sm">Select All</span>
                 </label>
                 {selectedForDeletion.length > 0 && (
-                  <span className="text-destructive">{selectedForDeletion.length} selected</span>
+                  <span className="text-destructive text-sm font-medium">{selectedForDeletion.length} selected</span>
                 )}
               </div>
             )}
           </div>
 
           {/* Content based on view mode */}
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             {viewMode === "list" && (
               <ReportListView
                 reports={filteredReports}

@@ -81,32 +81,34 @@ export function ReportCategoriesFilter({
   const selectedCount = selectedCategories.length;
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1 sm:gap-2">
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button 
             variant="outline" 
-            className="h-9 gap-2 text-xs"
+            className="h-9 gap-1 sm:gap-2 text-xs sm:text-sm shrink-0"
+            size="sm"
           >
             <Filter className="h-4 w-4" />
-            Categories
+            <span className="hidden sm:inline">Categories</span>
+            <span className="sm:hidden">Filter</span>
             {selectedCount > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-xs">
+              <Badge variant="secondary" className="ml-1 h-4 sm:h-5 min-w-4 sm:min-w-5 text-xs">
                 {selectedCount}
               </Badge>
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-80" align="start">
-          <div className="space-y-4">
+        <PopoverContent className="w-72 sm:w-80" align="start" side="bottom" sideOffset={8}>
+          <div className="space-y-3 sm:space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="medical-subheading">Filter by Health Categories</h4>
+              <h4 className="text-sm sm:text-base font-medium">Filter by Categories</h4>
               {selectedCount > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={onClearAll}
-                  className="h-6 px-2 text-xs"
+                  className="h-7 sm:h-8 px-2 text-xs sm:text-sm"
                 >
                   Clear all
                 </Button>
@@ -115,17 +117,18 @@ export function ReportCategoriesFilter({
             
             <Separator />
             
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3 max-h-60 overflow-y-auto">
               {HEALTH_CATEGORIES.map((category) => (
-                <div key={category.id} className="flex items-center space-x-2">
+                <div key={category.id} className="flex items-center space-x-3 py-1 touch-target min-h-[44px] sm:min-h-0 sm:py-0">
                   <Checkbox
                     id={category.id}
                     checked={selectedCategories.includes(category.id)}
                     onCheckedChange={() => handleCategoryToggle(category.id)}
+                    className="h-4 w-4"
                   />
                   <label
                     htmlFor={category.id}
-                    className="medical-label flex-1 cursor-pointer hover:text-foreground transition-colors"
+                    className="text-sm flex-1 cursor-pointer hover:text-foreground transition-colors leading-relaxed"
                   >
                     {category.label}
                   </label>
@@ -136,28 +139,28 @@ export function ReportCategoriesFilter({
         </PopoverContent>
       </Popover>
 
-      {/* Active filter badges */}
+      {/* Active filter badges - mobile responsive */}
       {selectedCount > 0 && (
-        <div className="flex items-center gap-1">
-          {selectedCategories.slice(0, 3).map((categoryId) => {
+        <div className="hidden sm:flex items-center gap-1 overflow-x-auto">
+          {selectedCategories.slice(0, 2).map((categoryId) => {
             const category = HEALTH_CATEGORIES.find(c => c.id === categoryId);
             return (
               <Badge 
                 key={categoryId} 
                 variant="secondary" 
-                className="h-6 text-xs gap-1"
+                className="h-6 text-xs gap-1 shrink-0"
               >
-                {category?.label}
+                <span className="truncate max-w-[80px]">{category?.label}</span>
                 <X 
-                  className="h-3 w-3 cursor-pointer hover:text-foreground" 
+                  className="h-3 w-3 cursor-pointer hover:text-foreground shrink-0" 
                   onClick={() => handleCategoryToggle(categoryId)}
                 />
               </Badge>
             );
           })}
-          {selectedCount > 3 && (
-            <Badge variant="secondary" className="h-6 text-xs">
-              +{selectedCount - 3} more
+          {selectedCount > 2 && (
+            <Badge variant="secondary" className="h-6 text-xs shrink-0">
+              +{selectedCount - 2}
             </Badge>
           )}
         </div>
