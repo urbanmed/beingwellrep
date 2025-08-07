@@ -18,7 +18,7 @@ export function PersonalizedGreeting() {
   const greeting = getTimeBasedGreeting();
 
   return (
-    <div className="px-4 py-2">
+    <div className="px-4 pt-6 pb-2">
       <h1 className="text-xl font-medium text-foreground">
         {firstName ? `${greeting}, ${firstName} 👋` : `${greeting} 👋`}
       </h1>

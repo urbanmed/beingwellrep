@@ -119,7 +119,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <PersonalizedGreeting />
       <div className="p-4 space-y-6">
         {/* Quick Actions */}
