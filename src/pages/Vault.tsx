@@ -344,7 +344,6 @@ export default function Vault() {
                     />
                     Select All
                   </label>
-                  <span>{filteredReports.length} document{filteredReports.length !== 1 ? 's' : ''}</span>
                   {selectedForDeletion.length > 0 && (
                     <span className="text-destructive">{selectedForDeletion.length} selected</span>
                   )}
