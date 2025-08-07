@@ -118,7 +118,7 @@ export default function Profile() {
           </Card>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
              <Card className="text-center">
                <CardContent className="p-6">
                  <div className="flex flex-col items-center space-y-3">
