@@ -6,7 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminRoute } from "@/components/admin/AdminRoute";
 import { MobileLayout } from "@/components/layout/MobileLayout";
+import { AdminLayout } from "@/components/admin/layout/AdminLayout";
 import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import Summaries from "./pages/Summaries";
@@ -26,6 +28,10 @@ import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
 import { VerifyPage } from "./pages/auth/VerifyPage";
 import { PhoneVerifyPage } from "./pages/auth/PhoneVerifyPage";
+
+// Admin pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import UserManagement from "./pages/admin/UserManagement";
 
 // Create QueryClient instance outside of component
 const queryClient = new QueryClient({
@@ -105,6 +111,26 @@ const AppRoutes: React.FC = () => (
         <MobileLayout>
           <AIAssistant />
         </MobileLayout>
+      </ProtectedRoute>
+    } />
+    
+    {/* Admin Routes */}
+    <Route path="/admin" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="moderator">
+          <AdminLayout>
+            <AdminDashboard />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/users" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="admin">
+          <AdminLayout>
+            <UserManagement />
+          </AdminLayout>
+        </AdminRoute>
       </ProtectedRoute>
     } />
     
