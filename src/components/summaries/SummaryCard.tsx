@@ -93,7 +93,7 @@ export function SummaryCard({ summary, onView, onPin, onDelete }: SummaryCardPro
               <Icon className="h-5 w-5" style={{ color: config?.color?.replace('bg-', '') || '#6b7280' }} />
             </div>
             <div>
-              <CardTitle className="text-lg leading-tight">{summary.title}</CardTitle>
+              <CardTitle className="font-semibold leading-tight">{summary.title}</CardTitle>
               <CardDescription className="text-sm mt-1">
                 {config?.description || "AI-generated summary"}
               </CardDescription>
