@@ -1,32 +1,134 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Brain, TrendingUp, Plus, Loader2, FolderOpen, Shield, Zap } from "lucide-react";
+import { FileText, Brain, TrendingUp, Plus, Loader2, FolderOpen, Shield, Zap, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useReports } from "@/hooks/useReports";
-import { SosButton } from "@/components/sos/SosButton";
+import { useState, useEffect, useRef } from 'react';
+import { useSosActivation } from '@/hooks/useSosActivation';
+import { useEmergencyContacts } from '@/hooks/useEmergencyContacts';
+import { SosCountdownModal } from '@/components/sos/SosCountdownModal';
 
 const Index = () => {
   const navigate = useNavigate();
   const { reports, loading } = useReports();
+  
+  // SOS functionality
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdown, setCountdown] = useState(30);
+  const [currentActivation, setCurrentActivation] = useState<string | null>(null);
+  const { triggerSos, cancelSos, completeSos, activating } = useSosActivation();
+  const { contacts } = useEmergencyContacts();
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const hasReports = reports.length > 0;
   const completedReports = reports.filter(r => r.parsing_status === 'completed');
   const processingReports = reports.filter(r => r.parsing_status === 'processing');
   const failedReports = reports.filter(r => r.parsing_status === 'failed');
 
+  const handleSosClick = async () => {
+    // Check if user has emergency contacts
+    if (contacts.length === 0) {
+      alert('Please add emergency contacts in your profile before using SOS.');
+      return;
+    }
+
+    // Get user location if available
+    let locationData = null;
+    if (navigator.geolocation) {
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            timeout: 5000,
+            enableHighAccuracy: true,
+          });
+        });
+        locationData = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          timestamp: new Date().toISOString(),
+        };
+      } catch (error) {
+        console.warn('Could not get location:', error);
+      }
+    }
+
+    // Trigger SOS activation in database
+    const result = await triggerSos(locationData);
+    if (result.error) return;
+
+    // Start countdown
+    setCurrentActivation(result.data.id);
+    setShowCountdown(true);
+    setCountdown(30);
+    startCountdown();
+  };
+
+  const startCountdown = () => {
+    intervalRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          handleCountdownComplete();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleCountdownComplete = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
+    if (currentActivation) {
+      // Complete the SOS activation (this will trigger SMS sending in the future)
+      completeSos(currentActivation);
+      alert('Emergency alert sent to your contacts!');
+    }
+    
+    setShowCountdown(false);
+    setCurrentActivation(null);
+  };
+
+  const handleCancel = async () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    if (currentActivation) {
+      await cancelSos(currentActivation);
+    }
+
+    setShowCountdown(false);
+    setCurrentActivation(null);
+    setCountdown(30);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="p-4 space-y-6">
 
       {/* Quick Actions */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="bg-destructive border-destructive cursor-pointer hover:bg-destructive/90 transition-colors">
+        <Card 
+          className="bg-destructive border-destructive cursor-pointer hover:bg-destructive/90 transition-colors"
+          onClick={handleSosClick}
+        >
           <CardContent className="px-6 pb-4 pt-4 text-center">
-            <SosButton 
-              variant="outline" 
-              size="sm"
-              className="bg-transparent border-destructive-foreground text-destructive-foreground hover:bg-destructive-foreground hover:text-destructive"
-            />
+            <AlertTriangle className="h-6 w-6 text-destructive-foreground mx-auto mb-1" />
+            <h3 className="font-semibold text-destructive-foreground">Emergency</h3>
           </CardContent>
         </Card>
 
@@ -142,6 +244,13 @@ const Index = () => {
           </CardContent>
         </Card>
       </div>
+
+      <SosCountdownModal
+        open={showCountdown}
+        countdown={countdown}
+        onCancel={handleCancel}
+        emergencyContacts={contacts.slice(0, 2)} // Only show first 2 contacts
+      />
     </div>
   );
 };
