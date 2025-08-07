@@ -248,10 +248,6 @@ export default function Vault() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <FolderOpen className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold">Document Vault</h1>
-            <p className="text-muted-foreground">Intelligent health document management</p>
-          </div>
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" onClick={() => setViewMode(viewMode === "timeline" ? "grid" : "timeline")}>
