@@ -13,6 +13,123 @@ import { SmartAlerts } from "@/components/vault/SmartAlerts";
 import { useNavigate } from "react-router-dom";
 import { isWithinInterval, startOfDay, endOfDay, subDays, format } from "date-fns";
 
+// Filter mapping for the new categorized system
+const FILTER_CATEGORIES = [
+  {
+    id: "lab-work",
+    subcategories: [
+      { id: "blood-tests", reportTypes: ["blood_test", "lab_results"] },
+      { id: "urinalysis", reportTypes: ["lab_results"] },
+      { id: "hormone-tests", reportTypes: ["lab_results"] },
+      { id: "allergy-testing", reportTypes: ["allergy"] },
+    ]
+  },
+  {
+    id: "imaging",
+    subcategories: [
+      { id: "xrays", reportTypes: ["radiology"] },
+      { id: "mri-scans", reportTypes: ["radiology"] },
+      { id: "ct-scans", reportTypes: ["radiology"] },
+      { id: "ultrasounds", reportTypes: ["radiology"] },
+      { id: "mammograms", reportTypes: ["radiology"] },
+    ]
+  },
+  {
+    id: "procedures",
+    subcategories: [
+      { id: "cardiac-procedures", reportTypes: ["procedure"] },
+      { id: "surgical-reports", reportTypes: ["procedure"] },
+      { id: "endoscopy", reportTypes: ["procedure"] },
+      { id: "biopsy", reportTypes: ["procedure", "pathology"] },
+    ]
+  },
+  {
+    id: "consultations",
+    subcategories: [
+      { id: "specialist-consults", reportTypes: ["consultation"] },
+      { id: "follow-up-notes", reportTypes: ["consultation"] },
+      { id: "treatment-plans", reportTypes: ["consultation"] },
+      { id: "referrals", reportTypes: ["consultation"] },
+    ]
+  },
+  {
+    id: "medications",
+    subcategories: [
+      { id: "prescriptions", reportTypes: ["prescription"] },
+      { id: "medication-reviews", reportTypes: ["consultation"] },
+      { id: "dosage-changes", reportTypes: ["prescription"] },
+    ]
+  },
+  {
+    id: "preventive",
+    subcategories: [
+      { id: "vaccinations", reportTypes: ["vaccination"] },
+      { id: "screenings", reportTypes: ["general", "consultation"] },
+      { id: "wellness-visits", reportTypes: ["consultation"] },
+    ]
+  },
+  {
+    id: "emergency",
+    subcategories: [
+      { id: "er-visits", reportTypes: ["general", "consultation"] },
+      { id: "urgent-care", reportTypes: ["consultation"] },
+      { id: "discharge-summaries", reportTypes: ["discharge"] },
+    ]
+  }
+];
+
+const TIME_FILTERS = [
+  { id: "last-7-days", days: 7 },
+  { id: "last-30-days", days: 30 },
+  { id: "last-90-days", days: 90 },
+  { id: "last-year", days: 365 },
+];
+
+const SPECIAL_FILTERS = [
+  { id: "critical-reports", condition: "is_critical" },
+  { id: "processing-errors", condition: "failed_processing" },
+  { id: "missing-data", condition: "incomplete_data" },
+];
+
+// Helper functions for filter matching
+const checkCategoryFilter = (filterId: string, report: any): boolean | null => {
+  for (const category of FILTER_CATEGORIES) {
+    const subcategory = category.subcategories.find(sub => sub.id === filterId);
+    if (subcategory) {
+      return subcategory.reportTypes.includes(report.report_type);
+    }
+  }
+  return null;
+};
+
+const checkTimeFilter = (filterId: string, report: any, now: Date): boolean | null => {
+  const timeFilter = TIME_FILTERS.find(f => f.id === filterId);
+  if (timeFilter) {
+    return isWithinInterval(new Date(report.report_date), {
+      start: startOfDay(subDays(now, timeFilter.days)),
+      end: endOfDay(now)
+    });
+  }
+  return null;
+};
+
+const checkSpecialFilter = (filterId: string, report: any): boolean | null => {
+  const specialFilter = SPECIAL_FILTERS.find(f => f.id === filterId);
+  if (specialFilter) {
+    switch (specialFilter.condition) {
+      case "is_critical":
+        return !!report.is_critical;
+      case "failed_processing":
+        return report.parsing_status === "failed";
+      case "incomplete_data":
+        return !report.physician_name || !report.facility_name || !report.extracted_text;
+      default:
+        return false;
+    }
+  }
+  return null;
+};
+
 export default function Vault() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,43 +166,34 @@ export default function Vault() {
         }
       }
 
-      // Preset filters
+      // Apply active filters
       const now = new Date();
       for (const filterId of activeFilters) {
-        switch (filterId) {
-          case "blood-tests-year":
-            if (report.report_type !== "blood_test" || 
-                !isWithinInterval(new Date(report.report_date), { 
-                  start: startOfDay(subDays(now, 365)), 
-                  end: endOfDay(now) 
-                })) return false;
-            break;
-          case "recent-prescriptions":
-            if (report.report_type !== "prescription" || 
-                !isWithinInterval(new Date(report.report_date), { 
-                  start: startOfDay(subDays(now, 90)), 
-                  end: endOfDay(now) 
-                })) return false;
-            break;
-          case "imaging-year":
-            if (report.report_type !== "radiology" || 
-                !isWithinInterval(new Date(report.report_date), { 
-                  start: startOfDay(subDays(now, 365)), 
-                  end: endOfDay(now) 
-                })) return false;
-            break;
-          case "critical-reports":
-            if (!report.is_critical) return false;
-            break;
-          case "processing-errors":
-            if (report.parsing_status !== "failed") return false;
-            break;
-          case "recent-month":
-            if (!isWithinInterval(new Date(report.report_date), { 
-              start: startOfDay(subDays(now, 30)), 
-              end: endOfDay(now) 
-            })) return false;
-            break;
+        let filterMatched = false;
+
+        // Check medical category filters
+        const categoryFilterMatch = checkCategoryFilter(filterId, report);
+        if (categoryFilterMatch !== null) {
+          if (!categoryFilterMatch) return false;
+          filterMatched = true;
+        }
+
+        // Check time-based filters
+        if (!filterMatched) {
+          const timeFilterMatch = checkTimeFilter(filterId, report, now);
+          if (timeFilterMatch !== null) {
+            if (!timeFilterMatch) return false;
+            filterMatched = true;
+          }
+        }
+
+        // Check special filters
+        if (!filterMatched) {
+          const specialFilterMatch = checkSpecialFilter(filterId, report);
+          if (specialFilterMatch !== null) {
+            if (!specialFilterMatch) return false;
+            filterMatched = true;
+          }
         }
       }
 
