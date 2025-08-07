@@ -8,115 +8,121 @@
 @layer base {
   :root {
     /* Primary Backgrounds */
-    --background: 210 17% 98%;        /* #F8F9FA - Main screen backgrounds */
-    --foreground: 210 11% 15%;        /* #212529 - Dark grey text */
+    --background: 240 5% 11%;         /* #1C1C1E - Dark main backgrounds */
+    --foreground: 0 0% 100%;          /* #FFFFFF - White text */
 
     /* Cards and Secondary Surfaces */
-    --card: 0 0% 100%;                /* #FFFFFF - Cards, modals, blocks */
-    --card-foreground: 210 11% 15%;   /* #212529 - Primary text on cards */
+    --card: 240 4% 16%;               /* Slightly lighter than background */
+    --card-foreground: 0 0% 100%;     /* White text on cards */
 
     /* Popovers and Overlays */
-    --popover: 0 0% 100%;             /* #FFFFFF */
-    --popover-foreground: 210 11% 15%; /* #212529 */
+    --popover: 240 4% 16%;            /* Same as cards */
+    --popover-foreground: 0 0% 100%;  /* White text */
 
     /* Primary Accent - Teal */
-    --primary: 181 29% 42%;           /* #4F8A8B - CTA buttons, links, highlights */
+    --primary: 169 59% 46%;           /* #2FBDA6 - Primary buttons, icons */
     --primary-foreground: 0 0% 100%;  /* White text on primary */
 
     /* Secondary/Muted Elements */
-    --secondary: 210 17% 98%;         /* #F8F9FA - Secondary backgrounds */
-    --secondary-foreground: 208 7% 46%; /* #6C757D - Medium grey text */
+    --secondary: 240 4% 23%;          /* #3A3A3C - Secondary surfaces */
+    --secondary-foreground: 0 0% 100%; /* White text on secondary */
 
-    --muted: 210 17% 96%;             /* Slightly darker than background */
-    --muted-foreground: 208 7% 46%;   /* #6C757D - Secondary text, labels */
+    --muted: 240 4% 18%;              /* Muted backgrounds */
+    --muted-foreground: 0 0% 70%;     /* Light grey text */
 
     /* Accent Elements */
-    --accent: 181 29% 95%;            /* Light teal for hover states */
-    --accent-foreground: 181 29% 42%; /* Primary teal for text on accent */
+    --accent: 240 4% 23%;             /* Same as secondary */
+    --accent-foreground: 0 0% 100%;   /* White text on accent */
+
+    /* Tab Colors */
+    --tab-active: 41 93% 69%;         /* #F9C06D - Active tab background */
+    --tab-active-foreground: 240 5% 11%; /* Dark text on active tab */
+    --tab-inactive: 240 4% 23%;       /* #3A3A3C - Inactive tab background */
+    --tab-inactive-foreground: 0 0% 70%; /* Light grey text on inactive */
 
     /* Status Colors */
-    --destructive: 354 70% 54%;       /* #E63946 - Alert red */
+    --destructive: 0 100% 67%;        /* #FF5C5C - Warning/destructive red */
     --destructive-foreground: 0 0% 100%;
 
-    --success: 86 100% 35%;           /* #38B000 - Success green */
+    --success: 86 100% 35%;           /* Keep existing success green */
     --success-foreground: 0 0% 100%;
 
-    --warning: 27 87% 67%;            /* #F4A261 - Warning amber */
-    --warning-foreground: 210 11% 15%;
+    --warning: 0 100% 67%;            /* #FF5C5C - Same as destructive */
+    --warning-foreground: 0 0% 100%;
 
-    --info: 196 100% 36%;             /* #0077B6 - Info blue */
+    --info: 196 100% 36%;             /* Keep existing info blue */
     --info-foreground: 0 0% 100%;
 
     /* Borders and Inputs */
-    --border: 210 18% 87%;            /* #DEE2E6 - Dividers, borders */
-    --input: 210 18% 87%;             /* #DEE2E6 - Input borders */
-    --ring: 181 29% 42%;              /* Primary teal for focus rings */
+    --border: 240 4% 23%;             /* Dark borders */
+    --input: 240 4% 23%;              /* Dark input borders */
+    --ring: 169 59% 46%;              /* Primary teal for focus rings */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar colors */
+    --sidebar-background: 240 5% 11%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 169 59% 46%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 4% 23%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 240 4% 23%;
+    --sidebar-ring: 169 59% 46%;
   }
 
   .dark {
-    /* Dark mode maintains same medical color principles */
-    --background: 210 11% 10%;
-    --foreground: 210 17% 95%;
+    /* Dark mode - same as light mode since we're using dark theme */
+    --background: 240 5% 11%;
+    --foreground: 0 0% 100%;
 
-    --card: 210 11% 12%;
-    --card-foreground: 210 17% 95%;
+    --card: 240 4% 16%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 210 11% 12%;
-    --popover-foreground: 210 17% 95%;
+    --popover: 240 4% 16%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 181 29% 52%;           /* Slightly brighter teal for dark mode */
-    --primary-foreground: 210 11% 10%;
+    --primary: 169 59% 46%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 11% 15%;
-    --secondary-foreground: 208 7% 60%;
+    --secondary: 240 4% 23%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 11% 18%;
-    --muted-foreground: 208 7% 60%;
+    --muted: 240 4% 18%;
+    --muted-foreground: 0 0% 70%;
 
-    --accent: 181 29% 20%;
-    --accent-foreground: 181 29% 52%;
+    --accent: 240 4% 23%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 354 70% 54%;       /* Same alert red */
+    /* Tab Colors */
+    --tab-active: 41 93% 69%;
+    --tab-active-foreground: 240 5% 11%;
+    --tab-inactive: 240 4% 23%;
+    --tab-inactive-foreground: 0 0% 70%;
+
+    --destructive: 0 100% 67%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 86 100% 40%;           /* Slightly brighter green */
+    --success: 86 100% 35%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 27 87% 67%;            /* Same warning amber */
-    --warning-foreground: 210 11% 15%;
+    --warning: 0 100% 67%;
+    --warning-foreground: 0 0% 100%;
 
-    --info: 196 100% 46%;             /* Brighter info blue */
+    --info: 196 100% 36%;
     --info-foreground: 0 0% 100%;
 
-    --border: 210 18% 25%;
-    --input: 210 18% 25%;
-    --ring: 181 29% 52%;
-    --sidebar-background: 210 11% 12%;
-    --sidebar-foreground: 210 17% 95%;
-    --sidebar-primary: 181 29% 52%;
-    --sidebar-primary-foreground: 210 11% 10%;
-    --sidebar-accent: 210 11% 18%;
-    --sidebar-accent-foreground: 210 17% 95%;
-    --sidebar-border: 210 18% 25%;
-    --sidebar-ring: 181 29% 52%;
+    --border: 240 4% 23%;
+    --input: 240 4% 23%;
+    --ring: 169 59% 46%;
+    --sidebar-background: 240 5% 11%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 169 59% 46%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 4% 23%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 240 4% 23%;
+    --sidebar-ring: 169 59% 46%;
   }
 }
 
