@@ -72,7 +72,7 @@ export default function AuditLogs() {
               <SelectValue placeholder="Filter by action" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Actions</SelectItem>
+              <SelectItem value="all">All Actions</SelectItem>
               <SelectItem value="user_role_change">Role Changes</SelectItem>
               <SelectItem value="user_login">User Login</SelectItem>
               <SelectItem value="content_create">Content Created</SelectItem>

@@ -18,7 +18,7 @@ export const useAuditLogs = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [actionFilter, setActionFilter] = useState('');
+  const [actionFilter, setActionFilter] = useState('all');
   const { toast } = useToast();
 
   const fetchLogs = async () => {
@@ -34,7 +34,7 @@ export const useAuditLogs = () => {
         query = query.or(`action.ilike.%${searchTerm}%,target_type.ilike.%${searchTerm}%,details->>user_name.ilike.%${searchTerm}%`);
       }
 
-      if (actionFilter) {
+      if (actionFilter && actionFilter !== 'all') {
         query = query.eq('action', actionFilter);
       }
 
