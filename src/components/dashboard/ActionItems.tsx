@@ -36,19 +36,19 @@ export function ActionItems() {
           ? JSON.parse(report.parsed_data) 
           : report.parsed_data;
         
-        // Check lab results
+        // Check lab results with enhanced parsing
         if (data?.tests) {
           data.tests.forEach((test: any) => {
-            if (test.status && ['critical', 'high', 'low', 'abnormal'].includes(test.status.toLowerCase())) {
-              const severity = test.status.toLowerCase() === 'critical' ? 'critical' : 
-                              ['high', 'low'].includes(test.status.toLowerCase()) ? 'warning' : 'info';
+            const status = normalizeTestStatus(test.status);
+            if (status && ['critical', 'high', 'low', 'abnormal'].includes(status)) {
+              const severity = determineSeverityLevel(status);
               
               flagged.push({
                 id: `${report.id}-${test.name}`,
                 testName: test.name,
                 value: test.value + (test.unit ? ` ${test.unit}` : ''),
-                status: test.status.toLowerCase(),
-                referenceRange: test.referenceRange,
+                status: status as any,
+                referenceRange: test.referenceRange || test.reference_range || test.refRange,
                 reportId: report.id,
                 reportTitle: report.title || 'Medical Report',
                 reportDate: report.report_date,
@@ -58,17 +58,18 @@ export function ActionItems() {
           });
         }
         
-        // Check vitals
+        // Check vitals with enhanced parsing
         if (data?.vitals) {
           data.vitals.forEach((vital: any) => {
-            if (vital.status && ['critical', 'high', 'low', 'abnormal'].includes(vital.status.toLowerCase())) {
-              const severity = vital.status.toLowerCase() === 'critical' ? 'critical' : 'warning';
+            const status = normalizeTestStatus(vital.status);
+            if (status && ['critical', 'high', 'low', 'abnormal'].includes(status)) {
+              const severity = determineSeverityLevel(status);
               
               flagged.push({
                 id: `${report.id}-${vital.type}`,
                 testName: vital.type.replace(/_/g, ' '),
                 value: vital.value + (vital.unit ? ` ${vital.unit}` : ''),
-                status: vital.status.toLowerCase(),
+                status: status as any,
                 reportId: report.id,
                 reportTitle: report.title || 'Medical Report',
                 reportDate: report.report_date,
@@ -77,8 +78,35 @@ export function ActionItems() {
             }
           });
         }
+        
+        // Enhanced parsing for raw response data
+        if (data?.rawResponse && typeof data.rawResponse === 'string') {
+          const extractedResults = parseAbnormalFromText(data.rawResponse, report);
+          flagged.push(...extractedResults);
+        }
+        
+        // Check sections for general documents
+        if (data?.sections && Array.isArray(data.sections)) {
+          data.sections.forEach((section: any) => {
+            if (section.content) {
+              const extractedResults = parseAbnormalFromText(section.content, report);
+              flagged.push(...extractedResults);
+            }
+          });
+        }
+        
       } catch (error) {
         console.warn('Error parsing action items from report:', error);
+        
+        // Fallback: try to parse the raw data as text
+        if (report.extracted_text) {
+          try {
+            const extractedResults = parseAbnormalFromText(report.extracted_text, report);
+            flagged.push(...extractedResults);
+          } catch (textError) {
+            console.warn('Failed to parse extracted text for action items:', textError);
+          }
+        }
       }
     }
     
@@ -92,6 +120,72 @@ export function ActionItems() {
       })
       .slice(0, 5); // Show top 5 most important
   }, [reports]);
+
+  // Helper functions for enhanced parsing
+  const normalizeTestStatus = (status: string | undefined): string | null => {
+    if (!status) return null;
+    
+    const normalized = status.toLowerCase().trim();
+    if (normalized.includes('critical') || normalized.includes('severe')) return 'critical';
+    if (normalized.includes('high') || normalized.includes('elevated') || normalized.includes('abnormal')) return 'high';
+    if (normalized.includes('low') || normalized.includes('decreased')) return 'low';
+    if (normalized.includes('normal')) return null; // Don't include normal results
+    
+    return null;
+  };
+
+  const determineSeverityLevel = (status: string): 'critical' | 'warning' | 'info' => {
+    switch (status.toLowerCase()) {
+      case 'critical': return 'critical';
+      case 'high':
+      case 'low': return 'warning';
+      default: return 'info';
+    }
+  };
+
+  const parseAbnormalFromText = (text: string, report: any): FlaggedResult[] => {
+    const results: FlaggedResult[] = [];
+    
+    // Simple pattern matching for abnormal values
+    const abnormalPatterns = [
+      /([A-Za-z\s]+)\s*:\s*([0-9.]+)\s*([A-Za-z/%]*).*(high|low|elevated|decreased|abnormal|critical)/gi,
+      /(high|low|elevated|decreased|abnormal|critical).+?([A-Za-z\s]+)\s*:\s*([0-9.]+)/gi
+    ];
+    
+    for (const pattern of abnormalPatterns) {
+      let match;
+      while ((match = pattern.exec(text)) !== null) {
+        try {
+          const isSecondPattern = match[1] && ['high', 'low', 'elevated', 'decreased', 'abnormal', 'critical'].includes(match[1].toLowerCase());
+          
+          const testName = isSecondPattern ? match[2]?.trim() : match[1]?.trim();
+          const value = isSecondPattern ? match[3] : match[2];
+          const unit = isSecondPattern ? '' : match[3] || '';
+          const status = isSecondPattern ? match[1]?.toLowerCase() : match[4]?.toLowerCase();
+          
+          if (testName && value && status) {
+            const normalizedStatus = normalizeTestStatus(status);
+            if (normalizedStatus) {
+              results.push({
+                id: `${report.id}-${testName}-${Date.now()}`,
+                testName: testName,
+                value: value + (unit ? ` ${unit}` : ''),
+                status: normalizedStatus as any,
+                reportId: report.id,
+                reportTitle: report.title || 'Medical Report',
+                reportDate: report.report_date,
+                severity: determineSeverityLevel(normalizedStatus)
+              });
+            }
+          }
+        } catch (parseError) {
+          console.warn('Error parsing abnormal result from text:', parseError);
+        }
+      }
+    }
+    
+    return results;
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {

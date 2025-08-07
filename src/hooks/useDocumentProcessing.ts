@@ -172,10 +172,60 @@ export function useDocumentProcessing() {
     }
   };
 
+  const reprocessAllDocuments = async (): Promise<void> => {
+    try {
+      // Get all documents that need reprocessing
+      const { data: reports, error } = await supabase
+        .from('reports')
+        .select('id, parsing_status')
+        .or('parsing_status.eq.failed,parsed_data.is.null,parsed_data->rawResponse.not.is.null');
+
+      if (error) throw error;
+
+      if (!reports || reports.length === 0) {
+        toast({
+          title: 'No Documents Found',
+          description: 'No documents require reprocessing',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Reprocessing Started',
+        description: `Reprocessing ${reports.length} documents...`,
+      });
+
+      // Process each document
+      for (const report of reports) {
+        try {
+          await reprocessDocument(report.id);
+          // Add small delay to avoid overwhelming the system
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error) {
+          console.error(`Failed to reprocess document ${report.id}:`, error);
+        }
+      }
+
+      toast({
+        title: 'Reprocessing Complete',
+        description: `Finished reprocessing ${reports.length} documents`,
+      });
+
+    } catch (error) {
+      console.error('Bulk reprocessing error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to start bulk reprocessing',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return {
     processDocument,
     checkDuplicateDocument,
     reprocessDocument,
+    reprocessAllDocuments,
     isProcessing,
     retryCount
   };

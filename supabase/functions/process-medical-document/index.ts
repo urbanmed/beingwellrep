@@ -7,28 +7,277 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const SYSTEM_PROMPT = `You are a medical document analysis AI that extracts structured data from medical reports, lab results, prescriptions, and other healthcare documents. Along with extracting medical information, you must also generate an intelligent document name based on the content. Return valid JSON that includes both the extracted data AND a suggested document name.`;
+const SYSTEM_PROMPT = `You are a medical document analysis AI that extracts structured data from medical reports, lab results, prescriptions, and other healthcare documents. 
+
+CRITICAL: You MUST return ONLY valid JSON. No markdown, no explanations, no additional text - just pure JSON.
+
+Your response must include:
+1. Structured medical data with proper status determination
+2. A suggestedName field for intelligent document naming
+
+For each test/measurement, you MUST determine status by comparing values to reference ranges:
+- "critical" for values severely outside normal ranges (>2x upper limit or <50% lower limit)
+- "high" for values above normal range
+- "low" for values below normal range  
+- "normal" for values within reference range
+
+Return valid JSON only.`;
 
 // Enhanced prompts with intelligent naming
 const getPromptForReportType = (reportType: string): string => {
+  const baseInstructions = `CRITICAL: Return ONLY valid JSON. No markdown formatting, no code blocks, no explanations.
+
+For each test/measurement, determine status by comparing value to reference range:
+- "critical": >2x upper limit or <50% lower limit 
+- "high": above normal range
+- "low": below normal range
+- "normal": within normal range
+
+Required JSON structure:`;
+
   switch (reportType.toLowerCase()) {
     case 'lab_results':
     case 'lab':
-      return `Extract structured data from this lab results document with proper hierarchical organization. You MUST include a "suggestedName" field following the pattern "Lab Results - [Primary Test/Panel] - [Date]" (e.g., "Lab Results - Complete Blood Count - 2024-01-15"). Return valid JSON only.`;
+      return `${baseInstructions}
+{
+  "reportType": "lab",
+  "suggestedName": "Lab Results - [Primary Test/Panel] - [Date]",
+  "patient": {"name": "", "dateOfBirth": "", "id": ""},
+  "tests": [
+    {
+      "name": "Test Name",
+      "value": "numeric_value",
+      "unit": "unit",
+      "referenceRange": "low-high",
+      "status": "normal|high|low|critical",
+      "notes": ""
+    }
+  ],
+  "orderingPhysician": "",
+  "facility": "",
+  "collectionDate": "",
+  "reportDate": "",
+  "confidence": 0.9
+}`;
     case 'prescription':
     case 'pharmacy':
-      return `Extract structured data from this prescription document. You MUST include a "suggestedName" field following the pattern "Prescription - [Primary Medication] - [Date]" (e.g., "Prescription - Lisinopril - 2024-01-15"). Return valid JSON only.`;
-    case 'radiology':
-    case 'imaging':
-    case 'xray':
-    case 'mri':
-    case 'ct':
-      return `Extract structured data from this radiology report. You MUST include a "suggestedName" field following the pattern "[Study Type] - [Body Part] - [Date]" (e.g., "CT Scan - Chest - 2024-01-15"). Return valid JSON only.`;
+      return `${baseInstructions}
+{
+  "reportType": "prescription",
+  "suggestedName": "Prescription - [Primary Medication] - [Date]",
+  "patient": {"name": "", "dateOfBirth": "", "id": ""},
+  "medications": [
+    {
+      "name": "Medication Name",
+      "dosage": "",
+      "frequency": "",
+      "duration": "",
+      "instructions": "",
+      "quantity": "",
+      "refills": 0
+    }
+  ],
+  "prescriber": "",
+  "pharmacy": "",
+  "prescriptionDate": "",
+  "confidence": 0.9
+}`;
     case 'vitals':
     case 'vital_signs':
-      return `Extract structured data from this vital signs document. You MUST include a "suggestedName" field following the pattern "Vital Signs - [Primary Measurement] - [Date]" (e.g., "Vital Signs - Blood Pressure - 2024-01-15"). Return valid JSON only.`;
+      return `${baseInstructions}
+{
+  "reportType": "vitals",
+  "suggestedName": "Vital Signs - [Primary Measurement] - [Date]",
+  "patient": {"name": "", "dateOfBirth": "", "id": ""},
+  "vitals": [
+    {
+      "type": "blood_pressure|heart_rate|temperature|respiratory_rate|oxygen_saturation|weight|height|bmi",
+      "value": "numeric_value",
+      "unit": "",
+      "status": "normal|high|low|critical",
+      "timestamp": "",
+      "notes": ""
+    }
+  ],
+  "recordedBy": "",
+  "facility": "",
+  "recordDate": "",
+  "confidence": 0.9
+}`;
     default:
-      return `Extract structured data from this general medical document. You MUST include a "suggestedName" field following the pattern "[Document Type] - [Provider/Facility] - [Date]" (e.g., "Medical Record - Dr. Smith - 2024-01-15"). Return valid JSON only.`;
+      return `${baseInstructions}
+{
+  "reportType": "general",
+  "suggestedName": "[Document Type] - [Provider/Facility] - [Date]",
+  "patient": {"name": "", "dateOfBirth": "", "id": ""},
+  "sections": [
+    {
+      "title": "Section Title",
+      "content": "Content text",
+      "category": ""
+    }
+  ],
+  "provider": "",
+  "facility": "",
+  "visitDate": "",
+  "reportDate": "",
+  "confidence": 0.9
+}`;
+  }
+};
+
+// Enhanced status determination logic
+const enhanceStatusDetermination = (data: any): any => {
+  if (!data) return data;
+  
+  // Enhance lab tests
+  if (data.tests && Array.isArray(data.tests)) {
+    data.tests = data.tests.map((test: any) => {
+      if (!test.status && test.value && test.referenceRange) {
+        test.status = determineTestStatus(test.value, test.referenceRange, test.unit);
+      }
+      return test;
+    });
+  }
+  
+  // Enhance vitals
+  if (data.vitals && Array.isArray(data.vitals)) {
+    data.vitals = data.vitals.map((vital: any) => {
+      if (!vital.status && vital.value && vital.type) {
+        vital.status = determineVitalStatus(vital.type, vital.value, vital.unit);
+      }
+      return vital;
+    });
+  }
+  
+  return data;
+};
+
+// Status determination for test values
+const determineTestStatus = (value: string, referenceRange: string, unit?: string): string => {
+  try {
+    const numValue = parseFloat(value.replace(/[^\d.-]/g, ''));
+    if (isNaN(numValue)) return 'normal';
+    
+    // Parse reference range (e.g., "70-100", "<5", ">10", "70 - 100")
+    const range = referenceRange.toLowerCase().trim();
+    
+    if (range.includes('-')) {
+      const parts = range.split('-').map(p => parseFloat(p.trim().replace(/[^\d.-]/g, '')));
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        const [low, high] = parts;
+        if (numValue < low * 0.5) return 'critical'; // <50% of lower limit
+        if (numValue > high * 2) return 'critical';   // >200% of upper limit
+        if (numValue < low) return 'low';
+        if (numValue > high) return 'high';
+        return 'normal';
+      }
+    } else if (range.includes('<')) {
+      const limit = parseFloat(range.replace(/[<\s]/g, ''));
+      if (!isNaN(limit)) {
+        if (numValue >= limit * 2) return 'critical';
+        if (numValue >= limit) return 'high';
+        return 'normal';
+      }
+    } else if (range.includes('>')) {
+      const limit = parseFloat(range.replace(/[>\s]/g, ''));
+      if (!isNaN(limit)) {
+        if (numValue <= limit * 0.5) return 'critical';
+        if (numValue <= limit) return 'low';
+        return 'normal';
+      }
+    }
+    
+    return 'normal';
+  } catch (error) {
+    console.warn('Error determining test status:', error);
+    return 'normal';
+  }
+};
+
+// Status determination for vital signs
+const determineVitalStatus = (type: string, value: string, unit?: string): string => {
+  try {
+    const numValue = parseFloat(value.replace(/[^\d.-]/g, ''));
+    if (isNaN(numValue)) return 'normal';
+    
+    const vitalType = type.toLowerCase();
+    
+    // Standard vital sign ranges
+    switch (vitalType) {
+      case 'heart_rate':
+      case 'pulse':
+        if (numValue < 40) return 'critical';
+        if (numValue > 140) return 'critical';
+        if (numValue < 60 || numValue > 100) return 'high';
+        return 'normal';
+      
+      case 'blood_pressure':
+      case 'systolic':
+        if (numValue > 180) return 'critical';
+        if (numValue < 70) return 'critical';
+        if (numValue > 140 || numValue < 90) return 'high';
+        return 'normal';
+      
+      case 'temperature':
+        if (unit?.toLowerCase().includes('f')) {
+          if (numValue > 104 || numValue < 95) return 'critical';
+          if (numValue > 100.4 || numValue < 97) return 'high';
+        } else {
+          if (numValue > 40 || numValue < 35) return 'critical';
+          if (numValue > 38 || numValue < 36) return 'high';
+        }
+        return 'normal';
+      
+      case 'respiratory_rate':
+        if (numValue < 8 || numValue > 30) return 'critical';
+        if (numValue < 12 || numValue > 20) return 'high';
+        return 'normal';
+      
+      case 'oxygen_saturation':
+        if (numValue < 88) return 'critical';
+        if (numValue < 95) return 'high';
+        return 'normal';
+      
+      default:
+        return 'normal';
+    }
+  } catch (error) {
+    console.warn('Error determining vital status:', error);
+    return 'normal';
+  }
+};
+
+// Fallback text parsing for when JSON parsing fails
+const extractDataFromTextResponse = (text: string, reportType: string): any => {
+  try {
+    // Try to find JSON-like content in the text
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        console.warn('Failed to parse extracted JSON:', e);
+      }
+    }
+    
+    // Create a basic structure with raw response
+    return {
+      reportType: reportType || 'general',
+      rawResponse: text,
+      extractedAt: new Date().toISOString(),
+      confidence: 0.3, // Low confidence since we couldn't parse properly
+      parseError: true
+    };
+  } catch (error) {
+    console.error('Error in fallback text extraction:', error);
+    return {
+      reportType: reportType || 'general',
+      rawResponse: text,
+      extractedAt: new Date().toISOString(),
+      confidence: 0.1,
+      parseError: true
+    };
   }
 };
 
@@ -326,13 +575,35 @@ serve(async (req) => {
     let suggestedName = null
 
     try {
-      parsedData = JSON.parse(aiResponse)
-      confidence = parsedData.confidence || 0.8
-      suggestedName = parsedData.suggestedName
+      // Clean the response to remove potential markdown formatting
+      let cleanedResponse = aiResponse.trim();
+      
+      // Remove markdown code blocks if present
+      if (cleanedResponse.startsWith('```json')) {
+        cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanedResponse.startsWith('```')) {
+        cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      // Remove any leading/trailing whitespace again
+      cleanedResponse = cleanedResponse.trim();
+      
+      console.log('Attempting to parse cleaned response:', cleanedResponse.substring(0, 200) + '...');
+      
+      parsedData = JSON.parse(cleanedResponse);
+      confidence = parsedData.confidence || 0.8;
+      suggestedName = parsedData.suggestedName;
+      
+      // Enhance status determination if missing
+      parsedData = enhanceStatusDetermination(parsedData);
+      
     } catch (parseError) {
-      console.warn('Failed to parse AI response as JSON, storing as text')
-      // Store the raw response if JSON parsing fails
-      parsedData = { rawResponse: aiResponse }
+      console.error('Failed to parse AI response as JSON:', parseError);
+      console.log('Raw AI response:', aiResponse);
+      
+      // Try to extract meaningful data from the text response
+      parsedData = extractDataFromTextResponse(aiResponse, report.report_type);
+      console.log('Fallback parsing result:', parsedData);
     }
 
     // Generate intelligent document name
