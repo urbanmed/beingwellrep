@@ -165,7 +165,7 @@ export default function Vault() {
                 placeholder="Search documents by title, type, physician, or facility..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 text-xs placeholder:text-xs"
               />
             </div>
             {selectedForDeletion.length > 0 && (

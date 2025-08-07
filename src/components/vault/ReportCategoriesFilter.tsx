@@ -86,7 +86,7 @@ export function ReportCategoriesFilter({
         <PopoverTrigger asChild>
           <Button 
             variant="outline" 
-            className="h-9 gap-2"
+            className="h-9 gap-2 text-xs"
           >
             <Filter className="h-4 w-4" />
             Report Categories
