@@ -1,13 +1,10 @@
 import { useMemo } from "react";
-import { format, isWithinInterval, subDays, startOfDay, endOfDay, addDays } from "date-fns";
+import { isWithinInterval, subDays, startOfDay, endOfDay } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TooltipInfo } from "@/components/ui/tooltip-info";
 import { 
-  Activity, 
-  TrendingUp, 
-  TrendingDown, 
   AlertTriangle, 
   Calendar, 
   Target,
@@ -99,30 +96,13 @@ export function EnhancedTrendsOverview({ reports, onNavigateToUpload }: Enhanced
   const analytics = useMemo(() => {
     const now = new Date();
     
-    // Current month data
+    // Current month data for critical document analysis
     const currentMonth = reports.filter(r => 
       isWithinInterval(new Date(r.report_date), { 
         start: startOfDay(subDays(now, 30)), 
         end: endOfDay(now) 
       })
     );
-    
-    // Previous month data
-    const previousMonth = reports.filter(r => 
-      isWithinInterval(new Date(r.report_date), { 
-        start: startOfDay(subDays(now, 60)), 
-        end: startOfDay(subDays(now, 30))
-      })
-    );
-
-    // Calculate trends
-    const trends = {
-      total: currentMonth.length - previousMonth.length,
-      bloodTests: currentMonth.filter(r => r.report_type === 'blood_test').length - 
-                  previousMonth.filter(r => r.report_type === 'blood_test').length,
-      prescriptions: currentMonth.filter(r => r.report_type === 'prescription').length - 
-                    previousMonth.filter(r => r.report_type === 'prescription').length,
-    };
 
     // Analyze critical documents
     const criticalDocs = currentMonth.filter(r => r.is_critical);
@@ -143,110 +123,18 @@ export function EnhancedTrendsOverview({ reports, onNavigateToUpload }: Enhanced
     const recommendations = getTestRecommendations(reports);
 
     return {
-      trends,
       criticalDocs,
       failedProcessing,
       missingData,
       typeDistribution,
       missingTypes,
-      recommendations,
-      currentMonth,
-      previousMonth
+      recommendations
     };
   }, [reports]);
 
-  const getTrendIcon = (value: number) => {
-    if (value > 0) return <TrendingUp className="h-3 w-3 text-success" />;
-    if (value < 0) return <TrendingDown className="h-3 w-3 text-destructive" />;
-    return null;
-  };
-
-  const formatTrendText = (current: number, change: number) => {
-    if (change === 0) return "No change from last month";
-    const direction = change > 0 ? "increase" : "decrease";
-    return `${Math.abs(change)} ${direction} from last month`;
-  };
 
   return (
     <div className="space-y-4">
-      {/* Main Trends Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Activity className="h-5 w-5 text-primary" />
-            <span>Health Activity Overview</span>
-            <TooltipInfo content="Overview of your recent health document activity and trends compared to the previous month." />
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Total Activity */}
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Activity className="h-4 w-4 text-primary" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center space-x-1">
-                  <span className="text-sm font-medium">Total Activity</span>
-                  {getTrendIcon(analytics.trends.total)}
-                  <TooltipInfo content="Total number of documents added this month compared to last month." />
-                </div>
-                <div className="text-2xl font-bold text-primary">{analytics.currentMonth.length}</div>
-                <div className="text-xs text-muted-foreground">
-                  {formatTrendText(analytics.currentMonth.length, analytics.trends.total)}
-                </div>
-              </div>
-            </div>
-            
-            {/* Blood Tests */}
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
-                <span className="text-sm">🩸</span>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center space-x-1">
-                  <span className="text-sm font-medium">Blood Tests</span>
-                  {getTrendIcon(analytics.trends.bloodTests)}
-                  <TooltipInfo content="Number of blood test reports added this month." />
-                </div>
-                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                  {analytics.currentMonth.filter(r => r.report_type === 'blood_test').length}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {formatTrendText(
-                    analytics.currentMonth.filter(r => r.report_type === 'blood_test').length, 
-                    analytics.trends.bloodTests
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            {/* Prescriptions */}
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                <span className="text-sm">💊</span>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center space-x-1">
-                  <span className="text-sm font-medium">Prescriptions</span>
-                  {getTrendIcon(analytics.trends.prescriptions)}
-                  <TooltipInfo content="Number of prescription documents added this month." />
-                </div>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {analytics.currentMonth.filter(r => r.report_type === 'prescription').length}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {formatTrendText(
-                    analytics.currentMonth.filter(r => r.report_type === 'prescription').length, 
-                    analytics.trends.prescriptions
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Insights and Recommendations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Health Insights */}
