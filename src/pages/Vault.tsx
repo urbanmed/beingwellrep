@@ -10,12 +10,7 @@ import { DeleteConfirmDialog } from "@/components/reports/DeleteConfirmDialog";
 import { TimelineFilters } from "@/components/vault/TimelineFilters";
 import { TimelineView } from "@/components/vault/TimelineView";
 import { GridView } from "@/components/vault/GridView";
-import { ListView } from "@/components/vault/ListView";
-import { CardView } from "@/components/vault/CardView";
 import { DocumentProcessing } from "@/components/vault/DocumentProcessing";
-import { SmartSummary } from "@/components/vault/SmartSummary";
-import { EnhancedUploadCTA } from "@/components/vault/EnhancedUploadCTA";
-import { ViewModeSelector } from "@/components/vault/ViewModeSelector";
 
 import { useNavigate } from "react-router-dom";
 import { isWithinInterval, startOfDay, endOfDay, subDays, format } from "date-fns";
@@ -142,30 +137,12 @@ export default function Vault() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedForDeletion, setSelectedForDeletion] = useState<string[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [viewMode, setViewMode] = useState<"timeline" | "grid" | "list" | "card">("timeline");
+  const [viewMode, setViewMode] = useState<"timeline" | "grid">("timeline");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
   const [activeTab, setActiveTab] = useState<"documents" | "processing">("documents");
   
   const { reports, loading, deleteMultipleReports } = useReports();
-
-  // Calculate summary stats
-  const summaryStats = useMemo(() => {
-    const completedReports = reports.filter(r => r.parsing_status === 'completed').length;
-    const criticalReports = reports.filter(r => r.is_critical).length;
-    const recentUploads = reports.filter(r => {
-      const uploadDate = new Date(r.created_at);
-      const weekAgo = subDays(new Date(), 7);
-      return uploadDate >= weekAgo;
-    }).length;
-
-    return {
-      total: reports.length,
-      completed: completedReports,
-      critical: criticalReports,
-      recent: recentUploads
-    };
-  }, [reports]);
 
   const filteredReports = useMemo(() => {
     return reports.filter(report => {
@@ -255,50 +232,6 @@ export default function Vault() {
     setSearchQuery("");
   };
 
-  const renderDocumentsView = () => {
-    switch (viewMode) {
-      case "timeline":
-        return (
-          <TimelineView
-            reports={filteredReports}
-            selectedReports={selectedForDeletion}
-            onSelectReport={handleSelectReport}
-            onNavigateToReport={(reportId) => navigate(`/reports/${reportId}`)}
-            onNavigateToUpload={() => navigate("/upload")}
-          />
-        );
-      case "grid":
-        return (
-          <GridView
-            reports={filteredReports}
-            selectedReports={selectedForDeletion}
-            onSelectReport={handleSelectReport}
-            onNavigateToReport={(reportId) => navigate(`/reports/${reportId}`)}
-          />
-        );
-      case "list":
-        return (
-          <ListView
-            reports={filteredReports}
-            selectedReports={selectedForDeletion}
-            onSelectReport={handleSelectReport}
-            onNavigateToReport={(reportId) => navigate(`/reports/${reportId}`)}
-          />
-        );
-      case "card":
-        return (
-          <CardView
-            reports={filteredReports}
-            selectedReports={selectedForDeletion}
-            onSelectReport={handleSelectReport}
-            onNavigateToReport={(reportId) => navigate(`/reports/${reportId}`)}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -310,18 +243,20 @@ export default function Vault() {
     );
   }
 
+
   return (
     <div className="container mx-auto px-4 py-8 pb-20">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <FolderOpen className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="medical-heading text-2xl">Health Vault</h1>
-            <p className="medical-label">Your comprehensive digital health record</p>
-          </div>
         </div>
         <div className="flex items-center space-x-2">
+          {activeTab === "documents" && (
+            <Button variant="outline" onClick={() => setViewMode(viewMode === "timeline" ? "grid" : "timeline")}>
+              {viewMode === "timeline" ? <Grid className="h-4 w-4" /> : <Activity className="h-4 w-4" />}
+            </Button>
+          )}
           <Button onClick={() => navigate("/upload")}>
             <Plus className="h-4 w-4 mr-2" />
             Add Documents
@@ -329,115 +264,135 @@ export default function Vault() {
         </div>
       </div>
 
-      {/* Smart Summary */}
-      <SmartSummary
-        totalReports={summaryStats.total}
-        criticalReports={summaryStats.critical}
-        recentUploads={summaryStats.recent}
-        completedReports={summaryStats.completed}
-      />
-
-      {/* Enhanced Upload CTA */}
-      <EnhancedUploadCTA totalReports={summaryStats.total} />
-
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "documents" | "processing")} className="mb-6">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="documents">Documents ({summaryStats.total})</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="processing">Processed documents</TabsTrigger>
         </TabsList>
 
         <TabsContent value="documents" className="mt-6">
-          {reports.length === 0 ? (
-            <Card className="text-center py-12">
+
+
+      {reports.length === 0 ? (
+        <Card className="text-center py-12">
+          <CardContent>
+            <FolderOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <CardTitle className="mb-2">Your Vault is Empty</CardTitle>
+            <CardDescription className="mb-6 max-w-md mx-auto">
+              Start building your digital health record by uploading your first medical document.
+            </CardDescription>
+            <Button onClick={() => navigate("/upload")} size="lg">
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Your First Document
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+
+          {/* Search Bar */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search documents by title, type, physician, or facility..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            {selectedForDeletion.length > 0 && (
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Selected ({selectedForDeletion.length})
+              </Button>
+            )}
+          </div>
+
+          {/* Filters, View Toggle, and Selection Controls */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            {/* Smart Filters */}
+            <TimelineFilters
+              activeFilters={activeFilters}
+              onFilterChange={setActiveFilters}
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
+              onClearAll={handleClearAllFilters}
+            />
+
+            {/* View Toggle and Selection Controls */}
+            <div className="flex items-center gap-6">
+              <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "timeline" | "grid")}>
+                <TabsList>
+                  <TabsTrigger value="timeline" className="flex items-center space-x-2">
+                    <Activity className="h-4 w-4" />
+                    <span>Timeline View</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="grid" className="flex items-center space-x-2">
+                    <Grid className="h-4 w-4" />
+                    <span>Grid View</span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              {/* Selection Controls */}
+              {filteredReports.length > 0 && (
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={selectedForDeletion.length === filteredReports.length && filteredReports.length > 0}
+                      onCheckedChange={handleSelectAll}
+                    />
+                    Select All
+                  </label>
+                  {selectedForDeletion.length > 0 && (
+                    <span className="text-destructive">{selectedForDeletion.length} selected</span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "timeline" | "grid")}>
+
+            <TabsContent value="timeline" className="mt-6">
+              <TimelineView
+                reports={filteredReports}
+                selectedReports={selectedForDeletion}
+                onSelectReport={handleSelectReport}
+                onNavigateToReport={(reportId) => navigate(`/reports/${reportId}`)}
+                onNavigateToUpload={() => navigate("/upload")}
+              />
+            </TabsContent>
+
+            <TabsContent value="grid" className="mt-6">
+              <GridView
+                reports={filteredReports}
+                selectedReports={selectedForDeletion}
+                onSelectReport={handleSelectReport}
+                onNavigateToReport={(reportId) => navigate(`/reports/${reportId}`)}
+              />
+            </TabsContent>
+          </Tabs>
+
+          {filteredReports.length === 0 && (
+            <Card className="text-center py-8">
               <CardContent>
-                <FolderOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <CardTitle className="mb-2">Your Vault is Empty</CardTitle>
-                <CardDescription className="mb-6 max-w-md mx-auto">
-                  Start building your digital health record by uploading your first medical document.
-                </CardDescription>
-                <Button onClick={() => navigate("/upload")} size="lg">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Your First Document
+                <Filter className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground">No documents found matching your filters.</p>
+                <Button variant="outline" className="mt-4" onClick={handleClearAllFilters}>
+                  Clear all filters
                 </Button>
               </CardContent>
             </Card>
-          ) : (
-            <div className="space-y-6">
-              {/* Search Bar */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search documents by title, type, physician, or facility..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                {selectedForDeletion.length > 0 && (
-                  <Button
-                    variant="destructive"
-                    onClick={() => setShowDeleteDialog(true)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Selected ({selectedForDeletion.length})
-                  </Button>
-                )}
-              </div>
-
-              {/* Filters and View Controls */}
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                {/* Smart Filters */}
-                <TimelineFilters
-                  activeFilters={activeFilters}
-                  onFilterChange={setActiveFilters}
-                  dateRange={dateRange}
-                  onDateRangeChange={setDateRange}
-                  onClearAll={handleClearAllFilters}
-                />
-
-                {/* View Mode and Selection Controls */}
-                <div className="flex items-center gap-6">
-                  <ViewModeSelector
-                    viewMode={viewMode}
-                    onViewModeChange={setViewMode}
-                  />
-
-                  {/* Selection Controls */}
-                  {filteredReports.length > 0 && (
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <Checkbox
-                          checked={selectedForDeletion.length === filteredReports.length && filteredReports.length > 0}
-                          onCheckedChange={handleSelectAll}
-                        />
-                        Select All
-                      </label>
-                      {selectedForDeletion.length > 0 && (
-                        <span className="text-destructive">{selectedForDeletion.length} selected</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Document Views */}
-              {renderDocumentsView()}
-
-              {filteredReports.length === 0 && (
-                <Card className="text-center py-8">
-                  <CardContent>
-                    <Filter className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-muted-foreground">No documents found matching your filters.</p>
-                    <Button variant="outline" className="mt-4" onClick={handleClearAllFilters}>
-                      Clear all filters
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
           )}
+        </div>
+      )}
         </TabsContent>
 
         <TabsContent value="processing" className="mt-6">
