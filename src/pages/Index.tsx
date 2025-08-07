@@ -19,13 +19,13 @@ const Index = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="cursor-pointer hover:bg-destructive/10 border-destructive/20 transition-colors" onClick={() => {
+        <Card className="cursor-pointer bg-destructive hover:bg-destructive/90 border-destructive transition-colors" onClick={() => {
           // Placeholder SOS functionality
           alert("Emergency contacts feature coming soon!");
         }}>
           <CardContent className="pt-6 text-center">
-            <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
-            <h3 className="font-semibold text-destructive">SOS</h3>
+            <AlertTriangle className="h-8 w-8 text-destructive-foreground mx-auto mb-2" />
+            <h3 className="font-semibold text-destructive-foreground">SOS</h3>
           </CardContent>
         </Card>
 
