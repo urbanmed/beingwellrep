@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Filter, Clock, Plus, Trash2, FolderOpen, Upload, Grid, List, Activity } from "lucide-react";
+import { Search, Clock, Plus, Trash2, FolderOpen, Upload, Filter } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,130 +7,33 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useReports } from "@/hooks/useReports";
 import { DeleteConfirmDialog } from "@/components/reports/DeleteConfirmDialog";
-import { TimelineFilters } from "@/components/vault/TimelineFilters";
-import { TimelineView } from "@/components/vault/TimelineView";
-import { GridView } from "@/components/vault/GridView";
+import { ReportCategoriesFilter } from "@/components/vault/ReportCategoriesFilter";
+import { ViewModeSelector, ViewMode } from "@/components/vault/ViewModeSelector";
+import { ReportListView } from "@/components/vault/ReportListView";
+import { ReportCardView } from "@/components/vault/ReportCardView";
+import { ReportTimelineView } from "@/components/vault/ReportTimelineView";
 import { DocumentProcessing } from "@/components/vault/DocumentProcessing";
 import { VaultSummary } from "@/components/vault/VaultSummary";
 
 import { useNavigate } from "react-router-dom";
 import { isWithinInterval, startOfDay, endOfDay, subDays, format } from "date-fns";
 
-// Filter mapping for the new categorized system
-const FILTER_CATEGORIES = [
-  {
-    id: "lab-work",
-    subcategories: [
-      { id: "blood-tests", reportTypes: ["blood_test", "lab_results"] },
-      { id: "urinalysis", reportTypes: ["lab_results"] },
-      { id: "hormone-tests", reportTypes: ["lab_results"] },
-      { id: "allergy-testing", reportTypes: ["allergy"] },
-    ]
-  },
-  {
-    id: "imaging",
-    subcategories: [
-      { id: "xrays", reportTypes: ["radiology"] },
-      { id: "mri-scans", reportTypes: ["radiology"] },
-      { id: "ct-scans", reportTypes: ["radiology"] },
-      { id: "ultrasounds", reportTypes: ["radiology"] },
-      { id: "mammograms", reportTypes: ["radiology"] },
-    ]
-  },
-  {
-    id: "procedures",
-    subcategories: [
-      { id: "cardiac-procedures", reportTypes: ["procedure"] },
-      { id: "surgical-reports", reportTypes: ["procedure"] },
-      { id: "endoscopy", reportTypes: ["procedure"] },
-      { id: "biopsy", reportTypes: ["procedure", "pathology"] },
-    ]
-  },
-  {
-    id: "consultations",
-    subcategories: [
-      { id: "specialist-consults", reportTypes: ["consultation"] },
-      { id: "follow-up-notes", reportTypes: ["consultation"] },
-      { id: "treatment-plans", reportTypes: ["consultation"] },
-      { id: "referrals", reportTypes: ["consultation"] },
-    ]
-  },
-  {
-    id: "medications",
-    subcategories: [
-      { id: "prescriptions", reportTypes: ["prescription"] },
-      { id: "medication-reviews", reportTypes: ["consultation"] },
-      { id: "dosage-changes", reportTypes: ["prescription"] },
-    ]
-  },
-  {
-    id: "preventive",
-    subcategories: [
-      { id: "vaccinations", reportTypes: ["vaccination"] },
-      { id: "screenings", reportTypes: ["general", "consultation"] },
-      { id: "wellness-visits", reportTypes: ["consultation"] },
-    ]
-  },
-  {
-    id: "emergency",
-    subcategories: [
-      { id: "er-visits", reportTypes: ["general", "consultation"] },
-      { id: "urgent-care", reportTypes: ["consultation"] },
-      { id: "discharge-summaries", reportTypes: ["discharge"] },
-    ]
-  }
-];
-
-const TIME_FILTERS = [
-  { id: "last-7-days", days: 7 },
-  { id: "last-30-days", days: 30 },
-  { id: "last-90-days", days: 90 },
-  { id: "last-year", days: 365 },
-];
-
-const SPECIAL_FILTERS = [
-  { id: "critical-reports", condition: "is_critical" },
-  { id: "processing-errors", condition: "failed_processing" },
-  { id: "missing-data", condition: "incomplete_data" },
-];
-
-// Helper functions for filter matching
-const checkCategoryFilter = (filterId: string, report: any): boolean | null => {
-  for (const category of FILTER_CATEGORIES) {
-    const subcategory = category.subcategories.find(sub => sub.id === filterId);
-    if (subcategory) {
-      return subcategory.reportTypes.includes(report.report_type);
-    }
-  }
-  return null;
+// Health categories mapping for filtering
+const HEALTH_CATEGORIES_MAP = {
+  "blood-tests": ["blood_test", "lab_results"],
+  "genetic-reports": ["genetic", "pathology"],
+  "thyroid-hormone": ["lab_results", "endocrine"],
+  "heart-cardiac": ["cardiology", "procedure"],
+  "neurology": ["neurology", "radiology"],
+  "nutrition-diet": ["nutrition", "consultation"],
+  "microbiome-gut": ["microbiome", "lab_results"],
+  "other-misc": ["general", "consultation", "discharge"]
 };
 
-const checkTimeFilter = (filterId: string, report: any, now: Date): boolean | null => {
-  const timeFilter = TIME_FILTERS.find(f => f.id === filterId);
-  if (timeFilter) {
-    return isWithinInterval(new Date(report.report_date), {
-      start: startOfDay(subDays(now, timeFilter.days)),
-      end: endOfDay(now)
-    });
-  }
-  return null;
-};
-
-const checkSpecialFilter = (filterId: string, report: any): boolean | null => {
-  const specialFilter = SPECIAL_FILTERS.find(f => f.id === filterId);
-  if (specialFilter) {
-    switch (specialFilter.condition) {
-      case "is_critical":
-        return !!report.is_critical;
-      case "failed_processing":
-        return report.parsing_status === "failed";
-      case "incomplete_data":
-        return !report.physician_name || !report.facility_name || !report.extracted_text;
-      default:
-        return false;
-    }
-  }
-  return null;
+// Helper function for category filtering
+const checkCategoryFilter = (categoryId: string, report: any): boolean => {
+  const reportTypes = HEALTH_CATEGORIES_MAP[categoryId as keyof typeof HEALTH_CATEGORIES_MAP];
+  return reportTypes ? reportTypes.includes(report.report_type) : false;
 };
 
 export default function Vault() {
@@ -138,9 +41,8 @@ export default function Vault() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedForDeletion, setSelectedForDeletion] = useState<string[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [viewMode, setViewMode] = useState<"timeline" | "grid">("timeline");
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"documents" | "processing">("documents");
   
   const { reports, loading, deleteMultipleReports } = useReports();
@@ -156,54 +58,17 @@ export default function Vault() {
 
       if (!matchesSearch) return false;
 
-      // Date range filter
-      if (dateRange.start || dateRange.end) {
-        const reportDate = new Date(report.report_date);
-        if (dateRange.start && dateRange.end) {
-          if (!isWithinInterval(reportDate, { start: startOfDay(dateRange.start), end: endOfDay(dateRange.end) })) {
-            return false;
-          }
-        } else if (dateRange.start) {
-          if (reportDate < startOfDay(dateRange.start)) return false;
-        } else if (dateRange.end) {
-          if (reportDate > endOfDay(dateRange.end)) return false;
-        }
-      }
-
-      // Apply active filters
-      const now = new Date();
-      for (const filterId of activeFilters) {
-        let filterMatched = false;
-
-        // Check medical category filters
-        const categoryFilterMatch = checkCategoryFilter(filterId, report);
-        if (categoryFilterMatch !== null) {
-          if (!categoryFilterMatch) return false;
-          filterMatched = true;
-        }
-
-        // Check time-based filters
-        if (!filterMatched) {
-          const timeFilterMatch = checkTimeFilter(filterId, report, now);
-          if (timeFilterMatch !== null) {
-            if (!timeFilterMatch) return false;
-            filterMatched = true;
-          }
-        }
-
-        // Check special filters
-        if (!filterMatched) {
-          const specialFilterMatch = checkSpecialFilter(filterId, report);
-          if (specialFilterMatch !== null) {
-            if (!specialFilterMatch) return false;
-            filterMatched = true;
-          }
-        }
+      // Category filter
+      if (selectedCategories.length > 0) {
+        const matchesCategory = selectedCategories.some(categoryId => 
+          checkCategoryFilter(categoryId, report)
+        );
+        if (!matchesCategory) return false;
       }
 
       return true;
     });
-  }, [reports, searchQuery, activeFilters, dateRange]);
+  }, [reports, searchQuery, selectedCategories]);
 
   const handleSelectReport = (reportId: string, checked: boolean) => {
     if (checked) {
@@ -228,8 +93,7 @@ export default function Vault() {
   };
 
   const handleClearAllFilters = () => {
-    setActiveFilters([]);
-    setDateRange({ start: null, end: null });
+    setSelectedCategories([]);
     setSearchQuery("");
   };
 
@@ -251,13 +115,9 @@ export default function Vault() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <FolderOpen className="h-8 w-8 text-primary" />
+          <h1 className="medical-title">Health Vault</h1>
         </div>
         <div className="flex items-center space-x-2">
-          {activeTab === "documents" && (
-            <Button variant="outline" onClick={() => setViewMode(viewMode === "timeline" ? "grid" : "timeline")}>
-              {viewMode === "timeline" ? <Grid className="h-4 w-4" /> : <Activity className="h-4 w-4" />}
-            </Button>
-          )}
           <Button onClick={() => navigate("/upload")}>
             <Plus className="h-4 w-4 mr-2" />
             Add Documents
@@ -319,31 +179,21 @@ export default function Vault() {
             )}
           </div>
 
-          {/* Filters, View Toggle, and Selection Controls */}
+          {/* Report Categories Section */}
           <div className="flex items-center justify-between gap-4 flex-wrap">
-            {/* Smart Filters */}
-            <TimelineFilters
-              activeFilters={activeFilters}
-              onFilterChange={setActiveFilters}
-              dateRange={dateRange}
-              onDateRangeChange={setDateRange}
+            {/* Category Filter */}
+            <ReportCategoriesFilter
+              selectedCategories={selectedCategories}
+              onCategoryChange={setSelectedCategories}
               onClearAll={handleClearAllFilters}
             />
 
-            {/* View Toggle and Selection Controls */}
+            {/* View Mode Selector and Selection Controls */}
             <div className="flex items-center gap-6">
-              <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "timeline" | "grid")}>
-                <TabsList>
-                  <TabsTrigger value="timeline" className="flex items-center space-x-2">
-                    <Activity className="h-4 w-4" />
-                    <span>Timeline View</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="grid" className="flex items-center space-x-2">
-                    <Grid className="h-4 w-4" />
-                    <span>Grid View</span>
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <ViewModeSelector
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+              />
 
               {/* Selection Controls */}
               {filteredReports.length > 0 && (
@@ -363,34 +213,42 @@ export default function Vault() {
             </div>
           </div>
 
-          {/* Tab Content */}
-          <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "timeline" | "grid")}>
-
-            <TabsContent value="timeline" className="mt-6">
-              <TimelineView
+          {/* Content based on view mode */}
+          <div className="mt-6">
+            {viewMode === "list" && (
+              <ReportListView
+                reports={filteredReports}
+                selectedReports={selectedForDeletion}
+                onSelectReport={handleSelectReport}
+                onNavigateToReport={(reportId) => navigate(`/reports/${reportId}`)}
+              />
+            )}
+            
+            {viewMode === "card" && (
+              <ReportCardView
+                reports={filteredReports}
+                selectedReports={selectedForDeletion}
+                onSelectReport={handleSelectReport}
+                onNavigateToReport={(reportId) => navigate(`/reports/${reportId}`)}
+              />
+            )}
+            
+            {viewMode === "timeline" && (
+              <ReportTimelineView
                 reports={filteredReports}
                 selectedReports={selectedForDeletion}
                 onSelectReport={handleSelectReport}
                 onNavigateToReport={(reportId) => navigate(`/reports/${reportId}`)}
                 onNavigateToUpload={() => navigate("/upload")}
               />
-            </TabsContent>
-
-            <TabsContent value="grid" className="mt-6">
-              <GridView
-                reports={filteredReports}
-                selectedReports={selectedForDeletion}
-                onSelectReport={handleSelectReport}
-                onNavigateToReport={(reportId) => navigate(`/reports/${reportId}`)}
-              />
-            </TabsContent>
-          </Tabs>
+            )}
+          </div>
 
           {filteredReports.length === 0 && (
             <Card className="text-center py-8">
               <CardContent>
                 <Filter className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">No documents found matching your filters.</p>
+                <p className="text-muted-foreground">No documents found matching your criteria.</p>
                 <Button variant="outline" className="mt-4" onClick={handleClearAllFilters}>
                   Clear all filters
                 </Button>
