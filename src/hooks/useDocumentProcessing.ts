@@ -10,7 +10,7 @@ export function useDocumentProcessing() {
   const [retryCount, setRetryCount] = useState(0);
   const { toast } = useToast();
 
-  const processDocument = async (reportId: string, maxRetries = 2): Promise<DocumentParsingResult> => {
+  const processDocument = async (reportId: string, maxRetries = 3): Promise<DocumentParsingResult> => {
     setIsProcessing(true);
     setRetryCount(0);
     
@@ -18,9 +18,16 @@ export function useDocumentProcessing() {
       try {
         setRetryCount(attempt);
         
-        const { data, error } = await supabase.functions.invoke('process-medical-document', {
+        // Add timeout for the function call to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Processing timeout - function took too long')), 60000); // 60 second timeout
+        });
+        
+        const processingPromise = supabase.functions.invoke('process-medical-document', {
           body: { reportId }
         });
+        
+        const { data, error } = await Promise.race([processingPromise, timeoutPromise]) as any;
 
         if (error) throw error;
 
@@ -70,11 +77,14 @@ export function useDocumentProcessing() {
         const isRetryable = error.message.includes('API error') || 
                            error.message.includes('timeout') ||
                            error.message.includes('network') ||
-                           error.message.includes('500');
+                           error.message.includes('500') ||
+                           error.message.includes('CPU Time exceeded') ||
+                           error.message.includes('Processing timeout');
         
         if (attempt < maxRetries && isRetryable) {
-          console.log(`Retrying in ${(attempt + 1) * 2} seconds...`);
-          await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 2000));
+          const retryDelay = Math.min((attempt + 1) * 3000, 10000); // Exponential backoff, max 10s
+          console.log(`Retrying in ${retryDelay / 1000} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
           return attemptProcessing(attempt + 1);
         }
         
@@ -85,11 +95,21 @@ export function useDocumentProcessing() {
           errors: [error.message]
         };
 
+        // Provide more helpful error messages based on error type
+        let userMessage = 'Failed to process the document. Please try again.';
+        if (error.message.includes('CPU Time exceeded')) {
+          userMessage = 'Document processing timed out. This document may be too large or complex. Try uploading a smaller section or contact support.';
+        } else if (error.message.includes('Processing timeout')) {
+          userMessage = 'Processing took too long. Please try again or upload a smaller document.';
+        } else if (error.message.includes('Unable to extract text')) {
+          userMessage = 'Could not read text from this PDF. Try uploading it as an image instead.';
+        } else if (attempt > 0) {
+          userMessage = `Failed to process the document after ${attempt + 1} attempts. Please try again later.`;
+        }
+
         toast({
           title: 'Processing Failed',
-          description: attempt > 0 
-            ? `Failed to process the document after ${attempt + 1} attempts. Please try again.`
-            : 'Failed to process the document. Please try again.',
+          description: userMessage,
           variant: 'destructive'
         });
 

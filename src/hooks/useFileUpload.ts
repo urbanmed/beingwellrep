@@ -5,10 +5,11 @@ import { useAutoMetadataExtraction } from '@/hooks/useAutoMetadataExtraction';
 
 interface UploadFile {
   name: string;
-  status: 'uploading' | 'processing' | 'completed' | 'failed';
+  status: 'uploading' | 'processing' | 'completed' | 'failed' | 'uploaded';
   progress: number;
   reportId?: string;
   error?: string;
+  message?: string;
 }
 
 interface UseFileUploadOptions {
@@ -187,24 +188,47 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
             idx === i ? { ...f, status: 'processing', progress: 80 } : f
           ));
 
-          // Call document processing function
-          const { error: processingError } = await supabase.functions.invoke('process-medical-document', {
+          // Call optimized document processing function with timeout handling
+          console.log('Starting optimized document processing for:', reportId);
+          
+          const processingTimeoutPromise = new Promise<{ timeout: boolean }>((resolve) => {
+            setTimeout(() => {
+              console.log('Processing initiated, will continue in background');
+              resolve({ timeout: true });
+            }, 30000); // 30 second timeout
+          });
+          
+          const processingPromise = supabase.functions.invoke('process-medical-document', {
             body: { reportId }
           });
-
-          if (processingError) {
-            console.warn('Document processing failed:', processingError);
+          
+          const processingResult = await Promise.race([processingPromise, processingTimeoutPromise]);
+          
+          if ('timeout' in processingResult && processingResult.timeout) {
+            // Processing is continuing in background
+            console.log('Document processing continuing in background for:', reportId);
+            setUploadFileStates(prev => prev.map((f, idx) => 
+              idx === i ? { 
+                ...f, 
+                status: 'uploaded',
+                progress: 100,
+                message: 'Processing in background...'
+              } : f
+            ));
+          } else if ((processingResult as any).error) {
+            console.warn('Document processing failed:', (processingResult as any).error);
             // Don't throw error here - file upload succeeded, processing can be retried
             setUploadFileStates(prev => prev.map((f, idx) => 
               idx === i ? { 
                 ...f, 
-                status: 'failed', 
+                status: 'failed',
                 progress: 100,
-                error: 'Document processing failed - can be retried'
+                error: 'Processing failed - can be retried'
               } : f
             ));
           } else {
             // Mark as completed
+            console.log('Document processing completed quickly for:', reportId);
             setUploadFileStates(prev => prev.map((f, idx) => 
               idx === i ? { ...f, status: 'completed', progress: 100 } : f
             ));

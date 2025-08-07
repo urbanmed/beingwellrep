@@ -362,12 +362,14 @@ const generateFallbackDocumentName = (
 // File size limit: 20MB
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
-// Document chunking configuration
-const CHUNK_CONFIG = {
-  MAX_CHUNK_SIZE: 2500, // Characters per chunk
-  OVERLAP_SIZE: 200,    // Overlap between chunks
-  MIN_DOCUMENT_SIZE_FOR_CHUNKING: 8000, // Only chunk if document is larger than this
-  MAX_TOKENS: 12000     // Increased from 8000
+// Document processing configuration - Optimized for performance
+const PROCESSING_CONFIG = {
+  MAX_SINGLE_PASS_SIZE: 15000,  // Process documents up to 15k chars in single pass
+  MAX_TRUNCATED_SIZE: 12000,    // Truncate larger documents to this size
+  MAX_TOKENS: 8000,             // Reduced token limit for faster processing
+  MIN_CHUNK_SIZE: 8000,         // Only chunk documents larger than this
+  CHUNK_SIZE: 6000,             // Smaller chunks for faster parallel processing
+  MAX_CHUNKS: 3                 // Limit to max 3 chunks to prevent timeout
 };
 
 // Document chunk interface
@@ -379,212 +381,242 @@ interface DocumentChunk {
   sectionHeader?: string;
 }
 
-// Smart document segmentation based on medical document patterns
-const segmentDocument = (text: string): DocumentChunk[] => {
-  const chunks: DocumentChunk[] = [];
+// Optimized document processing strategy
+const processDocumentContent = async (
+  text: string, 
+  reportType: string, 
+  openaiApiKey: string
+): Promise<{ response: string, processingType: string }> => {
   
-  // Check if document needs chunking
-  if (text.length <= CHUNK_CONFIG.MIN_DOCUMENT_SIZE_FOR_CHUNKING) {
-    console.log('Document too small for chunking, processing as single chunk');
-    return [{
-      id: 0,
-      content: text,
-      startPos: 0,
-      endPos: text.length
-    }];
+  // Strategy 1: Single pass for smaller documents
+  if (text.length <= PROCESSING_CONFIG.MAX_SINGLE_PASS_SIZE) {
+    console.log(`Document size: ${text.length} chars - processing in single pass`);
+    return await processSingleDocument(text, reportType, openaiApiKey);
   }
-
-  console.log(`Document size: ${text.length} chars - applying intelligent segmentation`);
-
-  // Common medical document section patterns
-  const sectionPatterns = [
-    /(?:^|\n)\s*(?:DEPARTMENT|LAB|TEST|REPORT|SECTION|FINDINGS|IMPRESSION|CONCLUSION|RECOMMENDATIONS?|MEDICATION|PRESCRIPTION|VITAL|BLOOD|CHEMISTRY|HEMATOLOGY|IMMUNOLOGY|MICROBIOLOGY|PATHOLOGY|RADIOLOGY|IMAGING|THYROID|LIVER|KIDNEY|CARDIAC|LIPID|GLUCOSE|COMPLETE BLOOD COUNT|CBC|CMP|BMP)\s*[:\-\s]/gmi,
-    /(?:^|\n)\s*(?:TEST NAME|RESULT|UNITS|REFERENCE|BIOLOGICAL REFERENCE|METHOD|INTERPRETATION|NOTE|REMARK)\s*[:\-\s]/gmi,
-    /(?:^|\n)\s*(?:\*{2,}|#{2,}|={2,}|-{3,})\s*(?:END|REPORT|PAGE)/mi,
-    /(?:^|\n)\s*Page \d+/mi
-  ];
-
-  // Find all potential split points
-  const splitPoints: Array<{pos: number, type: string, priority: number}> = [];
   
-  // Add section headers as split points
-  sectionPatterns.forEach((pattern, patternIndex) => {
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      splitPoints.push({
-        pos: match.index,
-        type: `section_${patternIndex}`,
-        priority: patternIndex === 0 ? 3 : 2 // Department/Lab sections get higher priority
-      });
+  // Strategy 2: Smart truncation for moderately large documents
+  if (text.length <= PROCESSING_CONFIG.MAX_TRUNCATED_SIZE * 2) {
+    console.log(`Document size: ${text.length} chars - using smart truncation`);
+    const truncatedText = smartTruncateDocument(text, PROCESSING_CONFIG.MAX_TRUNCATED_SIZE);
+    return await processSingleDocument(truncatedText, reportType, openaiApiKey);
+  }
+  
+  // Strategy 3: Limited chunking for very large documents
+  console.log(`Document size: ${text.length} chars - using limited chunking`);
+  return await processDocumentWithLimitedChunking(text, reportType, openaiApiKey);
+};
+
+// Smart truncation that preserves important medical information
+const smartTruncateDocument = (text: string, maxSize: number): string => {
+  if (text.length <= maxSize) return text;
+  
+  // Priority patterns to preserve (in order of importance)
+  const prioritySections = [
+    /(?:DEPARTMENT|LAB|TEST|REPORT)[^:]*:[\s\S]*?(?=\n\s*(?:DEPARTMENT|LAB|TEST|REPORT|$))/gi,
+    /(?:RESULT|VALUE|FINDING)[^:]*:[\s\S]*?(?=\n\s*(?:RESULT|VALUE|FINDING|$))/gi,
+    /(?:MEDICATION|PRESCRIPTION|DRUG)[^:]*:[\s\S]*?(?=\n\s*(?:MEDICATION|PRESCRIPTION|DRUG|$))/gi
+  ];
+  
+  let preservedContent = '';
+  let remainingSize = maxSize;
+  
+  // Try to preserve priority sections first
+  for (const pattern of prioritySections) {
+    const matches = text.match(pattern) || [];
+    for (const match of matches) {
+      if (match.length <= remainingSize && !preservedContent.includes(match.substring(0, 50))) {
+        preservedContent += match + '\n\n';
+        remainingSize -= match.length;
+      }
     }
+  }
+  
+  // Fill remaining space with beginning of document if we have room
+  if (remainingSize > 500) {
+    const remainingText = text.substring(0, remainingSize);
+    if (!preservedContent.includes(remainingText.substring(0, 50))) {
+      preservedContent = remainingText + '\n\n' + preservedContent;
+    }
+  }
+  
+  return preservedContent.trim().substring(0, maxSize);
+};
+
+// Process single document without chunking
+const processSingleDocument = async (
+  text: string, 
+  reportType: string, 
+  openaiApiKey: string
+): Promise<{ response: string, processingType: string }> => {
+  
+  const prompt = getPromptForReportType(reportType);
+  
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiApiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: `${prompt}\n\nDocument text:\n${text}` }
+      ],
+      max_tokens: PROCESSING_CONFIG.MAX_TOKENS,
+      temperature: 0.1
+    })
   });
 
-  // Add natural paragraph breaks as lower priority split points
-  const paragraphPattern = /\n\s*\n\s*(?=[A-Z])/g;
-  let match;
-  while ((match = paragraphPattern.exec(text)) !== null) {
-    splitPoints.push({
-      pos: match.index,
-      type: 'paragraph',
-      priority: 1
-    });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
   }
 
-  // Sort split points by position
-  splitPoints.sort((a, b) => a.pos - b.pos);
+  const data = await response.json();
+  const aiResponse = data.choices?.[0]?.message?.content || '';
+  
+  return { response: aiResponse, processingType: 'single_pass' };
+};
 
+// Limited chunking with sequential processing to avoid timeouts
+const processDocumentWithLimitedChunking = async (
+  text: string, 
+  reportType: string, 
+  openaiApiKey: string
+): Promise<{ response: string, processingType: string }> => {
+  
+  const chunks = createLimitedChunks(text);
+  console.log(`Processing ${chunks.length} chunks sequentially`);
+  
+  const chunkResults: any[] = [];
+  
+  // Process chunks sequentially to avoid CPU timeout
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    console.log(`Processing chunk ${i + 1}/${chunks.length} (${chunk.content.length} chars)`);
+    
+    try {
+      const result = await processSingleChunk(chunk, reportType, openaiApiKey, i);
+      chunkResults.push(result);
+    } catch (error) {
+      console.error(`Error processing chunk ${i}:`, error);
+      chunkResults.push({
+        chunkId: chunk.id,
+        error: error.message,
+        processed: false
+      });
+    }
+  }
+  
+  // Merge results
+  const mergedData = mergeChunkResults(chunkResults, reportType);
+  const response = JSON.stringify(mergedData);
+  
+  return { response, processingType: 'limited_chunking' };
+};
+
+// Create limited number of chunks
+const createLimitedChunks = (text: string): DocumentChunk[] => {
+  const totalLength = text.length;
+  const chunkSize = Math.min(PROCESSING_CONFIG.CHUNK_SIZE, Math.ceil(totalLength / PROCESSING_CONFIG.MAX_CHUNKS));
+  const chunks: DocumentChunk[] = [];
+  
   let currentPos = 0;
   let chunkId = 0;
-
-  while (currentPos < text.length) {
-    const targetEndPos = Math.min(currentPos + CHUNK_CONFIG.MAX_CHUNK_SIZE, text.length);
+  
+  while (currentPos < totalLength && chunkId < PROCESSING_CONFIG.MAX_CHUNKS) {
+    const endPos = Math.min(currentPos + chunkSize, totalLength);
     
-    // Find the best split point within our target range
-    let bestSplitPos = targetEndPos;
-    let bestSplitPriority = 0;
-    
-    for (const split of splitPoints) {
-      if (split.pos > currentPos && split.pos <= targetEndPos) {
-        if (split.priority > bestSplitPriority || 
-            (split.priority === bestSplitPriority && split.pos > bestSplitPos)) {
-          bestSplitPos = split.pos;
-          bestSplitPriority = split.priority;
-        }
+    // Try to break at sentence boundary
+    let actualEndPos = endPos;
+    if (endPos < totalLength) {
+      const sentenceEnd = text.lastIndexOf('.', endPos);
+      if (sentenceEnd > currentPos + chunkSize * 0.7) {
+        actualEndPos = sentenceEnd + 1;
       }
     }
-
-    // If no good split point found, try to split at sentence boundary
-    if (bestSplitPriority === 0 && targetEndPos < text.length) {
-      const sentenceEnd = text.lastIndexOf('.', targetEndPos);
-      if (sentenceEnd > currentPos + CHUNK_CONFIG.MAX_CHUNK_SIZE * 0.7) {
-        bestSplitPos = sentenceEnd + 1;
-      }
-    }
-
-    const chunkEnd = bestSplitPos;
-    const chunkContent = text.slice(currentPos, chunkEnd).trim();
+    
+    const chunkContent = text.slice(currentPos, actualEndPos).trim();
     
     if (chunkContent.length > 0) {
-      // Extract section header if present
-      const headerMatch = chunkContent.match(/^(?:DEPARTMENT|LAB|TEST|REPORT|SECTION)[^:\n]*[:\-\s]?([^\n]*)/i);
-      const sectionHeader = headerMatch ? headerMatch[0].trim() : undefined;
-
       chunks.push({
         id: chunkId++,
         content: chunkContent,
         startPos: currentPos,
-        endPos: chunkEnd,
-        sectionHeader
+        endPos: actualEndPos
       });
     }
-
-    // Move to next chunk with overlap
-    currentPos = Math.max(chunkEnd - CHUNK_CONFIG.OVERLAP_SIZE, chunkEnd);
     
-    // Prevent infinite loop
-    if (currentPos >= text.length) break;
+    currentPos = actualEndPos;
   }
-
-  console.log(`Document segmented into ${chunks.length} chunks`);
-  chunks.forEach((chunk, index) => {
-    console.log(`Chunk ${index}: ${chunk.content.length} chars, section: ${chunk.sectionHeader || 'N/A'}`);
-  });
-
+  
+  console.log(`Created ${chunks.length} limited chunks, max size: ${chunkSize} chars`);
   return chunks;
 };
 
-// Process multiple chunks in parallel
-const processDocumentChunks = async (
-  chunks: DocumentChunk[],
+// Process a single chunk
+const processSingleChunk = async (
+  chunk: DocumentChunk,
   reportType: string,
-  openaiApiKey: string
-): Promise<any[]> => {
-  console.log(`Processing ${chunks.length} chunks in parallel`);
-
-  // Create promises for parallel processing
-  const chunkPromises = chunks.map(async (chunk, index) => {
-    try {
-      console.log(`Processing chunk ${index + 1}/${chunks.length} (${chunk.content.length} chars)`);
-      
-      const chunkPrompt = getChunkPromptForReportType(reportType, chunk.sectionHeader);
-      
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: `${chunkPrompt}\n\nDocument chunk (${index + 1}/${chunks.length}):\n${chunk.content}` }
-          ],
-          max_tokens: CHUNK_CONFIG.MAX_TOKENS,
-          temperature: 0.1
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`OpenAI API error for chunk ${index}: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      const aiResponse = data.choices?.[0]?.message?.content || '';
-      
-      // Parse the response
-      let parsedData = null;
-      try {
-        let cleanedResponse = aiResponse.trim();
-        if (cleanedResponse.startsWith('```json')) {
-          cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-        } else if (cleanedResponse.startsWith('```')) {
-          cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
-        }
-        parsedData = JSON.parse(cleanedResponse.trim());
-      } catch (parseError) {
-        console.warn(`Failed to parse chunk ${index} response as JSON:`, parseError);
-        parsedData = extractDataFromTextResponse(aiResponse, reportType);
-      }
-
-      return {
-        chunkId: chunk.id,
-        chunkIndex: index,
-        sectionHeader: chunk.sectionHeader,
-        rawResponse: aiResponse,
-        parsedData,
-        processed: true
-      };
-    } catch (error) {
-      console.error(`Error processing chunk ${index}:`, error);
-      return {
-        chunkId: chunk.id,
-        chunkIndex: index,
-        sectionHeader: chunk.sectionHeader,
-        error: error.message,
-        processed: false
-      };
-    }
+  openaiApiKey: string,
+  index: number
+): Promise<any> => {
+  
+  const prompt = getPromptForReportType(reportType);
+  
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiApiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: `${prompt}\n\nDocument chunk (${index + 1}):\n${chunk.content}` }
+      ],
+      max_tokens: PROCESSING_CONFIG.MAX_TOKENS,
+      temperature: 0.1
+    })
   });
 
-  // Wait for all chunks to complete
-  const results = await Promise.all(chunkPromises);
-  console.log(`Completed processing ${results.length} chunks`);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI API error for chunk ${index}: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  const aiResponse = data.choices?.[0]?.message?.content || '';
   
-  return results;
+  // Parse the response
+  let parsedData = null;
+  try {
+    let cleanedResponse = aiResponse.trim();
+    if (cleanedResponse.startsWith('```json')) {
+      cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanedResponse.startsWith('```')) {
+      cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    parsedData = JSON.parse(cleanedResponse.trim());
+  } catch (parseError) {
+    console.warn(`Failed to parse chunk ${index} response as JSON:`, parseError);
+    parsedData = extractDataFromTextResponse(aiResponse, reportType);
+  }
+
+  return {
+    chunkId: chunk.id,
+    chunkIndex: index,
+    rawResponse: aiResponse,
+    parsedData,
+    processed: true
+  };
 };
 
-// Generate chunk-specific prompts
-const getChunkPromptForReportType = (reportType: string, sectionHeader?: string): string => {
-  const basePrompt = getPromptForReportType(reportType);
-  
-  if (sectionHeader) {
-    return `${basePrompt}\n\nThis chunk contains data from section: "${sectionHeader}"\nFocus on extracting relevant data from this specific section.`;
-  }
-  
-  return `${basePrompt}\n\nThis is a partial document chunk. Extract all relevant medical data from this section.`;
-};
+// This function has been replaced by the optimized processDocumentContent function above
+
+// This function is no longer needed with the optimized approach
 
 // Merge results from multiple chunks
 const mergeChunkResults = (chunkResults: any[], reportType: string): any => {
@@ -818,50 +850,13 @@ serve(async (req) => {
       if (!extractedText.trim()) {
         throw new Error('Unable to extract text from PDF. Please ensure the PDF contains readable text or try uploading it as an image instead.');
       } else {
-        // Apply intelligent document chunking for large documents
-        console.log('Using extracted text for processing')
+        // Use optimized document processing
+        console.log('Using extracted text for optimized processing');
         
-        const chunks = segmentDocument(extractedText);
+        const processingResult = await processDocumentContent(extractedText, report.report_type, openaiApiKey);
+        aiResponse = processingResult.response;
         
-        if (chunks.length === 1) {
-          // Single chunk - use traditional processing
-          console.log('Processing single chunk with traditional approach');
-          
-          const textResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${openaiApiKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              model: 'gpt-4o-mini',
-              messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: `${prompt}\n\nDocument text:\n${extractedText}` }
-              ],
-              max_tokens: CHUNK_CONFIG.MAX_TOKENS,
-              temperature: 0.1
-            })
-          });
-
-          if (!textResponse.ok) {
-            const errorText = await textResponse.text();
-            throw new Error(`OpenAI Text API error: ${textResponse.status} - ${errorText}`);
-          }
-
-          const textData = await textResponse.json();
-          aiResponse = textData.choices?.[0]?.message?.content || '';
-        } else {
-          // Multiple chunks - use parallel processing
-          console.log(`Processing ${chunks.length} chunks with parallel approach`);
-          
-          const chunkResults = await processDocumentChunks(chunks, report.report_type, openaiApiKey);
-          const mergedData = mergeChunkResults(chunkResults, report.report_type);
-          
-          // Convert merged data back to string format for compatibility
-          aiResponse = JSON.stringify(mergedData);
-          console.log('Multi-chunk processing completed, merged results ready');
-        }
+        console.log(`Document processing completed using: ${processingResult.processingType}`);
       }
     } else if (isImageFile(report.file_type)) {
       // Handle image files with vision API
@@ -892,7 +887,7 @@ serve(async (req) => {
               ]
             }
           ],
-          max_tokens: CHUNK_CONFIG.MAX_TOKENS,
+          max_tokens: PROCESSING_CONFIG.MAX_TOKENS,
           temperature: 0.1
         })
       })
