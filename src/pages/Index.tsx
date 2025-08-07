@@ -10,6 +10,7 @@ import { useEmergencyContacts } from '@/hooks/useEmergencyContacts';
 import { SosCountdownModal } from '@/components/sos/SosCountdownModal';
 import { PersonalizedGreeting } from '@/components/layout/PersonalizedGreeting';
 import { VitalsStatusSummary } from '@/components/dashboard/VitalsStatusSummary';
+import { ActionItems } from '@/components/dashboard/ActionItems';
 import { RecentReportsVault } from '@/components/dashboard/RecentReportsVault';
 import { AIInsightsCarousel } from '@/components/dashboard/AIInsightsCarousel';
 import { TrendsTimelineMini } from '@/components/dashboard/TrendsTimelineMini';
@@ -158,8 +159,11 @@ const Index = () => {
         {/* Health Overview Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <VitalsStatusSummary />
-          <RecentReportsVault />
+          <ActionItems />
         </div>
+
+        {/* Recent Reports */}
+        <RecentReportsVault />
 
         {/* Insights and Trends */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

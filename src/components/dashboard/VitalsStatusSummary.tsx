@@ -29,6 +29,7 @@ export function VitalsStatusSummary() {
           ? JSON.parse(report.parsed_data) 
           : report.parsed_data;
         
+        // Check dedicated vitals section
         if (data?.vitals) {
           data.vitals.forEach((vital: any) => {
             const statusMap: Record<string, 'normal' | 'high' | 'low' | 'critical'> = {
@@ -48,6 +49,33 @@ export function VitalsStatusSummary() {
             });
           });
         }
+        
+        // Extract vitals from lab test results
+        if (data?.tests) {
+          data.tests.forEach((test: any) => {
+            const testName = test.name?.toLowerCase() || '';
+            
+            // Check if this test represents a vital sign
+            if (isVitalSignTest(testName)) {
+              const vitalType = mapTestToVitalType(testName);
+              const statusMap: Record<string, 'normal' | 'high' | 'low' | 'critical'> = {
+                'normal': 'normal',
+                'high': 'high', 
+                'low': 'low',
+                'critical': 'critical',
+                'abnormal': 'high'
+              };
+              
+              vitals.push({
+                type: vitalType,
+                value: test.value + (test.unit ? ` ${test.unit}` : ''),
+                status: statusMap[test.status?.toLowerCase()] || 'normal',
+                icon: getVitalIcon(vitalType),
+                date: report.report_date
+              });
+            }
+          });
+        }
       } catch (error) {
         console.warn('Error parsing vital data:', error);
       }
@@ -63,6 +91,53 @@ export function VitalsStatusSummary() {
     
     return Object.values(uniqueVitals).slice(0, 4);
   }, [reports]);
+
+  // Helper function to identify if a test is a vital sign
+  const isVitalSignTest = (testName: string): boolean => {
+    const vitalKeywords = [
+      'blood pressure', 'bp', 'systolic', 'diastolic',
+      'heart rate', 'pulse', 'hr', 'bpm',
+      'temperature', 'temp', 'fever',
+      'respiratory rate', 'breathing rate', 'rr',
+      'oxygen saturation', 'spo2', 'o2 sat',
+      'weight', 'wt', 'body weight',
+      'height', 'ht', 'body height',
+      'bmi', 'body mass index'
+    ];
+    
+    return vitalKeywords.some(keyword => testName.includes(keyword));
+  };
+
+  // Helper function to map test names to standard vital types
+  const mapTestToVitalType = (testName: string): string => {
+    if (testName.includes('blood pressure') || testName.includes('bp') || 
+        testName.includes('systolic') || testName.includes('diastolic')) {
+      return 'blood_pressure';
+    }
+    if (testName.includes('heart rate') || testName.includes('pulse') || 
+        testName.includes('hr') || testName.includes('bpm')) {
+      return 'heart_rate';
+    }
+    if (testName.includes('temperature') || testName.includes('temp') || testName.includes('fever')) {
+      return 'temperature';
+    }
+    if (testName.includes('respiratory') || testName.includes('breathing') || testName.includes('rr')) {
+      return 'respiratory_rate';
+    }
+    if (testName.includes('oxygen') || testName.includes('spo2') || testName.includes('o2')) {
+      return 'oxygen_saturation';
+    }
+    if (testName.includes('weight') || testName.includes('wt')) {
+      return 'weight';
+    }
+    if (testName.includes('height') || testName.includes('ht')) {
+      return 'height';
+    }
+    if (testName.includes('bmi') || testName.includes('body mass')) {
+      return 'bmi';
+    }
+    return testName.replace(/\s+/g, '_');
+  };
 
   const getVitalIcon = (type: string) => {
     const lowerType = type.toLowerCase();
