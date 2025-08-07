@@ -11,6 +11,7 @@ interface ContextDocument {
   id: string;
   title: string;
   content: string;
+  parsed_data?: any;
   report_type: string;
   report_date: string;
   facility_name?: string;
@@ -74,25 +75,50 @@ serve(async (req) => {
     
     console.log(`Found ${contextDocuments.length} relevant documents`);
 
-    // Prepare context for AI
+    // Prepare context for AI with enhanced content extraction
     const contextText = contextDocuments
-      .map(doc => `Document: ${doc.title} (${doc.report_type}, ${doc.report_date})
-Content: ${doc.content.substring(0, 1000)}...
+      .map(doc => {
+        // Prioritize parsed_data over raw extracted_text for better analysis
+        let content = '';
+        
+        if (doc.parsed_data && typeof doc.parsed_data === 'object') {
+          // Extract structured data from parsed results
+          content = formatParsedData(doc.parsed_data, doc.report_type);
+        } else {
+          // Fallback to extracted text with increased limit
+          content = doc.content.substring(0, 4500);
+        }
+        
+        return `Document: ${doc.title} (${doc.report_type}, ${doc.report_date})
+Report Content:
+${content}
 Facility: ${doc.facility_name || 'N/A'}
-Physician: ${doc.physician_name || 'N/A'}`)
+Physician: ${doc.physician_name || 'N/A'}`;
+      })
       .join('\n\n---\n\n');
 
-    // Create system prompt
-    const systemPrompt = `You are a helpful AI medical assistant. You have access to the user's medical documents and can provide insights based on their health records.
+    // Create enhanced system prompt for comprehensive analysis
+    const systemPrompt = `You are a helpful AI medical assistant specialized in analyzing medical documents, particularly blood test reports and lab results. You have access to the user's medical documents and can provide comprehensive insights based on their health records.
 
 IMPORTANT GUIDELINES:
 - Always base your responses on the provided medical documents
+- For blood test reports, analyze ALL test panels and sections (thyroid, lipids, iron studies, complete blood count, etc.)
 - Never provide medical diagnoses or treatment recommendations
 - Suggest consulting healthcare professionals for medical advice
 - Be clear about the limitations of your analysis
-- Reference specific documents when providing information
+- Reference specific documents and test results when providing information
 - Use clear, non-technical language when possible
 - If no relevant documents are found, explain this to the user
+- When summarizing lab results, include all relevant test panels and highlight any abnormal values
+- Compare values to reference ranges when available
+- Present information in a structured, easy-to-understand format
+
+ANALYSIS APPROACH FOR BLOOD TESTS:
+- Review all test panels comprehensively (don't focus on just one section)
+- Identify normal vs abnormal values
+- Provide context for what different test results mean
+- Highlight trends if multiple reports are available
+- Organize findings by test category (e.g., thyroid function, lipid profile, etc.)
 
 Available medical documents:
 ${contextText || 'No relevant documents found for this query.'}`;
@@ -115,7 +141,7 @@ Please provide a helpful response based on the available medical documents. If y
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 1500,
       }),
     });
 
@@ -246,6 +272,7 @@ async function findRelevantDocuments(
       id: doc.id,
       title: doc.title || 'Untitled Document',
       content: doc.extracted_text || '',
+      parsed_data: doc.parsed_data,
       report_type: doc.report_type || 'general',
       report_date: doc.report_date,
       facility_name: doc.facility_name,
@@ -295,4 +322,92 @@ function extractKeywords(query: string): string[] {
   });
 
   return Array.from(expandedKeywords);
+}
+
+function formatParsedData(parsedData: any, reportType: string): string {
+  try {
+    if (!parsedData || typeof parsedData !== 'object') {
+      return 'No structured data available';
+    }
+
+    let formattedContent = '';
+
+    // Handle lab results with comprehensive formatting
+    if (reportType === 'lab_results' || reportType === 'blood_test') {
+      if (parsedData.test_panels && Array.isArray(parsedData.test_panels)) {
+        formattedContent += 'TEST PANELS:\n';
+        parsedData.test_panels.forEach((panel: any, index: number) => {
+          formattedContent += `\n${index + 1}. ${panel.panel_name || 'Unknown Panel'}:\n`;
+          if (panel.tests && Array.isArray(panel.tests)) {
+            panel.tests.forEach((test: any) => {
+              const value = test.value || 'N/A';
+              const unit = test.unit || '';
+              const range = test.reference_range || '';
+              const status = test.status || '';
+              formattedContent += `   - ${test.test_name}: ${value} ${unit}`;
+              if (range) formattedContent += ` (Ref: ${range})`;
+              if (status && status !== 'normal') formattedContent += ` [${status.toUpperCase()}]`;
+              formattedContent += '\n';
+            });
+          }
+        });
+      }
+
+      // Add individual test results if not in panels
+      if (parsedData.test_results && Array.isArray(parsedData.test_results)) {
+        formattedContent += '\nINDIVIDUAL TEST RESULTS:\n';
+        parsedData.test_results.forEach((test: any) => {
+          const value = test.value || 'N/A';
+          const unit = test.unit || '';
+          const range = test.reference_range || '';
+          const status = test.status || '';
+          formattedContent += `- ${test.test_name}: ${value} ${unit}`;
+          if (range) formattedContent += ` (Ref: ${range})`;
+          if (status && status !== 'normal') formattedContent += ` [${status.toUpperCase()}]`;
+          formattedContent += '\n';
+        });
+      }
+    }
+
+    // Handle other report types
+    if (parsedData.medications && Array.isArray(parsedData.medications)) {
+      formattedContent += '\nMEDICATIONS:\n';
+      parsedData.medications.forEach((med: any) => {
+        formattedContent += `- ${med.name || med.medication_name}: ${med.dosage || 'N/A'} ${med.frequency || ''}\n`;
+      });
+    }
+
+    if (parsedData.findings && Array.isArray(parsedData.findings)) {
+      formattedContent += '\nFINDINGS:\n';
+      parsedData.findings.forEach((finding: any) => {
+        formattedContent += `- ${finding.description || finding}\n`;
+      });
+    }
+
+    if (parsedData.recommendations && Array.isArray(parsedData.recommendations)) {
+      formattedContent += '\nRECOMMENDATIONS:\n';
+      parsedData.recommendations.forEach((rec: any) => {
+        formattedContent += `- ${rec.description || rec}\n`;
+      });
+    }
+
+    // Add summary or impression
+    if (parsedData.summary) {
+      formattedContent += `\nSUMMARY: ${parsedData.summary}\n`;
+    }
+
+    if (parsedData.impression) {
+      formattedContent += `\nIMPRESSION: ${parsedData.impression}\n`;
+    }
+
+    // If no structured content was found, return raw JSON with truncation
+    if (!formattedContent.trim()) {
+      return JSON.stringify(parsedData, null, 2).substring(0, 4000);
+    }
+
+    return formattedContent.substring(0, 4500);
+  } catch (error) {
+    console.error('Error formatting parsed data:', error);
+    return 'Error processing structured data';
+  }
 }
