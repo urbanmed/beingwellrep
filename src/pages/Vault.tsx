@@ -268,7 +268,7 @@ export default function Vault() {
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "documents" | "processing")} className="mb-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="processing">Processing Status</TabsTrigger>
+          <TabsTrigger value="processing">Processed documents</TabsTrigger>
         </TabsList>
 
         <TabsContent value="documents" className="mt-6">
