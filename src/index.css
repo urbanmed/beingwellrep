@@ -8,37 +8,37 @@
 @layer base {
   :root {
     /* Primary Backgrounds */
-    --background: 240 5% 11%;         /* #1C1C1E - Dark main backgrounds */
-    --foreground: 0 0% 100%;          /* #FFFFFF - White text */
+    --background: 0 0% 100%;          /* #FFFFFF - White main backgrounds */
+    --foreground: 240 5% 11%;         /* #1C1C1E - Dark text */
 
     /* Cards and Secondary Surfaces */
-    --card: 240 4% 16%;               /* Slightly lighter than background */
-    --card-foreground: 0 0% 100%;     /* White text on cards */
+    --card: 0 0% 98%;                 /* Light grey for cards */
+    --card-foreground: 240 5% 11%;    /* Dark text on cards */
 
     /* Popovers and Overlays */
-    --popover: 240 4% 16%;            /* Same as cards */
-    --popover-foreground: 0 0% 100%;  /* White text */
+    --popover: 0 0% 98%;              /* Same as cards */
+    --popover-foreground: 240 5% 11%; /* Dark text */
 
     /* Primary Accent - Teal */
     --primary: 169 59% 46%;           /* #2FBDA6 - Primary buttons, icons */
     --primary-foreground: 0 0% 100%;  /* White text on primary */
 
     /* Secondary/Muted Elements */
-    --secondary: 240 4% 23%;          /* #3A3A3C - Secondary surfaces */
-    --secondary-foreground: 0 0% 100%; /* White text on secondary */
+    --secondary: 0 0% 96%;            /* Light grey secondary surfaces */
+    --secondary-foreground: 240 5% 11%; /* Dark text on secondary */
 
-    --muted: 240 4% 18%;              /* Muted backgrounds */
-    --muted-foreground: 0 0% 70%;     /* Light grey text */
+    --muted: 0 0% 96%;                /* Light muted backgrounds */
+    --muted-foreground: 0 0% 45%;     /* Grey text */
 
     /* Accent Elements */
-    --accent: 240 4% 23%;             /* Same as secondary */
-    --accent-foreground: 0 0% 100%;   /* White text on accent */
+    --accent: 0 0% 96%;               /* Same as secondary */
+    --accent-foreground: 240 5% 11%; /* Dark text on accent */
 
     /* Tab Colors */
     --tab-active: 41 93% 69%;         /* #F9C06D - Active tab background */
     --tab-active-foreground: 240 5% 11%; /* Dark text on active tab */
-    --tab-inactive: 240 4% 23%;       /* #3A3A3C - Inactive tab background */
-    --tab-inactive-foreground: 0 0% 70%; /* Light grey text on inactive */
+    --tab-inactive: 0 0% 96%;         /* Light grey inactive tab background */
+    --tab-inactive-foreground: 0 0% 45%; /* Grey text on inactive */
 
     /* Status Colors */
     --destructive: 0 100% 67%;        /* #FF5C5C - Warning/destructive red */
@@ -54,20 +54,20 @@
     --info-foreground: 0 0% 100%;
 
     /* Borders and Inputs */
-    --border: 240 4% 23%;             /* Dark borders */
-    --input: 240 4% 23%;              /* Dark input borders */
+    --border: 0 0% 90%;               /* Light borders */
+    --input: 0 0% 90%;                /* Light input borders */
     --ring: 169 59% 46%;              /* Primary teal for focus rings */
 
     --radius: 0.5rem;
 
     /* Sidebar colors */
-    --sidebar-background: 240 5% 11%;
-    --sidebar-foreground: 0 0% 100%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 5% 11%;
     --sidebar-primary: 169 59% 46%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 4% 23%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 240 4% 23%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 240 5% 11%;
+    --sidebar-border: 0 0% 90%;
     --sidebar-ring: 169 59% 46%;
   }
 
