@@ -9,7 +9,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FamilyMemberSelector } from "@/components/family/FamilyMemberSelector";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 import { useToast } from "@/hooks/use-toast";
 import { useReports } from "@/hooks/useReports";
 
@@ -27,7 +30,10 @@ interface SelectedFile {
 export function QuickUploadModal({ isOpen, onClose, onUploadComplete }: QuickUploadModalProps) {
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [selectedFamilyMemberId, setSelectedFamilyMemberId] = useState<string>("self");
+  const [showFamilySelector, setShowFamilySelector] = useState(false);
   const { uploadFiles, isUploading, uploadProgress } = useFileUpload();
+  const { familyMembers } = useFamilyMembers();
   const { toast } = useToast();
   const { refetch } = useReports();
 
@@ -79,6 +85,11 @@ export function QuickUploadModal({ isOpen, onClose, onUploadComplete }: QuickUpl
     }
 
     setSelectedFiles(prev => [...prev, ...validFiles]);
+    
+    // If user has family members, show selector
+    if (familyMembers.length > 0 && !showFamilySelector) {
+      setShowFamilySelector(true);
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,7 +122,8 @@ export function QuickUploadModal({ isOpen, onClose, onUploadComplete }: QuickUpl
     if (selectedFiles.length === 0) return;
 
     try {
-      await uploadFiles(selectedFiles.map(f => f.file));
+      const familyMemberId = selectedFamilyMemberId === "self" ? undefined : selectedFamilyMemberId;
+      await uploadFiles(selectedFiles.map(f => f.file), undefined, undefined, { family_member_id: familyMemberId });
       
       // Refresh reports data
       await refetch();
@@ -122,6 +134,8 @@ export function QuickUploadModal({ isOpen, onClose, onUploadComplete }: QuickUpl
       });
       
       setSelectedFiles([]);
+      setShowFamilySelector(false);
+      setSelectedFamilyMemberId("self");
       onUploadComplete?.();
     } catch (error) {
       console.error('Upload error:', error);
@@ -131,6 +145,8 @@ export function QuickUploadModal({ isOpen, onClose, onUploadComplete }: QuickUpl
   const handleClose = () => {
     if (!isUploading) {
       setSelectedFiles([]);
+      setShowFamilySelector(false);
+      setSelectedFamilyMemberId("self");
       onClose();
     }
   };
@@ -244,6 +260,28 @@ export function QuickUploadModal({ isOpen, onClose, onUploadComplete }: QuickUpl
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Family Member Selection */}
+          {showFamilySelector && selectedFiles.length > 0 && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="text-base">Upload for Family Member</CardTitle>
+                <CardDescription>
+                  Select who these documents belong to
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FamilyMemberSelector
+                  familyMembers={familyMembers}
+                  selectedMemberId={selectedFamilyMemberId}
+                  onValueChange={setSelectedFamilyMemberId}
+                  placeholder="Select family member or yourself"
+                  allowSelf={true}
+                  userDisplayName="Myself"
+                />
+              </CardContent>
+            </Card>
           )}
 
           {/* Upload Progress */}
