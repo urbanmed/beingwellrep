@@ -24,7 +24,7 @@ import { VaultCoverageGaps } from "@/components/vault/VaultCoverageGaps";
 import { VaultQuickFilters } from "@/components/vault/VaultQuickFilters";
 
 import { useNavigate } from "react-router-dom";
-import { isWithinInterval, startOfDay, endOfDay, subDays, format } from "date-fns";
+
 
 
 // Health categories mapping for filtering
@@ -53,7 +53,7 @@ export default function Vault() {
   const [viewMode, setViewMode] = useState<ViewMode>("timeline");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"documents" | "processing">("documents");
-  const [statusFilter, setStatusFilter] = useState<'critical' | 'processing_errors' | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'critical' | 'processing_errors' | 'untagged' | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
 
@@ -94,6 +94,7 @@ export default function Vault() {
       // Status quick filter
       if (statusFilter === 'critical' && !report.is_critical) return false;
       if (statusFilter === 'processing_errors' && report.parsing_status !== 'failed') return false;
+      if (statusFilter === 'untagged' && ((report.tags?.length ?? 0) > 0)) return false;
 
       return true;
     });
@@ -163,10 +164,24 @@ export default function Vault() {
         </TabsList>
 
         <TabsContent value="documents" className="mt-4 sm:mt-6">
-          {/* Summary Section */}
+          {/* Overview Section */}
           {reports.length > 0 && (
-            <div className="mb-4 sm:mb-6">
-              <VaultSummary onQuickFilter={(filter) => setStatusFilter(filter)} />
+            <div className="mb-4 sm:mb-6 space-y-4">
+              <VaultCollectionHealth reports={reports} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <VaultHygieneCard
+                  reports={reports}
+                  onQuickFilter={(f) => {
+                    if (f === 'processing_errors') setStatusFilter('processing_errors');
+                    if (f === 'untagged') setStatusFilter('untagged');
+                  }}
+                />
+                <VaultCoverageGaps reports={reports} onNavigateToUpload={() => navigate('/upload')} />
+              </div>
+              <VaultQuickFilters
+                active={statusFilter ?? 'all'}
+                onApply={(f) => setStatusFilter(f === 'all' ? null : f)}
+              />
             </div>
           )}
 
