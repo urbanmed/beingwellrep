@@ -67,6 +67,14 @@ export function SummaryCard({ summary, onView, onPin, onDelete }: SummaryCardPro
   // Get severity badge using the utility function
   const severityBadgeInfo = getSeverityBadge(parsedContent);
 
+  // Risk scoring (new)
+  const riskScore: number | undefined = parsedContent?.risk?.overall_score;
+  const riskLevel: 'low' | 'moderate' | 'high' | undefined = parsedContent?.risk?.level ||
+    (typeof riskScore === 'number'
+      ? (riskScore >= 67 ? 'high' : riskScore >= 34 ? 'moderate' : 'low')
+      : undefined);
+  const riskVariant = riskLevel === 'high' ? 'destructive' : riskLevel === 'moderate' ? 'default' : 'secondary';
+
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't trigger onView if clicking on the dropdown menu
     if ((e.target as HTMLElement).closest('[data-dropdown-trigger]')) {
@@ -143,6 +151,11 @@ export function SummaryCard({ summary, onView, onPin, onDelete }: SummaryCardPro
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
+            {typeof riskScore === 'number' && (
+              <Badge variant={riskVariant as any} className="text-xs">
+                Risk: {riskLevel?.toUpperCase()} • {Math.round(riskScore)}/100
+              </Badge>
+            )}
             {severityBadgeInfo && (
               <Badge variant={severityBadgeInfo.variant} className="text-xs">
                 {severityBadgeInfo.label}

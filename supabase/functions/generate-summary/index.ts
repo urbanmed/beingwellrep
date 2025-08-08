@@ -18,87 +18,77 @@ interface SummaryRequest {
 }
 
 const MEDICAL_PROMPTS = {
-  comprehensive: `Analyze the following medical reports and create a comprehensive health summary. Group findings by priority level. Return ONLY a JSON object (no markdown code blocks) with this exact structure:
+  comprehensive: `Analyze the following medical reports and create a comprehensive health summary. YOU MUST return STRICT JSON (no markdown). Add risk scoring.
+Schema:
 {
-  "summary": "Brief overall health status",
-  "high_priority": {
-    "findings": ["Critical finding 1", "Critical finding 2"],
-    "recommendations": ["Urgent action 1", "Urgent action 2"]
+  "summary": string,
+  "high_priority": { "findings": Array<string | { "text": string, "risk_score": number, "category": string }> , "recommendations": string[] },
+  "medium_priority": { "findings": Array<string | { "text": string, "risk_score": number, "category": string }>, "recommendations": string[] },
+  "low_priority": { "findings": Array<string | { "text": string, "risk_score": number, "category": string }>, "recommendations": string[] },
+  "risk": {
+    "overall_score": number,           // 1-100
+    "level": "low" | "moderate" | "high",
+    "category_breakdown": Array<{ "category": "cardiovascular"|"renal"|"metabolic"|"hematology"|"endocrine"|"pulmonary"|"neurology"|"gastroenterology"|"infectious"|"musculoskeletal"|"oncology"|"other", "score": number, "level": "low"|"moderate"|"high" }>
   },
-  "medium_priority": {
-    "findings": ["Important finding 1", "Important finding 2"],
-    "recommendations": ["Important action 1", "Important action 2"]
-  },
-  "low_priority": {
-    "findings": ["Minor finding 1", "Minor finding 2"],
-    "recommendations": ["General recommendation 1", "General recommendation 2"]
-  },
-  "confidence_score": 0.85
-}`,
+  "confidence_score": number
+}
+Rules:
+- Use category that best matches each finding.
+- Compute overall_score as weighted by high>medium>low priority.
+- Only return the JSON object.
+`,
 
-  abnormal_findings: `Analyze the following medical reports and identify all abnormal findings grouped by severity. Return ONLY a JSON object (no markdown code blocks) with this exact structure:
+  abnormal_findings: `Analyze the following medical reports and identify abnormal findings grouped by severity. STRICT JSON ONLY. Include risk scoring.
+Schema:
 {
-  "summary": "Brief overview of abnormal findings",
-  "high_priority": {
-    "findings": ["Severe abnormality 1"],
-    "severity": "severe",
-    "recommendations": ["Immediate action required"]
+  "summary": string,
+  "high_priority": { "findings": Array<string | { "text": string, "risk_score": number, "category": string }>, "severity": "severe", "recommendations": string[] },
+  "medium_priority": { "findings": Array<string | { "text": string, "risk_score": number, "category": string }>, "severity": "moderate", "recommendations": string[] },
+  "low_priority": { "findings": Array<string | { "text": string, "risk_score": number, "category": string }>, "severity": "mild", "recommendations": string[] },
+  "overall_concern_level": "mild"|"moderate"|"severe",
+  "risk": {
+    "overall_score": number,
+    "level": "low"|"moderate"|"high",
+    "category_breakdown": Array<{ "category": "cardiovascular"|"renal"|"metabolic"|"hematology"|"endocrine"|"pulmonary"|"neurology"|"gastroenterology"|"infectious"|"musculoskeletal"|"oncology"|"other", "score": number, "level": "low"|"moderate"|"high" }>
   },
-  "medium_priority": {
-    "findings": ["Moderate abnormality 1"],
-    "severity": "moderate", 
-    "recommendations": ["Follow up needed"]
-  },
-  "low_priority": {
-    "findings": ["Mild abnormality 1"],
-    "severity": "mild",
-    "recommendations": ["Monitor over time"]
-  },
-  "overall_concern_level": "mild|moderate|severe",
-  "confidence_score": 0.90
-}`,
+  "confidence_score": number
+}
+- Only return the JSON object.
+`,
 
-  trend_analysis: `Analyze the following medical reports for trends over time, grouped by priority. Return ONLY a JSON object (no markdown code blocks) with this exact structure:
+  trend_analysis: `Analyze the following medical reports for trends over time, grouped by priority. STRICT JSON ONLY. Include risk scoring.
+Schema:
 {
-  "summary": "Brief overview of health trends",
-  "high_priority": {
-    "trends": ["Concerning trend 1"],
-    "timeframe": "Recent months",
-    "recommendations": ["Immediate attention needed"]
+  "summary": string,
+  "high_priority": { "trends": string[], "timeframe": string, "recommendations": string[] },
+  "medium_priority": { "trends": string[], "timeframe": string, "recommendations": string[] },
+  "low_priority": { "trends": string[], "timeframe": string, "recommendations": string[] },
+  "risk": {
+    "overall_score": number,
+    "level": "low"|"moderate"|"high",
+    "category_breakdown": Array<{ "category": "cardiovascular"|"renal"|"metabolic"|"hematology"|"endocrine"|"pulmonary"|"neurology"|"gastroenterology"|"infectious"|"musculoskeletal"|"oncology"|"other", "score": number, "level": "low"|"moderate"|"high" }>
   },
-  "medium_priority": {
-    "trends": ["Notable trend 1"],
-    "timeframe": "Past 6 months",
-    "recommendations": ["Monitor closely"]
-  },
-  "low_priority": {
-    "trends": ["Minor improvement 1"],
-    "timeframe": "Long term",
-    "recommendations": ["Continue current approach"]
-  },
-  "confidence_score": 0.88
-}`,
+  "confidence_score": number
+}
+- Only return the JSON object.
+`,
 
-  doctor_prep: `Prepare talking points for a doctor visit based on these medical reports, prioritized by importance. Return ONLY a JSON object (no markdown code blocks) with this exact structure:
+  doctor_prep: `Prepare talking points for a doctor visit based on these medical reports, prioritized by importance. STRICT JSON ONLY. Include risk scoring.
+Schema:
 {
-  "summary": "Key topics to discuss with doctor",
-  "high_priority": {
-    "topics": ["Urgent topic 1"],
-    "questions": ["Critical question 1"],
-    "symptoms": ["Concerning symptom 1"]
+  "summary": string,
+  "high_priority": { "topics": string[], "questions": string[], "symptoms": string[] },
+  "medium_priority": { "topics": string[], "questions": string[], "symptoms": string[] },
+  "low_priority": { "topics": string[], "questions": string[], "symptoms": string[] },
+  "risk": {
+    "overall_score": number,
+    "level": "low"|"moderate"|"high",
+    "category_breakdown": Array<{ "category": "cardiovascular"|"renal"|"metabolic"|"hematology"|"endocrine"|"pulmonary"|"neurology"|"gastroenterology"|"infectious"|"musculoskeletal"|"oncology"|"other", "score": number, "level": "low"|"moderate"|"high" }>
   },
-  "medium_priority": {
-    "topics": ["Important topic 1"],
-    "questions": ["Important question 1"],
-    "symptoms": ["Notable symptom 1"]
-  },
-  "low_priority": {
-    "topics": ["General topic 1"],
-    "questions": ["General question 1"],
-    "symptoms": ["Minor symptom 1"]
-  },
-  "confidence_score": 0.92
-}`
+  "confidence_score": number
+}
+- Only return the JSON object.
+`
 };
 
 serve(async (req) => {

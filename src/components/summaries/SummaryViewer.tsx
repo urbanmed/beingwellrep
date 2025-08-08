@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import { 
   Star, 
   Download, 
@@ -48,6 +49,24 @@ export function SummaryViewer({
     }
   };
 
+  const riskLevelFromScore = (score?: number) => {
+    if (typeof score !== 'number') return undefined;
+    if (score >= 67) return 'high';
+    if (score >= 34) return 'moderate';
+    return 'low';
+  };
+
+  const riskBadgeVariant = (level?: string): 'destructive' | 'default' | 'secondary' => {
+    switch (level) {
+      case 'high':
+        return 'destructive';
+      case 'moderate':
+        return 'default';
+      case 'low':
+      default:
+        return 'secondary';
+    }
+  };
   const renderComprehensiveSummary = () => (
     <div className="space-y-6">
       {content.summary && (
@@ -340,12 +359,23 @@ export function SummaryViewer({
               {data.topics ? 'Topics:' : data.trends ? 'Trends:' : 'Findings:'}
             </h5>
             <ul className="space-y-1">
-              {findings.map((item: string, index: number) => (
-                <li key={index} className="text-sm text-foreground flex items-start">
-                  <span className="mr-2 text-primary">•</span>
-                  {item}
-                </li>
-              ))}
+              {findings.map((item: any, index: number) => {
+                const text = typeof item === 'string' ? item : (item.text || item.finding);
+                const score: number | undefined = typeof item === 'string' ? undefined : item.risk_score;
+                const level = riskLevelFromScore(score);
+                return (
+                  <li key={index} className="text-sm text-foreground flex items-center gap-2">
+                    <span className="mr-2 text-primary">•</span>
+                    <span className="flex-1">{text}</span>
+                    {typeof score === 'number' && (
+                      <Badge variant={riskBadgeVariant(level)} className="ml-2">
+                        {item.category ? `${item.category}: ` : ''}{Math.round(score)}
+                      </Badge>
+                    )}
+                  </li>
+                );
+              })}
+
             </ul>
           </div>
         )}
@@ -436,6 +466,26 @@ export function SummaryViewer({
                   <span> • {Math.round(summary.confidence_score * 100)}% confidence</span>
                 )}
               </p>
+              {content?.risk?.overall_score && (
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={riskBadgeVariant(content.risk.level || riskLevelFromScore(content.risk.overall_score))}>
+                      Overall risk: {(content.risk.level || riskLevelFromScore(content.risk.overall_score))?.toString()} • {Math.round(content.risk.overall_score)} / 100
+                    </Badge>
+                  </div>
+                  <Progress value={content.risk.overall_score} />
+                  {Array.isArray(content.risk.category_breakdown) && content.risk.category_breakdown.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {content.risk.category_breakdown.slice(0,6).map((cat: any) => (
+                        <Badge key={cat.category} variant="outline">
+                          {cat.category}: {Math.round(cat.score)}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
             <div className="flex items-center gap-2">
               <Button
