@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Download, Eye, FileText } from "lucide-react";
 import { useFileDownload } from "@/hooks/useFileDownload";
 
+import { ReportNotesButton } from "@/components/notes/ReportNotesButton";
+
 interface Report {
   id: string;
   title: string;
@@ -157,6 +159,7 @@ export function TimelineItem({ report, isSelected, onSelect, onNavigate, showDat
             >
               <Eye className="h-3 w-3" />
             </Button>
+            <ReportNotesButton reportId={report.id} reportTitle={report.title} />
             {report.file_url && (
               <Button
                 variant="ghost"

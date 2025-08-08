@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
+import { ReportNotesButton } from "@/components/notes/ReportNotesButton";
+
 interface Report {
   id: string;
   title: string;
@@ -174,6 +176,7 @@ export function ReportCardView({ reports, selectedReports, onSelectReport, onNav
                     >
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
+                    <ReportNotesButton reportId={report.id} reportTitle={report.title} />
                     {report.file_url && (
                       <Button
                         variant="ghost"

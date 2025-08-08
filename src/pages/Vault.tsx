@@ -20,10 +20,6 @@ import { FloatingUploadButton } from "@/components/vault/FloatingUploadButton";
 import { useNavigate } from "react-router-dom";
 import { isWithinInterval, startOfDay, endOfDay, subDays, format } from "date-fns";
 
-// Add imports for notes
-import { useDoctorNotes } from "@/hooks/useDoctorNotes";
-import { DoctorNoteForm } from "@/components/notes/DoctorNoteForm";
-import { DoctorNotesList } from "@/components/notes/DoctorNotesList";
 
 // Health categories mapping for filtering
 const HEALTH_CATEGORIES_MAP = {
@@ -50,13 +46,13 @@ export default function Vault() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("timeline");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<"documents" | "processing" | "notes">("documents");
+  const [activeTab, setActiveTab] = useState<"documents" | "processing">("documents");
   const [statusFilter, setStatusFilter] = useState<'critical' | 'processing_errors' | null>(null);
   
   const { reports, loading, deleteMultipleReports, refetch } = useReports();
 
   // Notes hook
-  const { notes, addNote, deleteNote } = useDoctorNotes();
+  
 
   const filteredReports = useMemo(() => {
     return reports.filter(report => {
@@ -140,11 +136,11 @@ export default function Vault() {
       </div>
 
       {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "documents" | "processing" | "notes")} className="mb-4 sm:mb-6">
-        <TabsList className="grid w-full grid-cols-3 h-9 sm:h-10">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "documents" | "processing")} className="mb-4 sm:mb-6">
+        <TabsList className="grid w-full grid-cols-2 h-9 sm:h-10">
           <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
           <TabsTrigger value="processing" className="text-xs sm:text-sm">Processed</TabsTrigger>
-          <TabsTrigger value="notes" className="text-xs sm:text-sm">Notes</TabsTrigger>
+          
         </TabsList>
 
         <TabsContent value="documents" className="mt-4 sm:mt-6">
@@ -279,16 +275,6 @@ export default function Vault() {
           <DocumentProcessing />
         </TabsContent>
 
-        <TabsContent value="notes" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-1">
-              <DoctorNoteForm onCreate={addNote} reports={reports} />
-            </div>
-            <div className="lg:col-span-2">
-              <DoctorNotesList notes={notes} onDelete={deleteNote} />
-            </div>
-          </div>
-        </TabsContent>
       </Tabs>
       
       <DeleteConfirmDialog
