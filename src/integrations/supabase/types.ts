@@ -251,6 +251,54 @@ export type Database = {
         }
         Relationships: []
       }
+      doctor_notes: {
+        Row: {
+          attached_file_url: string | null
+          content: string | null
+          created_at: string
+          facility_name: string | null
+          id: string
+          note_date: string
+          note_type: string
+          physician_name: string | null
+          related_report_ids: string[]
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attached_file_url?: string | null
+          content?: string | null
+          created_at?: string
+          facility_name?: string | null
+          id?: string
+          note_date?: string
+          note_type?: string
+          physician_name?: string | null
+          related_report_ids?: string[]
+          tags?: string[]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attached_file_url?: string | null
+          content?: string | null
+          created_at?: string
+          facility_name?: string | null
+          id?: string
+          note_date?: string
+          note_type?: string
+          physician_name?: string | null
+          related_report_ids?: string[]
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       emergency_contacts: {
         Row: {
           created_at: string
