@@ -3,8 +3,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Eye, TrendingUp, TrendingDown, AlertCircle } from "lucide-react";
 import { useReports } from "@/hooks/useReports";
+import { useSummaries } from "@/hooks/useSummaries";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { extractActionItemsFromSummary } from "@/lib/utils/summary-to-dashboard";
 
 interface FlaggedResult {
   id: string;
@@ -83,106 +85,132 @@ function parseAbnormalFromText(text: string, report: any): FlaggedResult[] {
 
 export function ActionItems() {
   const { reports } = useReports();
+  const { summaries } = useSummaries();
   const navigate = useNavigate();
 
-  const flaggedResults = useMemo(() => {
-    const flagged: FlaggedResult[] = [];
-    
-    // Extract flagged results from recent reports
-    const recentReports = reports
-      .filter(r => r.parsing_status === 'completed' && r.parsed_data)
-      .slice(0, 20); // Check last 20 reports
-    
-    for (const report of recentReports) {
-      try {
-        const data = typeof report.parsed_data === 'string' 
-          ? JSON.parse(report.parsed_data) 
-          : report.parsed_data;
-        
-        // Check lab results with enhanced parsing
-        if (data?.tests) {
-          data.tests.forEach((test: any) => {
-            const status = normalizeTestStatus(test.status);
-            if (status && ['critical', 'high', 'low', 'abnormal'].includes(status)) {
-              const severity = determineSeverityLevel(status);
-              
-              flagged.push({
-                id: `${report.id}-${test.name}`,
-                testName: test.name,
-                value: test.value + (test.unit ? ` ${test.unit}` : ''),
-                status: status as any,
-                referenceRange: test.referenceRange || test.reference_range || test.refRange,
-                reportId: report.id,
-                reportTitle: report.title || 'Medical Report',
-                reportDate: report.report_date,
-                severity
-              });
-            }
-          });
-        }
-        
-        // Check vitals with enhanced parsing
-        if (data?.vitals) {
-          data.vitals.forEach((vital: any) => {
-            const status = normalizeTestStatus(vital.status);
-            if (status && ['critical', 'high', 'low', 'abnormal'].includes(status)) {
-              const severity = determineSeverityLevel(status);
-              
-              flagged.push({
-                id: `${report.id}-${vital.type}`,
-                testName: vital.type.replace(/_/g, ' '),
-                value: vital.value + (vital.unit ? ` ${vital.unit}` : ''),
-                status: status as any,
-                reportId: report.id,
-                reportTitle: report.title || 'Medical Report',
-                reportDate: report.report_date,
-                severity
-              });
-            }
-          });
-        }
-        
-        // Enhanced parsing for raw response data
-        if (data?.rawResponse && typeof data.rawResponse === 'string') {
-          const extractedResults = parseAbnormalFromText(data.rawResponse, report);
-          flagged.push(...extractedResults);
-        }
-        
-        // Check sections for general documents
-        if (data?.sections && Array.isArray(data.sections)) {
-          data.sections.forEach((section: any) => {
-            if (section.content) {
-              const extractedResults = parseAbnormalFromText(section.content, report);
-              flagged.push(...extractedResults);
-            }
-          });
-        }
-        
-      } catch (error) {
-        console.warn('Error parsing action items from report:', error);
-        
-        // Fallback: try to parse the raw data as text
-        if (report.extracted_text) {
-          try {
-            const extractedResults = parseAbnormalFromText(report.extracted_text, report);
-            flagged.push(...extractedResults);
-          } catch (textError) {
-            console.warn('Failed to parse extracted text for action items:', textError);
+  const aiBasedResults = useMemo(() => {
+    try {
+      if (!summaries || summaries.length === 0) return [] as FlaggedResult[];
+      const latest = [...summaries].sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())[0];
+      if (!latest) return [] as FlaggedResult[];
+      const extracted = extractActionItemsFromSummary(latest.content) || [];
+      return extracted.map((i) => ({
+        id: i.id,
+        testName: i.testName,
+        value: i.value,
+        status: i.status,
+        severity: i.severity,
+        reportId: '',
+        reportTitle: 'AI Summary',
+        reportDate: latest.generated_at,
+      }));
+    } catch (e) {
+      console.warn('AI action items extraction failed:', e);
+      return [] as FlaggedResult[];
+    }
+  }, [summaries]);
+
+  if (aiBasedResults.length > 0) {
+    return aiBasedResults.slice(0, 5);
+  }
+
+  const flagged: FlaggedResult[] = [];
+  
+  // Extract flagged results from recent reports
+  const recentReports = reports
+    .filter(r => r.parsing_status === 'completed' && r.parsed_data)
+    .slice(0, 20); // Check last 20 reports
+  
+  for (const report of recentReports) {
+    try {
+      const data = typeof report.parsed_data === 'string' 
+        ? JSON.parse(report.parsed_data) 
+        : report.parsed_data;
+      
+      // Check lab results with enhanced parsing
+      if (data?.tests) {
+        data.tests.forEach((test: any) => {
+          const status = normalizeTestStatus(test.status);
+          if (status && ['critical', 'high', 'low', 'abnormal'].includes(status)) {
+            const severity = determineSeverityLevel(status);
+            
+            flagged.push({
+              id: `${report.id}-${test.name}`,
+              testName: test.name,
+              value: test.value + (test.unit ? ` ${test.unit}` : ''),
+              status: status as any,
+              referenceRange: test.referenceRange || test.reference_range || test.refRange,
+              reportId: report.id,
+              reportTitle: report.title || 'Medical Report',
+              reportDate: report.report_date,
+              severity
+            });
           }
+        });
+      }
+      
+      // Check vitals with enhanced parsing
+      if (data?.vitals) {
+        data.vitals.forEach((vital: any) => {
+          const status = normalizeTestStatus(vital.status);
+          if (status && ['critical', 'high', 'low', 'abnormal'].includes(status)) {
+            const severity = determineSeverityLevel(status);
+            
+            flagged.push({
+              id: `${report.id}-${vital.type}`,
+              testName: vital.type.replace(/_/g, ' '),
+              value: vital.value + (vital.unit ? ` ${vital.unit}` : ''),
+              status: status as any,
+              reportId: report.id,
+              reportTitle: report.title || 'Medical Report',
+              reportDate: report.report_date,
+              severity
+            });
+          }
+        });
+      }
+      
+      // Enhanced parsing for raw response data
+      if (data?.rawResponse && typeof data.rawResponse === 'string') {
+        const extractedResults = parseAbnormalFromText(data.rawResponse, report);
+        flagged.push(...extractedResults);
+      }
+      
+      // Check sections for general documents
+      if (data?.sections && Array.isArray(data.sections)) {
+        data.sections.forEach((section: any) => {
+          if (section.content) {
+            const extractedResults = parseAbnormalFromText(section.content, report);
+            flagged.push(...extractedResults);
+          }
+        });
+      }
+      
+    } catch (error) {
+      console.warn('Error parsing action items from report:', error);
+      
+      // Fallback: try to parse the raw data as text
+      if (report.extracted_text) {
+        try {
+          const extractedResults = parseAbnormalFromText(report.extracted_text, report);
+          flagged.push(...extractedResults);
+        } catch (textError) {
+          console.warn('Failed to parse extracted text for action items:', textError);
         }
       }
     }
-    
-    // Sort by severity and date
-    return flagged
-      .sort((a, b) => {
-        const severityOrder = { critical: 0, warning: 1, info: 2 };
-        const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
-        if (severityDiff !== 0) return severityDiff;
-        return new Date(b.reportDate).getTime() - new Date(a.reportDate).getTime();
-      })
-      .slice(0, 5); // Show top 5 most important
-  }, [reports]);
+  }
+  
+  // Sort by severity and date
+  return flagged
+    .sort((a, b) => {
+      const severityOrder = { critical: 0, warning: 1, info: 2 } as const;
+      const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
+      if (severityDiff !== 0) return severityDiff;
+      return new Date(b.reportDate).getTime() - new Date(a.reportDate).getTime();
+    })
+    .slice(0, 5); // Show top 5 most important
+}, [reports, aiBasedResults]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -202,7 +230,11 @@ export function ActionItems() {
   };
 
   const handleViewReport = (reportId: string) => {
-    navigate(`/reports/${reportId}`);
+    if (reportId) {
+      navigate(`/reports/${reportId}`);
+    } else {
+      navigate('/summaries');
+    }
   };
 
   if (flaggedResults.length === 0) {
@@ -232,6 +264,9 @@ export function ActionItems() {
           <Badge variant="secondary" className="ml-2 text-xs">
             {flaggedResults.length}
           </Badge>
+          {aiBasedResults.length > 0 && (
+            <Badge variant="outline" className="ml-2 text-xs">From AI summary</Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">

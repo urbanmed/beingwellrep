@@ -2,7 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Thermometer, Activity, Scale } from "lucide-react";
 import { useReports } from "@/hooks/useReports";
+import { useSummaries } from "@/hooks/useSummaries";
 import { useMemo } from "react";
+import { extractVitalsFromSummary } from "@/lib/utils/summary-to-dashboard";
 
 interface VitalSign {
   type: string;
@@ -164,26 +166,40 @@ function parseVitalsFromText(text: string, date: string): VitalSign[] {
 
 export function VitalsStatusSummary() {
   const { reports } = useReports();
+  const { summaries } = useSummaries();
 
-  const latestVitals = useMemo(() => {
+  const aiVitals = useMemo(() => {
+    try {
+      if (!summaries || summaries.length === 0) return [] as VitalSign[];
+      const latest = [...summaries].sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())[0];
+      if (!latest) return [] as VitalSign[];
+      const extracted = extractVitalsFromSummary(latest.content);
+      return (extracted || []).map((v) => ({
+        type: v.type,
+        value: v.value,
+        status: v.status,
+        icon: getVitalIcon(v.type),
+        date: latest.generated_at,
+      }));
+    } catch (e) {
+      console.warn('AI vitals extraction failed:', e);
+      return [] as VitalSign[];
+    }
+  }, [summaries]);
+
+  const reportVitals = useMemo(() => {
     const vitals: VitalSign[] = [];
-    
-    // Extract vitals from recent reports
     const recentReports = reports
       .filter(r => r.parsing_status === 'completed' && r.parsed_data)
-      .slice(0, 10); // Check last 10 reports
-    
+      .slice(0, 10);
     for (const report of recentReports) {
       try {
         const data = typeof report.parsed_data === 'string' 
           ? JSON.parse(report.parsed_data) 
           : report.parsed_data;
-        
-        // Check dedicated vitals section
         if (data?.vitals) {
           data.vitals.forEach((vital: any) => {
             const status = normalizeVitalStatus(vital.status);
-            
             vitals.push({
               type: vital.type,
               value: vital.value + (vital.unit ? ` ${vital.unit}` : ''),
@@ -193,17 +209,12 @@ export function VitalsStatusSummary() {
             });
           });
         }
-        
-        // Extract vitals from lab test results
         if (data?.tests) {
           data.tests.forEach((test: any) => {
             const testName = test.name?.toLowerCase() || '';
-            
-            // Check if this test represents a vital sign
             if (isVitalSignTest(testName)) {
               const vitalType = mapTestToVitalType(testName);
               const status = normalizeVitalStatus(test.status);
-              
               vitals.push({
                 type: vitalType,
                 value: test.value + (test.unit ? ` ${test.unit}` : ''),
@@ -214,14 +225,10 @@ export function VitalsStatusSummary() {
             }
           });
         }
-        
-        // Enhanced parsing for raw response data
         if (data?.rawResponse && typeof data.rawResponse === 'string') {
           const extractedVitals = parseVitalsFromText(data.rawResponse, report.report_date);
           vitals.push(...extractedVitals);
         }
-        
-        // Check sections for general documents
         if (data?.sections && Array.isArray(data.sections)) {
           data.sections.forEach((section: any) => {
             if (section.content) {
@@ -230,11 +237,8 @@ export function VitalsStatusSummary() {
             }
           });
         }
-        
       } catch (error) {
         console.warn('Error parsing vital data:', error);
-        
-        // Fallback: try to parse the raw extracted text
         if (report.extracted_text) {
           try {
             const extractedVitals = parseVitalsFromText(report.extracted_text, report.report_date);
@@ -245,17 +249,18 @@ export function VitalsStatusSummary() {
         }
       }
     }
-    
-    // Get most recent for each type
     const uniqueVitals = vitals.reduce((acc, vital) => {
       if (!acc[vital.type] || new Date(vital.date) > new Date(acc[vital.type].date)) {
         acc[vital.type] = vital;
       }
       return acc;
     }, {} as Record<string, VitalSign>);
-    
     return Object.values(uniqueVitals).slice(0, 4);
   }, [reports]);
+
+  const fromAISummary = aiVitals.length > 0;
+  const latestVitals = fromAISummary ? aiVitals.slice(0, 4) : reportVitals;
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -290,6 +295,9 @@ export function VitalsStatusSummary() {
         <CardTitle className="medical-heading-sm flex items-center">
           <Heart className="h-4 w-4 mr-2 text-primary" />
           Vitals Status
+          {fromAISummary && (
+            <Badge variant="outline" className="ml-2 text-xs">From AI summary</Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
