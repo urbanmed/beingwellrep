@@ -150,12 +150,12 @@ const Index = () => {
           </Card>
         </div>
 
-{/* Health Overview Grid */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <RecommendationsSummary />
-  <ActionItems />
-  <LatestTestResultsSummary />
-</div>
+        {/* Health Overview Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <RecommendationsSummary />
+          <ActionItems />
+          <LatestTestResultsSummary />
+        </div>
 
         {/* Recent Reports */}
         <RecentReportsVault />
