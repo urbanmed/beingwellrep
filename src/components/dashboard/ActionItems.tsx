@@ -267,7 +267,7 @@ export function ActionItems() {
         <CardHeader className="pb-3">
           <CardTitle className="medical-heading-sm flex items-center">
             <AlertTriangle className="h-4 w-4 mr-2 text-primary" />
-            Action Items
+            Latest Health Results
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -284,7 +284,7 @@ export function ActionItems() {
       <CardHeader className="pb-3">
         <CardTitle className="medical-heading-sm flex items-center">
           <AlertTriangle className="h-4 w-4 mr-2 text-primary" />
-          Action Items
+          Latest Health Results
           <Badge variant="secondary" className="ml-2 text-xs">
             {flaggedResults.length}
           </Badge>
