@@ -293,18 +293,18 @@ export function ActionItems() {
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2">
         {groupedResults.map((group) => (
-          <div key={group.dateKey} className="space-y-2">
+          <div key={group.dateKey} className="space-y-1">
             <div className="medical-annotation text-xs text-muted-foreground">
               {group.dateLabel}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {group.items.map((item) => {
                 const StatusIcon = getStatusIcon(item.status);
                 return (
-                  <div key={item.id} className="flex items-center justify-between border-l-2 border-l-destructive pl-3 py-1.5">
-                    <div className="flex items-center min-w-0 gap-2">
+                  <div key={item.id} className="flex items-center justify-between border-l border-l-destructive pl-2 py-1">
+                    <div className="flex items-center min-w-0 gap-1">
                       <StatusIcon className="h-3 w-3 text-destructive flex-shrink-0" />
                       <span className="medical-label-xs font-medium capitalize truncate">
                         {item.testName}
@@ -316,14 +316,14 @@ export function ActionItems() {
                         )}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
                       <Badge variant={getStatusColor(item.severity)} className="text-xs capitalize">
                         {item.status}
                       </Badge>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="ml-1"
+                        className="ml-0.5"
                         onClick={() => handleViewReport(item.reportId)}
                       >
                         <Eye className="h-3 w-3" />
