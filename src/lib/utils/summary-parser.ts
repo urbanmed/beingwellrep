@@ -164,18 +164,19 @@ export function getSeverityBadge(content: any) {
   const severityLevel = parsed.severity_level || parsed.overall_concern_level;
   
   if (severityLevel) {
-    switch (severityLevel.toLowerCase()) {
+    switch (String(severityLevel).toLowerCase()) {
       case 'severe':
       case 'high':
         return { variant: 'destructive' as const, label: 'High Priority' };
       case 'moderate':
       case 'medium':
-        return { variant: 'default' as const, label: 'Medium Priority' };
+        return { variant: 'default' as const, label: 'Moderate Priority' };
       case 'mild':
       case 'low':
         return { variant: 'secondary' as const, label: 'Low Priority' };
     }
   }
   
-  return null;
+  // Default safe badge
+  return { variant: 'secondary' as const, label: 'Info' };
 }

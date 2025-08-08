@@ -47,7 +47,8 @@ export function AIInsightsCarousel() {
   }
 
   const currentSummary = recentSummaries[currentIndex];
-  const severityBadge = getSeverityBadge(currentSummary.content);
+  const severityBadgeRaw = getSeverityBadge(currentSummary.content);
+  const severityBadge = severityBadgeRaw ?? { variant: 'secondary' as const, label: 'Info' };
   const preview = getContentPreview(currentSummary.content, 120);
 
   return (
