@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 import { CheckCircle } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, Fragment } from "react";
 import { useSummaries } from "@/hooks/useSummaries";
 import { useAuth } from "@/contexts/AuthContext";
 import { parseSummaryContent } from "@/lib/utils/summary-parser";
@@ -79,14 +80,12 @@ function pickRecommendations(content: any): RecItem[] {
   return result.slice(0, 6);
 }
 
-function badgeVariant(p: Priority): "destructive" | "warning" | "secondary" {
+function badgeVariant(p: Priority): "destructive" | "outline" {
   switch (p) {
     case 'high':
       return 'destructive';
-    case 'medium':
-      return 'warning';
     default:
-      return 'secondary';
+      return 'outline';
   }
 }
 
@@ -104,6 +103,7 @@ export function RecommendationsSummary() {
 
   const items = useMemo(() => (latest ? pickRecommendations(latest.content) : []), [latest]);
   const { isCompleted, toggleCompleted } = useCompletedRecommendations(user?.id, latest?.id);
+  const firstNonHighIdx = useMemo(() => items.findIndex(i => i.priority !== 'high'), [items]);
 
   if (loading) {
     return (
@@ -146,24 +146,29 @@ export function RecommendationsSummary() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {items.map((it) => {
+        {items.map((it, idx) => {
           const completed = isCompleted(it.id);
+          const showSeparator = idx === firstNonHighIdx && firstNonHighIdx > 0;
+          const isNonHigh = it.priority !== 'high';
           return (
-            <div key={it.id} className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <Checkbox id={it.id} checked={completed} onCheckedChange={() => toggleCompleted(it.id)} />
-                <label
-                  htmlFor={it.id}
-                  className={`medical-label-xs truncate ${completed ? 'line-through text-muted-foreground' : ''}`}
-                  title={it.text}
-                >
-                  {it.text}
-                </label>
+            <Fragment key={it.id}>
+              {showSeparator && <Separator className="my-2 bg-accent" />}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Checkbox id={it.id} checked={completed} onCheckedChange={() => toggleCompleted(it.id)} />
+                  <label
+                    htmlFor={it.id}
+                    className={`medical-label-xs truncate ${completed ? 'line-through text-muted-foreground' : ''}`}
+                    title={it.text}
+                  >
+                    {it.text}
+                  </label>
+                </div>
+                <Badge variant={badgeVariant(it.priority)} className={`text-xs ${isNonHigh ? 'bg-muted text-foreground border-transparent' : ''}`}>
+                  {it.priority}
+                </Badge>
               </div>
-              <Badge variant={badgeVariant(it.priority)} className="text-xs">
-                {it.priority}
-              </Badge>
-            </div>
+            </Fragment>
           );
         })}
       </CardContent>
