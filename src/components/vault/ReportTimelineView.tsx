@@ -3,7 +3,7 @@ import { format, isSameDay, parseISO } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { TimelineItem } from "./TimelineItem";
 import { EnhancedTrendsOverview } from "./EnhancedTrendsOverview";
-import { AIInsightsCarousel } from "@/components/dashboard/AIInsightsCarousel";
+
 import { Activity } from "lucide-react";
 
 interface Report {
@@ -69,15 +69,10 @@ export function ReportTimelineView({
     <div className="space-y-6">
       {/* Enhanced Trends Overview */}
 {reports.length > 0 && (
-  <>
-    <EnhancedTrendsOverview 
-      reports={reports} 
-      onNavigateToUpload={onNavigateToUpload}
-    />
-    <div className="mt-4">
-      <AIInsightsCarousel />
-    </div>
-  </>
+  <EnhancedTrendsOverview 
+    reports={reports} 
+    onNavigateToUpload={onNavigateToUpload}
+  />
 )}
 
       {/* Timeline */}

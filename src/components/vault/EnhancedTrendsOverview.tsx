@@ -3,13 +3,8 @@ import { isWithinInterval, subDays, startOfDay, endOfDay } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TooltipInfo } from "@/components/ui/tooltip-info";
 import { 
-  AlertTriangle, 
   Calendar, 
-  Target,
-  FileX,
-  Heart,
   Stethoscope,
   Plus,
   Settings
@@ -17,7 +12,7 @@ import {
 import { useDismissedRecommendations } from "@/hooks/useDismissedRecommendations";
 import { useRecommendationPreferences } from "@/hooks/useRecommendationPreferences";
 import { RecommendationCard } from "./RecommendationCard";
-
+import { AIInsightsCarousel } from "@/components/dashboard/AIInsightsCarousel";
 interface Report {
   id: string;
   title: string;
@@ -219,93 +214,9 @@ export function EnhancedTrendsOverview({ reports, onNavigateToUpload }: Enhanced
     <div className="space-y-4">
       {/* Insights and Recommendations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Health Insights */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Target className="h-4 w-4 text-primary" />
-              <span>Health Insights</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {/* Critical Documents Alert */}
-            {analytics.criticalDocs.length > 0 && (
-              <div className="flex items-start space-x-2 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
-                    {analytics.criticalDocs.length} Critical Document{analytics.criticalDocs.length !== 1 ? 's' : ''}
-                  </p>
-                  <p className="text-xs text-orange-600 dark:text-orange-300">
-                    Requires attention from your healthcare provider
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Missing Document Types */}
-            {analytics.missingTypes.length > 0 && (
-              <div className="flex items-start space-x-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <FileX className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    Missing Document Types
-                  </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-300">
-                    Consider adding: {analytics.missingTypes.map(type => type.replace('_', ' ')).join(', ')}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Processing Issues */}
-            {analytics.failedProcessing.length > 0 && (
-              <div className="flex items-start space-x-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-red-800 dark:text-red-200">
-                    {analytics.failedProcessing.length} Document{analytics.failedProcessing.length !== 1 ? 's' : ''} Need Attention
-                  </p>
-                  <p className="text-xs text-red-600 dark:text-red-300">
-                    Processing failed - may need re-upload
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Data Quality */}
-            {analytics.missingData.length > 0 && (
-              <div className="flex items-start space-x-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                <FileX className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                    {analytics.missingData.length} Document{analytics.missingData.length !== 1 ? 's' : ''} Missing Details
-                  </p>
-                  <p className="text-xs text-yellow-600 dark:text-yellow-300">
-                    Physician or facility information incomplete
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* All Good State */}
-            {analytics.criticalDocs.length === 0 && 
-             analytics.failedProcessing.length === 0 && 
-             analytics.missingData.length === 0 && (
-              <div className="flex items-start space-x-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <Heart className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                    All Documents Processed Successfully
-                  </p>
-                  <p className="text-xs text-green-600 dark:text-green-300">
-                    Your health records are well organized
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+<div className="lg:col-span-2">
+  <AIInsightsCarousel />
+</div>
 
         {/* Recommendations */}
         <Card>
