@@ -293,7 +293,7 @@ export function ActionItems() {
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-1.5">
         {groupedResults.map((group) => (
           <div key={group.dateKey} className="space-y-1">
             <div className="medical-annotation text-xs text-muted-foreground">
@@ -303,7 +303,7 @@ export function ActionItems() {
               {group.items.map((item) => {
                 const StatusIcon = getStatusIcon(item.status);
                 return (
-                  <div key={item.id} className="flex items-center justify-between border-l border-l-destructive pl-2 py-1">
+                  <div key={item.id} className="flex items-center justify-between border-l border-l-destructive pl-2 py-0.5">
                     <div className="flex items-center min-w-0 gap-1">
                       <StatusIcon className="h-3 w-3 text-destructive flex-shrink-0" />
                       <span className="medical-label-xs font-medium capitalize truncate">
@@ -317,13 +317,13 @@ export function ActionItems() {
                       </span>
                     </div>
                     <div className="flex items-center gap-0.5 flex-shrink-0">
-                      <Badge variant={getStatusColor(item.severity)} className="text-xs capitalize">
+                      <Badge variant={getStatusColor(item.severity)} className="h-5 px-1.5 text-[10px] leading-none capitalize">
                         {item.status}
                       </Badge>
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="ghost"
-                        className="ml-0.5"
+                        className="ml-0.5 h-7 w-7"
                         onClick={() => handleViewReport(item.reportId)}
                       >
                         <Eye className="h-3 w-3" />
