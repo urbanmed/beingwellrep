@@ -16,10 +16,13 @@ import {
   MessageSquare,
   Info
 } from "lucide-react";
-import { Summary, SummaryContent } from "@/types/summary";
-import { formatDistanceToNow } from "date-fns";
+import { Summary } from "@/types/summary";
+import { formatDistanceToNow, format } from "date-fns";
 import { parseSummaryContent } from "@/lib/utils/summary-parser";
-
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Report } from "@/hooks/useReports";
+import { HighRiskTrendCharts, type MetricSeries } from "@/components/summaries/HighRiskTrendCharts";
 interface SummaryViewerProps {
   summary: Summary | null;
   isOpen: boolean;
@@ -39,6 +42,183 @@ export function SummaryViewer({
 
   // Parse the content using the utility function
   const content: any = parseSummaryContent(summary.content);
+
+  type MetricKey =
+    | 'ldl'
+    | 'hba1c'
+    | 'glucose'
+    | 'creatinine'
+    | 'egfr'
+    | 'triglycerides'
+    | 'systolic_bp'
+    | 'diastolic_bp'
+    | 'heart_rate';
+
+  const METRIC_DEFS: Record<MetricKey, { label: string; unit?: string; match: string[] }> = {
+    ldl: { label: 'LDL Cholesterol', unit: 'mg/dL', match: ['ldl'] },
+    hba1c: { label: 'HbA1c', unit: '%', match: ['hba1c', 'a1c', 'glycated hemoglobin'] },
+    glucose: { label: 'Glucose', unit: 'mg/dL', match: ['glucose', 'fasting glucose'] },
+    creatinine: { label: 'Creatinine', unit: 'mg/dL', match: ['creatinine'] },
+    egfr: { label: 'eGFR', unit: 'mL/min', match: ['egfr', 'gfr'] },
+    triglycerides: { label: 'Triglycerides', unit: 'mg/dL', match: ['triglyceride'] },
+    systolic_bp: { label: 'Systolic BP', unit: 'mmHg', match: ['blood pressure', 'bp', 'systolic'] },
+    diastolic_bp: { label: 'Diastolic BP', unit: 'mmHg', match: ['blood pressure', 'bp', 'diastolic'] },
+    heart_rate: { label: 'Heart Rate', unit: 'bpm', match: ['heart rate', 'pulse'] },
+  };
+
+  const [sourceReports, setSourceReports] = useState<Report[]>([]);
+  const [metricSeries, setMetricSeries] = useState<MetricSeries[]>([]);
+  const [loadingTrends, setLoadingTrends] = useState(false);
+
+  const getReportDate = (r: Report) => new Date(r.report_date || r.created_at);
+
+  function parseNumber(input?: string | null): number | null {
+    if (!input) return null;
+    const numMatch = String(input).match(/-?\d+(?:\.\d+)?/);
+    return numMatch ? parseFloat(numMatch[0]) : null;
+  }
+
+  function extractMetricKeysFromContent(c: any): MetricKey[] {
+    const keys = new Set<MetricKey>();
+    const addIfMatch = (text: string) => {
+      const t = text.toLowerCase();
+      (Object.keys(METRIC_DEFS) as MetricKey[]).forEach((k) => {
+        if (METRIC_DEFS[k].match.some((m) => t.includes(m))) {
+          // Special-case BP: add both systolic & diastolic when BP mentioned
+          if (k === 'systolic_bp' || k === 'diastolic_bp') {
+            keys.add('systolic_bp');
+            keys.add('diastolic_bp');
+          } else {
+            keys.add(k);
+          }
+        }
+      });
+    };
+
+    const candidates = [
+      ...(c?.high_priority?.findings || []),
+      ...(c?.high_priority?.trends || []),
+      ...(c?.trends || []),
+    ];
+
+    candidates.forEach((item: any) => {
+      const text = typeof item === 'string' ? item : item.text || item.finding || '';
+      if (text) addIfMatch(text);
+    });
+
+    // Fallback defaults
+    if (keys.size === 0) {
+      ['ldl', 'hba1c', 'creatinine'].forEach((k) => keys.add(k as MetricKey));
+    }
+
+    // Limit to at most 5 keys before we later pick top 3 by data density
+    return Array.from(keys).slice(0, 5);
+  }
+
+  function buildSeries(reports: Report[], keys: MetricKey[]): MetricSeries[] {
+    const byKey: Record<MetricKey, MetricSeries> = {} as any;
+    keys.forEach((k) => {
+      byKey[k] = {
+        key: k,
+        label: METRIC_DEFS[k].label,
+        unit: METRIC_DEFS[k].unit,
+        points: [],
+      };
+    });
+
+    const sorted = [...reports].sort((a, b) => getReportDate(a).getTime() - getReportDate(b).getTime());
+
+    sorted.forEach((r) => {
+      const date = getReportDate(r);
+      const label = format(date, 'MMM d');
+      const pd: any = r.parsed_data;
+      if (!pd) return;
+
+      // Lab tests
+      if (pd.reportType === 'lab' && Array.isArray(pd.tests)) {
+        pd.tests.forEach((t: any) => {
+          const name = String(t.name || '').toLowerCase();
+          const valueNum = parseNumber(t.value);
+          if (valueNum == null) return;
+          keys.forEach((k) => {
+            if (k === 'systolic_bp' || k === 'diastolic_bp' || k === 'heart_rate') return;
+            if (METRIC_DEFS[k].match.some((m) => name.includes(m))) {
+              byKey[k].points.push({ date: date.toISOString(), label, value: valueNum });
+            }
+          });
+        });
+      }
+
+      // Vitals
+      if (pd.reportType === 'vitals' && Array.isArray(pd.vitals)) {
+        pd.vitals.forEach((v: any) => {
+          const type = String(v.type || '').toLowerCase();
+          const val = String(v.value || '');
+          if (type === 'blood_pressure') {
+            const m = val.match(/(\d{2,3})\s*\/\s*(\d{2,3})/);
+            if (m) {
+              const sys = parseFloat(m[1]);
+              const dia = parseFloat(m[2]);
+              if (keys.includes('systolic_bp')) {
+                byKey['systolic_bp'].points.push({ date: date.toISOString(), label, value: sys });
+              }
+              if (keys.includes('diastolic_bp')) {
+                byKey['diastolic_bp'].points.push({ date: date.toISOString(), label, value: dia });
+              }
+            }
+          }
+          if (type === 'heart_rate') {
+            const hr = parseNumber(val);
+            if (hr != null && keys.includes('heart_rate')) {
+              byKey['heart_rate'].points.push({ date: date.toISOString(), label, value: hr });
+            }
+          }
+        });
+      }
+    });
+
+    const series = Object.values(byKey).filter((s) => s.points.length > 0);
+    return series;
+  }
+
+  useEffect(() => {
+    if (!isOpen || summary.summary_type !== 'trend_analysis' || !Array.isArray(summary.source_report_ids) || summary.source_report_ids.length === 0) {
+      return;
+    }
+    let active = true;
+    (async () => {
+      try {
+        setLoadingTrends(true);
+        const { data, error } = await supabase
+          .from('reports')
+          .select('id, title, report_type, report_date, created_at, parsed_data')
+          .in('id', summary.source_report_ids as string[])
+          .order('report_date', { ascending: true });
+        if (error) throw error;
+        if (active) setSourceReports((data || []) as Report[]);
+      } catch (e) {
+        console.error('Failed to load source reports for trends', e);
+      } finally {
+        if (active) setLoadingTrends(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [isOpen, summary.id]);
+
+  useEffect(() => {
+    if (summary.summary_type !== 'trend_analysis') return;
+    const keys = extractMetricKeysFromContent(content);
+    const s = buildSeries(sourceReports, keys);
+    const top = [...s].sort((a, b) => b.points.length - a.points.length).slice(0, 3);
+    setMetricSeries(top);
+  }, [content, sourceReports, summary.summary_type]);
+
+  const renderHighRiskTrends = () => {
+    if (!metricSeries.length) return null;
+    return <HighRiskTrendCharts series={metricSeries} />;
+  };
 
   const getSeverityColor = (level?: string) => {
     switch (level) {
