@@ -16,14 +16,33 @@ interface TestResultItem {
 
 function normalizeStatus(status?: string | null): TestStatus {
   if (!status) return "unknown";
-  const s = status.toLowerCase();
+  const s = String(status).toLowerCase();
   if (s.includes("critical")) return "critical";
-  if (s.includes("high") || s.includes("elevated") || s.includes("abnormal")) return "abnormal";
+  if (s.includes("high") || s.includes("elevated")) return "high";
   if (s.includes("low") || s.includes("decreased")) return "low";
+  if (s.includes("abnormal")) return "abnormal";
   if (s.includes("normal")) return "normal";
   return "unknown";
 }
 
+function normalizeDate(input?: string | null): string {
+  if (!input) return new Date().toISOString();
+  const trimmed = String(input).trim();
+
+  // Handle DD-MM-YYYY explicitly -> YYYY-MM-DDT00:00:00Z
+  const ddMmYyyy = /^(\d{2})-(\d{2})-(\d{4})$/;
+  const m = trimmed.match(ddMmYyyy);
+  if (m) {
+    const [, dd, mm, yyyy] = m;
+    return `${yyyy}-${mm}-${dd}T00:00:00Z`;
+  }
+
+  // If parseable, normalize to ISO
+  const d = new Date(trimmed);
+  if (!isNaN(d.getTime())) return d.toISOString();
+
+  return trimmed;
+}
 function statusSeverity(status: TestStatus): number {
   switch (status) {
     case "critical":
@@ -54,6 +73,96 @@ function statusToBadgeVariant(status: TestStatus): "destructive" | "warning" | "
   }
 }
 
+function extractTestsFromData(data: any, date: string): TestResultItem[] {
+  const results: TestResultItem[] = [];
+
+  const processOne = (t: any) => {
+    if (!t) return;
+    const hasName = t.name != null && String(t.name).trim() !== "";
+    const hasValue = t.value != null && String(t.value).trim() !== "";
+    if (!hasValue) return;
+    results.push({
+      name: hasName ? String(t.name) : "Unnamed Test",
+      value: String(t.value),
+      unit: t.unit ? String(t.unit) : undefined,
+      status: normalizeStatus(t.status),
+      date,
+    });
+    if (Array.isArray(t.subTests)) {
+      t.subTests.forEach((st: any) => {
+        if (!st || st.value == null) return;
+        results.push({
+          name: st.name ? String(st.name) : (hasName ? `${String(t.name)} - Subtest` : "Subtest"),
+          value: String(st.value),
+          unit: st.unit ? String(st.unit) : undefined,
+          status: normalizeStatus(st.status || t.status),
+          date,
+        });
+      });
+    }
+  };
+
+  const processArray = (arr: any[]) => {
+    arr.forEach(processOne);
+  };
+
+  const processDict = (obj: Record<string, any>) => {
+    Object.entries(obj).forEach(([key, v]) => {
+      if (v && typeof v === "object") {
+        if ("value" in v) {
+          results.push({
+            name: String(key),
+            value: String((v as any).value),
+            unit: (v as any).unit ? String((v as any).unit) : undefined,
+            status: normalizeStatus((v as any).status),
+            date,
+          });
+        } else if (Array.isArray(v)) {
+          processArray(v);
+        } else if (v && typeof v === "object") {
+          // nested object might still be a test row with name/value
+          processOne({ name: key, ...(v as any) });
+        }
+      }
+    });
+  };
+
+  if (Array.isArray(data?.tests)) {
+    processArray(data.tests);
+  } else if (data?.tests && typeof data.tests === "object") {
+    processDict(data.tests);
+  }
+
+  const sections = data?.sections;
+  if (Array.isArray(sections)) {
+    sections.forEach((sec: any) => {
+      if (!sec) return;
+      if (Array.isArray(sec.tests)) {
+        processArray(sec.tests);
+      }
+      if (Array.isArray(sec.items)) {
+        processArray(sec.items);
+      }
+      if (sec.data) {
+        if (Array.isArray(sec.data)) processArray(sec.data);
+        else if (typeof sec.data === "object") processDict(sec.data);
+      }
+      if (typeof sec === "object") {
+        Object.values(sec).forEach((val: any) => {
+          if (Array.isArray(val)) processArray(val);
+          else if (val && typeof val === "object" && ("value" in val || "name" in val)) {
+            processOne(val);
+          }
+        });
+      }
+    });
+  } else if (sections && typeof sections === "object") {
+    processDict(sections as Record<string, any>);
+  }
+
+  return results.filter((r) => r.name && r.name !== "Unnamed Test");
+}
+
 export function LatestTestResultsSummary() {
   const { reports } = useReports();
 
@@ -67,38 +176,11 @@ export function LatestTestResultsSummary() {
     for (const report of recentCompleted) {
       try {
         const data = typeof report.parsed_data === "string" ? JSON.parse(report.parsed_data) : report.parsed_data;
+        const date = normalizeDate(report.report_date || report.created_at);
+        const extracted = extractTestsFromData(data, date);
+        items.push(...extracted);
 
-        // Prefer explicit lab tests when available
-        const maybeTests: any[] | undefined = data?.tests;
-        if (Array.isArray(maybeTests)) {
-          maybeTests.forEach((t) => {
-            if (!t?.name || !t?.value) return;
-            const status = normalizeStatus(t.status);
-            items.push({
-              name: String(t.name),
-              value: String(t.value),
-              unit: t.unit ? String(t.unit) : undefined,
-              status,
-              date: report.report_date || report.created_at,
-            });
-
-            // Handle nested sub-tests if present
-            if (Array.isArray(t.subTests)) {
-              t.subTests.forEach((st: any) => {
-                if (!st?.name || !st?.value) return;
-                items.push({
-                  name: String(st.name),
-                  value: String(st.value),
-                  unit: st.unit ? String(st.unit) : undefined,
-                  status: normalizeStatus(st.status || t.status),
-                  date: report.report_date || report.created_at,
-                });
-              });
-            }
-          });
-        }
-
-        // Fallback: if reportType is lab and data has vitals-like shape, ignore; we only want lab tests
+        // Fallbacks intentionally omitted: only lab-like test structures are gathered
       } catch (e) {
         // ignore parse errors for this report
         continue;
