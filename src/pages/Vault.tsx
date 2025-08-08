@@ -16,7 +16,7 @@ import { ReportTimelineView } from "@/components/vault/ReportTimelineView";
 import { DocumentProcessing } from "@/components/vault/DocumentProcessing";
 import { VaultSummary } from "@/components/vault/VaultSummary";
 import { FloatingUploadButton } from "@/components/vault/FloatingUploadButton";
-import { AIInsightsCarousel } from "@/components/dashboard/AIInsightsCarousel";
+
 import { TagsFilter } from "@/components/vault/TagsFilter";
 import { ReportCompareDialog } from "@/components/vault/ReportCompareDialog";
 
@@ -160,11 +160,6 @@ export default function Vault() {
         </TabsList>
 
         <TabsContent value="documents" className="mt-4 sm:mt-6">
-          {/* AI Insights */}
-          <div className="mb-4 sm:mb-6">
-            <AIInsightsCarousel />
-          </div>
-
           {/* Summary Section */}
           {reports.length > 0 && (
             <div className="mb-4 sm:mb-6">
