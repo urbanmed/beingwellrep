@@ -19,7 +19,7 @@ export function ProfileCompletionBanner() {
   const handleCompleteProfile = () => {
     // Determine which step to start from based on completed sections
     if (!status.completedSections.basicInfo) {
-      navigate("/onboarding");
+      navigate("/auth/onboarding");
     } else if (!status.completedSections.emergencyContact) {
       navigate("/profile/edit?tab=emergency");
     } else if (!status.completedSections.privacySettings) {

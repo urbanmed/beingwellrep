@@ -226,11 +226,14 @@ const AppRoutes: FC = () => (
     <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
     <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
     <Route path="/auth/verify" element={<VerifyPage />} />
-    <Route path="/auth/phone-verify" element={<PhoneVerifyPage />} />
+      <Route path="/auth/phone-verify" element={<PhoneVerifyPage />} />
+
+      {/* Legacy redirect for old onboarding path */}
+      <Route path="/onboarding" element={<Navigate to="/auth/onboarding" replace />} />
     
-    {/* Catch-all route */}
-    <Route path="*" element={<NotFound />} />
-  </Routes>
+      {/* Catch-all route */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
 );
 
 const App: FC = () => {
