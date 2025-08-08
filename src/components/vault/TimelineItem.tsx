@@ -122,6 +122,9 @@ export function TimelineItem({ report, isSelected, onSelect, onNavigate, showDat
               <Badge variant="secondary" className={`text-xs ${config.color}`}>
                 {config.icon} {report.report_type.replace('_', ' ')}
               </Badge>
+              {report.is_critical && (
+                <Badge variant="destructive" className="text-xs">Flagged</Badge>
+              )}
               {report.parsing_status === 'completed' && (
                 <Badge variant="outline" className="text-xs">
                   ✓ Processed

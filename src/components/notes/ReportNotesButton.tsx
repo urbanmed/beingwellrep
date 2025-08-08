@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StickyNote } from "lucide-react";
 import { useDoctorNotes } from "@/hooks/useDoctorNotes";
 import { DoctorNotesList } from "@/components/notes/DoctorNotesList";
-
+import { supabase } from "@/integrations/supabase/client";
 interface ReportNotesButtonProps {
   reportId: string;
   reportTitle?: string;
@@ -25,7 +25,8 @@ export function ReportNotesButton({ reportId, reportTitle }: ReportNotesButtonPr
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
-
+  const [file, setFile] = useState<File | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const reportNotes = useMemo(() => {
     return (notes || []).filter((n) => Array.isArray(n.related_report_ids) && n.related_report_ids.includes(reportId));
   }, [notes, reportId]);
@@ -34,10 +35,48 @@ export function ReportNotesButton({ reportId, reportTitle }: ReportNotesButtonPr
     e.preventDefault();
     if (!title.trim()) return;
     setSaving(true);
-    await addNote({ title: title.trim(), content: content.trim() || undefined, related_report_ids: [reportId] });
-    setSaving(false);
-    setTitle("");
-    setContent("");
+
+    let attached_file_url: string | null = null;
+    try {
+      if (file) {
+        const { data: userRes } = await supabase.auth.getUser();
+        const userId = userRes.user?.id;
+        if (userId) {
+          const path = `doctor-notes/${userId}/${Date.now()}-${file.name}`;
+          const { error: uploadErr } = await supabase.storage
+            .from("medical-documents")
+            .upload(path, file);
+          if (!uploadErr) {
+            const { data: pub } = supabase.storage
+              .from("medical-documents")
+              .getPublicUrl(path);
+            attached_file_url = pub.publicUrl;
+          }
+        }
+      }
+
+      await addNote({ title: title.trim(), content: content.trim() || undefined, related_report_ids: [reportId], attached_file_url });
+    } finally {
+      setSaving(false);
+      setTitle("");
+      setContent("");
+      setFile(null);
+    }
+  };
+
+  const handleSuggestAI = async () => {
+    setAiLoading(true);
+    try {
+      const prompt = `Draft a concise doctor's note linked to report "${reportTitle || ''}". Include key observations and next steps.`;
+      const { data } = await supabase.functions.invoke("ai-medical-assistant", {
+        body: { message: prompt, conversation_id: crypto.randomUUID() },
+      });
+      if (data?.response) {
+        setContent(data.response);
+      }
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   return (
@@ -77,8 +116,16 @@ export function ReportNotesButton({ reportId, reportTitle }: ReportNotesButtonPr
               aria-label="Note content"
               className="min-h-[80px]"
             />
+            <Input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+            />
           </div>
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between">
+            <Button type="button" variant="outline" onClick={handleSuggestAI} disabled={aiLoading}>
+              {aiLoading ? "Generating..." : "Suggest with AI"}
+            </Button>
             <Button type="submit" disabled={saving || !title.trim()}>
               {saving ? "Saving..." : "Save note"}
             </Button>

@@ -16,6 +16,9 @@ import { ReportTimelineView } from "@/components/vault/ReportTimelineView";
 import { DocumentProcessing } from "@/components/vault/DocumentProcessing";
 import { VaultSummary } from "@/components/vault/VaultSummary";
 import { FloatingUploadButton } from "@/components/vault/FloatingUploadButton";
+import { AIInsightsCarousel } from "@/components/dashboard/AIInsightsCarousel";
+import { TagsFilter } from "@/components/vault/TagsFilter";
+import { ReportCompareDialog } from "@/components/vault/ReportCompareDialog";
 
 import { useNavigate } from "react-router-dom";
 import { isWithinInterval, startOfDay, endOfDay, subDays, format } from "date-fns";
@@ -48,12 +51,17 @@ export default function Vault() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"documents" | "processing">("documents");
   const [statusFilter, setStatusFilter] = useState<'critical' | 'processing_errors' | null>(null);
-  
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
+
   const { reports, loading, deleteMultipleReports, refetch } = useReports();
 
-  // Notes hook
-  
-
+  // Tags
+  const availableTags = useMemo(() => {
+    const set = new Set<string>();
+    reports.forEach(r => (r.tags || []).forEach((t: string) => set.add(t)));
+    return Array.from(set).sort();
+  }, [reports]);
   const filteredReports = useMemo(() => {
     return reports.filter(report => {
       // Search filter
@@ -73,13 +81,20 @@ export default function Vault() {
         if (!matchesCategory) return false;
       }
 
+      // Tags filter
+      if (selectedTags.length > 0) {
+        const tags = report.tags || [];
+        const matchesTags = selectedTags.some(tag => tags.includes(tag));
+        if (!matchesTags) return false;
+      }
+
       // Status quick filter
       if (statusFilter === 'critical' && !report.is_critical) return false;
       if (statusFilter === 'processing_errors' && report.parsing_status !== 'failed') return false;
 
       return true;
     });
-  }, [reports, searchQuery, selectedCategories, statusFilter]);
+  }, [reports, searchQuery, selectedCategories, selectedTags, statusFilter]);
 
   const handleSelectReport = (reportId: string, checked: boolean) => {
     if (checked) {
@@ -105,6 +120,7 @@ export default function Vault() {
 
   const handleClearAllFilters = () => {
     setSelectedCategories([]);
+    setSelectedTags([]);
     setSearchQuery("");
     setStatusFilter(null);
   };
@@ -144,6 +160,11 @@ export default function Vault() {
         </TabsList>
 
         <TabsContent value="documents" className="mt-4 sm:mt-6">
+          {/* AI Insights */}
+          <div className="mb-4 sm:mb-6">
+            <AIInsightsCarousel />
+          </div>
+
           {/* Summary Section */}
           {reports.length > 0 && (
             <div className="mb-4 sm:mb-6">
@@ -283,6 +304,13 @@ export default function Vault() {
         onConfirm={handleBulkDelete}
         isMultiple={true}
         count={selectedForDeletion.length}
+      />
+
+      {/* Compare Dialog */}
+      <ReportCompareDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        reports={reports.filter(r => selectedForDeletion.includes(r.id)).slice(0, 2)}
       />
 
       {/* Floating Upload Button */}
