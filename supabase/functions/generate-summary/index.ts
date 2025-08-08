@@ -101,6 +101,8 @@ const MEDICAL_PROMPTS = {
 }`
 };
 
+const COMPREHENSIVE_JSON_SCHEMA = `Return ONLY a JSON object (no markdown code blocks) with this exact structure:\n{\n  "summary": "Brief overall health status",\n  "categories": [\n    {\n      "name": "Category name (e.g., Cardiac, Thyroid, Blood Tests)",\n      "tests_included": ["list of tests"],\n      "key_findings": ["abnormal or borderline results summary"],\n      "interpretation": "brief interpretation",\n      "risk_score": 0,\n      "high_priority": [{ "finding": "...", "recommendation": "..." }],\n      "medium_priority": [{ "finding": "...", "recommendation": "..." }],\n      "low_priority": [{ "finding": "...", "recommendation": "..." }]\n    }\n  ],\n  "overall_health_risk_score": 0,\n  "confidence_score": 0.85\n}`;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -152,8 +154,13 @@ serve(async (req) => {
       `Report: ${r.title} (${r.report_date})\n${r.extracted_text}`
     ).join('\n\n---\n\n');
 
-    // Get the appropriate prompt
-    const systemPrompt = customPrompt || MEDICAL_PROMPTS[summaryType];
+// Build the system prompt (append JSON schema when using a custom comprehensive prompt)
+let systemPrompt: string;
+if (customPrompt && summaryType === 'comprehensive') {
+  systemPrompt = `${customPrompt}\n\n${COMPREHENSIVE_JSON_SCHEMA}`;
+} else {
+  systemPrompt = customPrompt || MEDICAL_PROMPTS[summaryType];
+}
 
     // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

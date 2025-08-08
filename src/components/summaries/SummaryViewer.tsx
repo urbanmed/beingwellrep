@@ -369,6 +369,81 @@ export function SummaryViewer({
     );
   };
 
+  const buildPriorityData = (arr?: Array<{ finding?: string; recommendation?: string }>) => {
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    return {
+      findings: arr.map((i) => i?.finding).filter(Boolean),
+      recommendations: arr.map((i) => i?.recommendation).filter(Boolean),
+    };
+  };
+
+  const renderCategories = () => {
+    if (!Array.isArray(content.categories) || content.categories.length === 0) return null;
+    return (
+      <div className="space-y-6">
+        {content.categories.map((cat: any, idx: number) => (
+          <Card key={idx}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Info className="h-5 w-5" />
+                {cat.name}
+                {typeof cat?.risk_score === 'number' && (
+                  <Badge variant="outline" className="ml-2 text-xs">Risk {Math.round(cat.risk_score)}/100</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {Array.isArray(cat.tests_included) && cat.tests_included.length > 0 && (
+                <div>
+                  <h5 className="text-sm font-medium text-muted-foreground mb-1">Tests Included</h5>
+                  <p className="text-sm">{cat.tests_included.join(', ')}</p>
+                </div>
+              )}
+
+              {Array.isArray(cat.key_findings) && cat.key_findings.length > 0 && (
+                <div className="mt-3">
+                  <h5 className="text-sm font-medium text-muted-foreground mb-1">Key Findings</h5>
+                  <ul className="space-y-1">
+                    {cat.key_findings.map((f: string, i: number) => (
+                      <li key={i} className="text-sm">• {f}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {cat.interpretation && (
+                <div className="mt-3 p-3 bg-muted/50 rounded">
+                  <p className="text-sm">{cat.interpretation}</p>
+                </div>
+              )}
+
+              <div className="mt-4 space-y-3">
+                {renderPrioritySection(
+                  'high',
+                  buildPriorityData(cat.high_priority),
+                  <AlertTriangle className="h-4 w-4 text-destructive" />,
+                  'border-destructive/50 bg-destructive/5'
+                )}
+                {renderPrioritySection(
+                  'medium',
+                  buildPriorityData(cat.medium_priority),
+                  <Info className="h-4 w-4 text-primary" />,
+                  'border-primary/50 bg-primary/5'
+                )}
+                {renderPrioritySection(
+                  'low',
+                  buildPriorityData(cat.low_priority),
+                  <CheckCircle className="h-4 w-4 text-green-600" />,
+                  'border-green-500/50 bg-green-50 dark:bg-green-900/10'
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
   const renderContent = () => {
     // Check if content has priority structure
     const hasPriorityStructure = content.high_priority || content.medium_priority || content.low_priority;
@@ -429,13 +504,16 @@ export function SummaryViewer({
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle className="text-xl">{summary.title}</DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Generated {formatDistanceToNow(new Date(summary.generated_at), { addSuffix: true })}
-                {summary.confidence_score && (
-                  <span> • {Math.round(summary.confidence_score * 100)}% confidence</span>
-                )}
-              </p>
+<DialogTitle className="text-xl">{summary.title}</DialogTitle>
+<p className="text-sm text-muted-foreground mt-1">
+  Generated {formatDistanceToNow(new Date(summary.generated_at), { addSuffix: true })}
+  {summary.confidence_score && (
+    <span> • {Math.round(summary.confidence_score * 100)}% confidence</span>
+  )}
+  {typeof content?.overall_health_risk_score === 'number' && (
+    <span> • Risk: {Math.round(content.overall_health_risk_score)}/100</span>
+  )}
+</p>
             </div>
             <div className="flex items-center gap-2">
               <Button
