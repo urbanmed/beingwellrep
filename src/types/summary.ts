@@ -29,7 +29,6 @@ export interface SummaryContent {
   severity_level?: 'low' | 'moderate' | 'high';
   overall_concern_level?: 'low' | 'moderate' | 'high';
   confidence_score?: number;
-  overall_health_risk_score?: number;
   trends?: Array<{
     parameter: string;
     trend: 'improving' | 'stable' | 'worsening';

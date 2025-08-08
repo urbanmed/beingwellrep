@@ -20,95 +20,6 @@ import {
 } from "lucide-react";
 import { Summary } from "@/types/summary";
 
-const COMPREHENSIVE_PROMPT_TEMPLATE = `When generating comprehensive AI summary use the following prompt, Keep the background accent color for priority sections, font size and type same as now.
-
-# TASK: Analyze any uploaded medical report (all categories) and give structured health risk insights with priority levels
-
-You will be given a **medical report** as input (PDF or text). It could be from any of the following categories:
-
-🩸 Blood Tests – CBC, LFT, KFT, Lipid, Glucose, HbA1c, Vitamins, Minerals, Inflammatory markers, etc.  
-🧬 Genetic Reports – DNA analysis, genetic predisposition, carrier status, pharmacogenomics, ancestry-related health markers.  
-🧪 Thyroid / Hormone – Thyroid panel (T3, T4, TSH, Free T3/T4), reproductive hormones, cortisol, insulin, growth hormone, etc.  
-🫀 Heart & Cardiac – ECG/EKG reports, echocardiograms, cardiac enzyme tests (troponin, CK-MB), cholesterol subfractions, stress test results.  
-🧠 Neurology – Brain imaging summaries (MRI, CT), nerve conduction studies, EEG, neurological biomarker blood panels.  
-🍽️ Nutrition / Diet – Macro & micronutrient analysis, vitamin & mineral status, amino acid profile, fatty acid profile.  
-🧫 Microbiome / Gut – Stool analysis, gut bacteria diversity, dysbiosis markers, pathogen detection, digestive enzyme levels.  
-⚙️ Other / Miscellaneous – Any other type of diagnostic report not covered above.
-
----
-
-## INSTRUCTIONS
-
-1. **Detect the type(s) of report** based on content.
-2. **Identify all test panels or sections** present.
-3. For each panel:
-   - List **Tests Included**
-   - Extract **values, units, and reference ranges** where available
-   - Compare with reference ranges
-   - Interpret each value as: Normal, Borderline, Mildly Abnormal, Clinically Concerning
-4. **Flag abnormalities or borderline values** and:
-   - Assign a **Priority Level**:
-     - **High Priority** – Critical or urgent health concern; may require immediate medical attention
-     - **Medium Priority** – Significant finding; needs timely follow-up but not immediately life-threatening
-     - **Low Priority** – Mild or early-stage deviation; can be monitored and managed with lifestyle/dietary changes
-5. For each flagged finding, provide a **short recommendation** based on its priority.
-6. **Assign a Risk Score (1–100)** for each organ/system or functional category.
-7. **Generate an Overall Health Risk Score (1–100)** based on weighted averages of category scores.
-
----
-
-## OUTPUT FORMAT
-
-CATEGORY: [Name]
-Tests Included: [list]
-Key Findings: [summarize abnormal/borderline results]
-Interpretation: [brief but clear medical interpretation]
-Risk Score: X/100
-
-🔴 High Priority Findings:
-
-[Finding]: [Brief explanation] → Recommendation: [Action step]
-
-🟠 Medium Priority Findings:
-
-[Finding]: [Brief explanation] → Recommendation: [Action step]
-
-🟢 Low Priority Findings:
-
-[Finding]: [Brief explanation] → Recommendation: [Action step]
-
-
-Repeat for **each detected category**.
-
----
-
-At the end, include:
-
-OVERALL HEALTH RISK SCORE: XX/100
-🧭 Summary of Flagged Issues:
-
-Bullet points summarizing main risks
-
-📌 Suggested Next Steps:
-
-[Lifestyle, diet, further testing, and/or specialist referrals]
-
----
-
-⚠️ Notes:
-- Keep explanations factual and easy for non-medical readers.
-- If no abnormal findings in a category, state: “All values within normal range.”
-- If insufficient data, state: “Not enough data to assess.”
-- Do not provide a medical diagnosis; focus on **risk awareness, prioritization, and recommendations**.
-
-This now ensures:
-
-Multi-category adaptability
-
-Risk scoring + Priority classification
-
-Clear action-oriented recommendations per priority level`;
-
 interface ReportDisplay {
   id: string;
   title: string;
@@ -206,13 +117,6 @@ export function GenerateSummaryDialog({
       setSelectedReports(preSelectedReportIds);
     }
   }, [isOpen, preSelectedReportIds?.length]);
-
-  // Prefill the custom prompt when Comprehensive type is selected
-  useEffect(() => {
-    if (isOpen && selectedType === 'comprehensive' && !customPrompt) {
-      setCustomPrompt(COMPREHENSIVE_PROMPT_TEMPLATE);
-    }
-  }, [isOpen, selectedType]);
 
   const handleReportToggle = (reportId: string) => {
     setSelectedReports(prev => 
