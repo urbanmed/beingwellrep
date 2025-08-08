@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { useSummaries } from "@/hooks/useSummaries";
 import { Summary } from "@/types/summary";
 import { Plus, Brain, Filter, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useSearchParams } from "react-router-dom";
 
 export default function Summaries() {
   const [selectedSummary, setSelectedSummary] = useState<Summary | null>(null);
@@ -28,6 +29,8 @@ export default function Summaries() {
     rateSummary,
     deleteSummary
   } = useSummaries();
+
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const filteredSummaries = summaries.filter(summary => {
     const matchesSearch = summary.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -61,6 +64,14 @@ export default function Summaries() {
       setSummaryToDelete(null);
     }
   };
+
+  // Auto-open SummaryViewer when ?id= is present
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (!id) return;
+    const s = summaries.find(s => s.id === id);
+    if (s) setSelectedSummary(s);
+  }, [searchParams, summaries]);
 
   if (loading && summaries.length === 0) {
     return (
@@ -202,7 +213,14 @@ export default function Summaries() {
       <SummaryViewer
         summary={selectedSummary}
         isOpen={!!selectedSummary}
-        onClose={() => setSelectedSummary(null)}
+        onClose={() => {
+          setSelectedSummary(null);
+          if (searchParams.get('id')) {
+            const next = new URLSearchParams(searchParams);
+            next.delete('id');
+            setSearchParams(next, { replace: true });
+          }
+        }}
         onPin={pinSummary}
         onRate={rateSummary}
       />

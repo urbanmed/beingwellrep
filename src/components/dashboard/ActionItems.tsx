@@ -245,17 +245,23 @@ export function ActionItems() {
     }
   };
 
-  const getStatusColor = (severity: string) => {
-    switch (severity) {
-      case 'critical': return 'destructive';
-      case 'warning': return 'warning';
-      default: return 'secondary';
-    }
-  };
 
-  const handleViewReport = (reportId: string) => {
+  const handleViewSummary = (reportId?: string) => {
+    const comprehensive = summaries.filter((s) => s.summary_type === 'comprehensive');
+    let target = null as (typeof comprehensive)[number] | null;
+
     if (reportId) {
-      navigate(`/reports/${reportId}`);
+      target = comprehensive.find((s) => Array.isArray(s.source_report_ids) && s.source_report_ids.includes(reportId)) || null;
+    }
+
+    if (!target && comprehensive.length > 0) {
+      target = [...comprehensive].sort(
+        (a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime()
+      )[0];
+    }
+
+    if (target) {
+      navigate(`/summaries?id=${target.id}`);
     } else {
       navigate('/summaries');
     }
@@ -317,14 +323,11 @@ export function ActionItems() {
                       </span>
                     </div>
                     <div className="flex items-center gap-0.5 flex-shrink-0">
-                      <Badge variant={getStatusColor(item.severity)} className="h-5 px-1.5 text-[10px] leading-none capitalize">
-                        {item.status}
-                      </Badge>
                       <Button
                         size="icon"
                         variant="ghost"
                         className="ml-0.5 h-7 w-7"
-                        onClick={() => handleViewReport(item.reportId)}
+                        onClick={() => handleViewSummary(item.reportId)}
                       >
                         <Eye className="h-3 w-3" />
                       </Button>
