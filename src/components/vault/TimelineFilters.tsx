@@ -335,6 +335,9 @@ export function TimelineFilters({
                   mode="single"
                   selected={tempDateRange.start || undefined}
                   onSelect={(date) => setTempDateRange(prev => ({ ...prev, start: date || null }))}
+                  captionLayout="dropdown"
+                  fromYear={1900}
+                  toYear={new Date().getFullYear()}
                   className="pointer-events-auto scale-90 -mx-4"
                 />
               </div>
@@ -344,6 +347,9 @@ export function TimelineFilters({
                   mode="single"
                   selected={tempDateRange.end || undefined}
                   onSelect={(date) => setTempDateRange(prev => ({ ...prev, end: date || null }))}
+                  captionLayout="dropdown"
+                  fromYear={1900}
+                  toYear={new Date().getFullYear()}
                   className="pointer-events-auto scale-90 -mx-4"
                 />
               </div>
