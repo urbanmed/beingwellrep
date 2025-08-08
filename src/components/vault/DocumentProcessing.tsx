@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { TimelineFilters } from "@/components/timeline/TimelineFilters";
 import { TimelineItem } from "@/components/timeline/TimelineItem";
 import { useTimeline, TimelineItem as TimelineItemType } from "@/hooks/useTimeline";
@@ -55,27 +55,24 @@ const stats = getStats();
 return (
     <Card>
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base sm:text-lg flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Processing
           </CardTitle>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant={mode === 'tracker' ? 'default' : 'outline'}
-              onClick={() => setMode('tracker')}
-            >
+          <ToggleGroup
+            type="single"
+            value={mode}
+            onValueChange={(v) => v && setMode(v as 'tracker' | 'processed')}
+            className="justify-start sm:justify-end"
+          >
+            <ToggleGroupItem value="tracker" variant={mode === 'tracker' ? 'default' : 'outline'} size="sm">
               Tracker
-            </Button>
-            <Button
-              size="sm"
-              variant={mode === 'processed' ? 'default' : 'outline'}
-              onClick={() => setMode('processed')}
-            >
+            </ToggleGroupItem>
+            <ToggleGroupItem value="processed" variant={mode === 'processed' ? 'default' : 'outline'} size="sm">
               Processed
-            </Button>
-          </div>
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
         <p className="text-muted-foreground text-sm mt-1">
           Track processing progress and review processed documents
