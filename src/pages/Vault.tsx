@@ -45,6 +45,7 @@ export default function Vault() {
   const [viewMode, setViewMode] = useState<ViewMode>("timeline");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"documents" | "processing">("documents");
+  const [statusFilter, setStatusFilter] = useState<'critical' | 'processing_errors' | null>(null);
   
   const { reports, loading, deleteMultipleReports, refetch } = useReports();
 
@@ -67,9 +68,13 @@ export default function Vault() {
         if (!matchesCategory) return false;
       }
 
+      // Status quick filter
+      if (statusFilter === 'critical' && !report.is_critical) return false;
+      if (statusFilter === 'processing_errors' && report.parsing_status !== 'failed') return false;
+
       return true;
     });
-  }, [reports, searchQuery, selectedCategories]);
+  }, [reports, searchQuery, selectedCategories, statusFilter]);
 
   const handleSelectReport = (reportId: string, checked: boolean) => {
     if (checked) {
@@ -96,6 +101,7 @@ export default function Vault() {
   const handleClearAllFilters = () => {
     setSelectedCategories([]);
     setSearchQuery("");
+    setStatusFilter(null);
   };
 
   const handleFloatingUploadComplete = async () => {
@@ -136,7 +142,7 @@ export default function Vault() {
           {/* Summary Section */}
           {reports.length > 0 && (
             <div className="mb-4 sm:mb-6">
-              <VaultSummary />
+              <VaultSummary onQuickFilter={(filter) => setStatusFilter(filter)} />
             </div>
           )}
 

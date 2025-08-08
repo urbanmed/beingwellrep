@@ -1,12 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Clock, TestTube, TrendingUp, Activity, AlertCircle } from "lucide-react";
+import { FileText, Clock, TestTube, TrendingUp, Activity, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useReports } from "@/hooks/useReports";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ChartContainer } from "@/components/ui/chart";
+import { LineChart, Line, ResponsiveContainer } from "recharts";
 export function VaultSummary() {
   const navigate = useNavigate();
   const { reports } = useReports();
