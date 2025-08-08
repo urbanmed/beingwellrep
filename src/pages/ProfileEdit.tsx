@@ -142,11 +142,14 @@ export default function ProfileEdit() {
     try {
       const { error } = await supabase
         .from("profiles")
-        .upsert({
-          user_id: user.id,
-          ...data,
-          date_of_birth: data.date_of_birth ? data.date_of_birth.toISOString().split('T')[0] : null,
-        });
+        .upsert(
+          {
+            user_id: user.id,
+            ...data,
+            date_of_birth: data.date_of_birth ? data.date_of_birth.toISOString().split('T')[0] : null,
+          },
+          { onConflict: "user_id" }
+        );
 
       if (error) throw error;
 
@@ -351,7 +354,7 @@ export default function ProfileEdit() {
                         <FormItem>
                           <FormLabel>Phone Number</FormLabel>
                           <FormControl>
-                            <Input placeholder="(555) 123-4567" {...field} />
+                            <Input placeholder="e.g., 9876543210" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -563,7 +566,7 @@ export default function ProfileEdit() {
                           <FormItem>
                             <FormLabel>Emergency Contact Phone</FormLabel>
                             <FormControl>
-                              <Input placeholder="(555) 123-4567" {...field} />
+                              <Input placeholder="e.g., 9876543210" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Shield, Lock, Eye, EyeOff } from "lucide-react";
@@ -14,9 +15,10 @@ interface OnboardingStep3Props {
   data: Partial<EmergencyContactFormData>;
   onNext: (data: EmergencyContactFormData) => void;
   onBack: () => void;
+  onChange?: (data: Partial<EmergencyContactFormData>) => void;
 }
 
-export function OnboardingStep3({ data, onNext, onBack }: OnboardingStep3Props) {
+export function OnboardingStep3({ data, onNext, onBack, onChange }: OnboardingStep3Props) {
   const form = useForm<EmergencyContactFormData>({
     resolver: zodResolver(emergencyContactSchema),
     defaultValues: {
@@ -25,6 +27,13 @@ export function OnboardingStep3({ data, onNext, onBack }: OnboardingStep3Props) 
       emergency_contact_relationship: data.emergency_contact_relationship || "",
     },
   });
+
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      onChange?.(value as Partial<EmergencyContactFormData>);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, onChange]);
 
   const handleSubmit = (formData: EmergencyContactFormData) => {
     onNext(formData);
@@ -99,7 +108,7 @@ export function OnboardingStep3({ data, onNext, onBack }: OnboardingStep3Props) 
                   <TooltipInfo content="Provide a reliable phone number where this person can be reached 24/7. This information is encrypted and only used for emergencies." />
                 </FormLabel>
                 <FormControl>
-                  <Input placeholder="+91 98765 43210" {...field} />
+                  <Input placeholder="e.g., 9876543210" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

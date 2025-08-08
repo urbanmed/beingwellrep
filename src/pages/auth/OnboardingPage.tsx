@@ -108,18 +108,41 @@ export default function OnboardingPage() {
     loadDraftData();
   }, [user]);
 
+  // Save partial data to Supabase (upsert by user_id)
+  const savePartial = async (partial: any) => {
+    if (!user) return;
+    const merged = {
+      ...formData.step1,
+      ...formData.step2,
+      ...formData.step3,
+      ...formData.step4,
+      ...partial,
+    } as any;
+
+    const payload = {
+      user_id: user.id,
+      ...merged,
+      date_of_birth: merged.date_of_birth ? new Date(merged.date_of_birth).toISOString().split('T')[0] : null,
+    };
+
+    await supabase.from("profiles").upsert(payload, { onConflict: "user_id" });
+  };
+
   const handleStep1Complete = (data: BasicInfoFormData) => {
     setFormData(prev => ({ ...prev, step1: data }));
+    void savePartial(data);
     setCurrentStep(2);
   };
 
   const handleStep2Complete = (data: MedicalInfoFormData) => {
     setFormData(prev => ({ ...prev, step2: data }));
+    void savePartial(data);
     setCurrentStep(3);
   };
 
   const handleStep3Complete = (data: EmergencyContactFormData) => {
     setFormData(prev => ({ ...prev, step3: data }));
+    void savePartial(data);
     setCurrentStep(4);
   };
 
@@ -138,10 +161,13 @@ export default function OnboardingPage() {
 
       const { error } = await supabase
         .from("profiles")
-        .upsert({
-          ...completeData,
-          date_of_birth: completeData.date_of_birth ? completeData.date_of_birth.toISOString().split('T')[0] : null,
-        });
+        .upsert(
+          {
+            ...completeData,
+            date_of_birth: completeData.date_of_birth ? completeData.date_of_birth.toISOString().split('T')[0] : null,
+          },
+          { onConflict: "user_id" }
+        );
 
       if (error) throw error;
 
@@ -184,10 +210,13 @@ export default function OnboardingPage() {
 
       await supabase
         .from("profiles")
-        .upsert({
-          ...dataToSave,
-          date_of_birth: dataToSave.date_of_birth ? dataToSave.date_of_birth.toISOString().split('T')[0] : null,
-        });
+        .upsert(
+          {
+            ...dataToSave,
+            date_of_birth: dataToSave.date_of_birth ? dataToSave.date_of_birth.toISOString().split('T')[0] : null,
+          },
+          { onConflict: "user_id" }
+        );
 
       toast({
         title: "Draft saved",
@@ -245,6 +274,7 @@ export default function OnboardingPage() {
               <OnboardingStep1
                 data={formData.step1 || {}}
                 onNext={handleStep1Complete}
+                onChange={(values) => setFormData(prev => ({ ...prev, step1: { ...prev.step1, ...values } as any }))}
               />
             )}
 
@@ -253,6 +283,7 @@ export default function OnboardingPage() {
                 data={formData.step2 || {}}
                 onNext={handleStep2Complete}
                 onBack={handleBack}
+                onChange={(values) => setFormData(prev => ({ ...prev, step2: { ...prev.step2, ...values } as any }))}
               />
             )}
 
@@ -261,6 +292,7 @@ export default function OnboardingPage() {
                 data={formData.step3 || {}}
                 onNext={handleStep3Complete}
                 onBack={handleBack}
+                onChange={(values) => setFormData(prev => ({ ...prev, step3: { ...prev.step3, ...values } as any }))}
               />
             )}
 

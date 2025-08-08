@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon } from "lucide-react";
@@ -16,9 +17,10 @@ import { cn } from "@/lib/utils";
 interface OnboardingStep1Props {
   data: Partial<BasicInfoFormData>;
   onNext: (data: BasicInfoFormData) => void;
+  onChange?: (data: Partial<BasicInfoFormData>) => void;
 }
 
-export function OnboardingStep1({ data, onNext }: OnboardingStep1Props) {
+export function OnboardingStep1({ data, onNext, onChange }: OnboardingStep1Props) {
   const form = useForm<BasicInfoFormData>({
     resolver: zodResolver(basicInfoSchema),
     defaultValues: {
@@ -31,6 +33,13 @@ export function OnboardingStep1({ data, onNext }: OnboardingStep1Props) {
       preferred_language: data.preferred_language || "english",
     },
   });
+
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      onChange?.(value as Partial<BasicInfoFormData>);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, onChange]);
 
   const handleSubmit = (formData: BasicInfoFormData) => {
     onNext(formData);
@@ -157,7 +166,7 @@ export function OnboardingStep1({ data, onNext }: OnboardingStep1Props) {
               <FormItem>
                 <FormLabel>Phone Number</FormLabel>
                 <FormControl>
-                  <Input placeholder="+91 98765 43210" {...field} />
+                  <Input placeholder="e.g., 9876543210" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

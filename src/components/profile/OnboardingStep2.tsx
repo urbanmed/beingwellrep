@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MedicalInfoFormData, medicalInfoSchema } from "@/lib/validations/profile";
@@ -10,6 +11,7 @@ interface OnboardingStep2Props {
   data: Partial<MedicalInfoFormData>;
   onNext: (data: MedicalInfoFormData) => void;
   onBack: () => void;
+  onChange?: (data: Partial<MedicalInfoFormData>) => void;
 }
 
 const accessibilityOptions = [
@@ -21,7 +23,7 @@ const accessibilityOptions = [
   { id: "language", label: "Language interpretation services" },
 ];
 
-export function OnboardingStep2({ data, onNext, onBack }: OnboardingStep2Props) {
+export function OnboardingStep2({ data, onNext, onBack, onChange }: OnboardingStep2Props) {
   const form = useForm<MedicalInfoFormData>({
     resolver: zodResolver(medicalInfoSchema),
     defaultValues: {
@@ -33,6 +35,13 @@ export function OnboardingStep2({ data, onNext, onBack }: OnboardingStep2Props) 
       accessibility_needs: data.accessibility_needs || [],
     },
   });
+
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      onChange?.(value as Partial<MedicalInfoFormData>);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, onChange]);
 
   const handleSubmit = (formData: MedicalInfoFormData) => {
     onNext(formData);
