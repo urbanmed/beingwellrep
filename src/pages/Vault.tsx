@@ -180,6 +180,7 @@ export default function Vault() {
                 active={statusFilter ?? 'all'}
                 onApply={(f) => setStatusFilter(f === 'all' ? null : f)}
               />
+              <DocumentProcessing />
             </div>
           )}
 
@@ -301,9 +302,6 @@ export default function Vault() {
           )}
         </div>
       )}
-      <div className="mt-6">
-        <DocumentProcessing />
-      </div>
     </TabsContent>
 
 
