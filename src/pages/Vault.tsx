@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { useReports } from "@/hooks/useReports";
 import { DeleteConfirmDialog } from "@/components/reports/DeleteConfirmDialog";
 import { ReportCategoriesFilter } from "@/components/vault/ReportCategoriesFilter";
@@ -16,12 +16,8 @@ import { ReportTimelineView } from "@/components/vault/ReportTimelineView";
 import { DocumentProcessing } from "@/components/vault/DocumentProcessing";
 import { FloatingUploadButton } from "@/components/vault/FloatingUploadButton";
 
-import { TagsFilter } from "@/components/vault/TagsFilter";
+
 import { ReportCompareDialog } from "@/components/vault/ReportCompareDialog";
-import { VaultCollectionHealth } from "@/components/vault/VaultCollectionHealth";
-import { VaultHygieneCard } from "@/components/vault/VaultHygieneCard";
-import { VaultCoverageGaps } from "@/components/vault/VaultCoverageGaps";
-import { VaultQuickFilters } from "@/components/vault/VaultQuickFilters";
 
 import { useNavigate } from "react-router-dom";
 
@@ -52,7 +48,7 @@ export default function Vault() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("timeline");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<"documents" | "processing">("documents");
+  
   const [statusFilter, setStatusFilter] = useState<'critical' | 'processing_errors' | 'untagged' | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
@@ -155,36 +151,12 @@ export default function Vault() {
         </div>
       </div>
 
-      {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "documents" | "processing")} className="mb-4 sm:mb-6">
-        <TabsList className="grid w-full grid-cols-1 h-9 sm:h-10">
-          <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
-        </TabsList>
+      {/* Processing tracker at top */}
+      <div className="mb-4 sm:mb-6">
+        <DocumentProcessing />
+      </div>
 
-        <TabsContent value="documents" className="mt-4 sm:mt-6">
-          {/* Overview Section */}
-          {reports.length > 0 && (
-            <div className="mb-4 sm:mb-6 space-y-4">
-              <VaultCollectionHealth reports={reports} />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <VaultHygieneCard
-                  reports={reports}
-                  onQuickFilter={(f) => {
-                    if (f === 'processing_errors') setStatusFilter('processing_errors');
-                    if (f === 'untagged') setStatusFilter('untagged');
-                  }}
-                />
-                <VaultCoverageGaps reports={reports} onNavigateToUpload={() => navigate('/upload')} />
-              </div>
-              <VaultQuickFilters
-                active={statusFilter ?? 'all'}
-                onApply={(f) => setStatusFilter(f === 'all' ? null : f)}
-              />
-              <DocumentProcessing />
-            </div>
-          )}
-
-          {reports.length === 0 ? (
+      {reports.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
             <FolderOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
@@ -302,10 +274,7 @@ export default function Vault() {
           )}
         </div>
       )}
-    </TabsContent>
 
-
-      </Tabs>
       
       <DeleteConfirmDialog
         isOpen={showDeleteDialog}
