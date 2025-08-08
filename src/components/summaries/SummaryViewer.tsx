@@ -336,70 +336,132 @@ export function SummaryViewer({
     </div>
   );
 
-  const renderTrendAnalysis = () => (
-    <div className="space-y-6">
-      {content.overall_health_trajectory && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Overall Health Trajectory
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Badge variant={
-              content.overall_health_trajectory === 'improving' ? 'default' :
-              content.overall_health_trajectory === 'stable' ? 'secondary' : 'destructive'
-            }>
-              {content.overall_health_trajectory.charAt(0).toUpperCase() + 
-               content.overall_health_trajectory.slice(1)}
-            </Badge>
-          </CardContent>
-        </Card>
-      )}
+  const renderTrendAnalysis = () => {
+    // Build quick highlights
+    const metricHighlights = metricSeries.slice(0, 3).map((s) => {
+      if (!s.points.length) return null;
+      const first = s.points[0];
+      const last = s.points[s.points.length - 1];
+      const delta = last.value - first.value;
+      const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '•';
+      const unit = s.unit ? ` ${s.unit}` : '';
+      return `${s.label}: ${first.value}${unit} → ${last.value}${unit} (${arrow}${Math.abs(Number(delta.toFixed(2)))})`;
+    }).filter(Boolean) as string[];
 
-      {content.trends && content.trends.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Health Trends</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {content.trends.map((trend, idx) => (
-                <div key={idx} className="border-l-4 border-primary pl-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-medium text-sm">{trend.parameter}</span>
-                    <Badge variant={
-                      trend.trend === 'improving' ? 'default' :
-                      trend.trend === 'stable' ? 'secondary' : 'destructive'
-                    }>
-                      {trend.trend}
-                    </Badge>
+    let textHighlights: string[] = [];
+    const hp = content?.high_priority?.findings || content?.high_priority?.trends || [];
+    if (Array.isArray(hp) && hp.length) {
+      textHighlights = hp.slice(0, 2).map((item: any) => typeof item === 'string' ? item : (item.text || item.finding || ''));
+    } else if (Array.isArray(content?.trends)) {
+      const worsening = content.trends.filter((t: any) => t.trend === 'worsening');
+      const rest = content.trends.filter((t: any) => t.trend !== 'worsening');
+      textHighlights = [...worsening, ...rest].slice(0, 2).map((t: any) => `${t.parameter}: ${t.trend}`);
+    }
+
+    return (
+      <div className="space-y-6">
+        {(metricHighlights.length > 0 || textHighlights.length > 0) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Highlights</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {metricHighlights.length > 0 && (
+                  <ul className="list-disc pl-5 text-sm text-foreground">
+                    {metricHighlights.map((h, i) => (
+                      <li key={`mh-${i}`}>{h}</li>
+                    ))}
+                  </ul>
+                )}
+                {textHighlights.length > 0 && (
+                  <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                    {textHighlights.map((h, i) => (
+                      <li key={`th-${i}`}>{h}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {loadingTrends ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>High-risk trends</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Loading trends…</p>
+            </CardContent>
+          </Card>
+        ) : (
+          renderHighRiskTrends()
+        )}
+
+        {content.overall_health_trajectory && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Overall Health Trajectory
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Badge variant={
+                content.overall_health_trajectory === 'improving' ? 'default' :
+                content.overall_health_trajectory === 'stable' ? 'secondary' : 'destructive'
+              }>
+                {content.overall_health_trajectory.charAt(0).toUpperCase() + 
+                 content.overall_health_trajectory.slice(1)}
+              </Badge>
+            </CardContent>
+          </Card>
+        )}
+
+        {content.trends && content.trends.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Health Trends</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {content.trends.map((trend, idx) => (
+                  <div key={idx} className="border-l-4 border-primary pl-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-medium text-sm">{trend.parameter}</span>
+                      <Badge variant={
+                        trend.trend === 'improving' ? 'default' :
+                        trend.trend === 'stable' ? 'secondary' : 'destructive'
+                      }>
+                        {trend.trend}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{trend.details}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground">{trend.details}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      {content.key_insights && content.key_insights.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Key Insights</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {content.key_insights.map((insight, idx) => (
-                <li key={idx} className="text-sm">• {insight}</li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
+        {content.key_insights && content.key_insights.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Key Insights</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {content.key_insights.map((insight, idx) => (
+                  <li key={idx} className="text-sm">• {insight}</li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  };
 
   const renderDoctorPrep = () => (
     <div className="space-y-6">
