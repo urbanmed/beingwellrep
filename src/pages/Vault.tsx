@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Clock, Plus, Trash2, FolderOpen, Upload, Filter } from "lucide-react";
+import { Search, Clock, Trash2, FolderOpen, Upload, Filter } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -122,17 +122,6 @@ export default function Vault() {
         <div className="flex items-center space-x-3">
           <FolderOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
           <h1 className="text-lg sm:text-2xl font-semibold">Health Vault</h1>
-        </div>
-        <div className="flex items-center">
-          <Button 
-            onClick={() => navigate("/upload")}
-            className="h-9 sm:h-10 text-sm"
-            size="sm"
-          >
-            <Plus className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Add Documents</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
         </div>
       </div>
 
