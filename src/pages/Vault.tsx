@@ -14,11 +14,14 @@ import { ReportListView } from "@/components/vault/ReportListView";
 import { ReportCardView } from "@/components/vault/ReportCardView";
 import { ReportTimelineView } from "@/components/vault/ReportTimelineView";
 import { DocumentProcessing } from "@/components/vault/DocumentProcessing";
-import { VaultSummary } from "@/components/vault/VaultSummary";
 import { FloatingUploadButton } from "@/components/vault/FloatingUploadButton";
 
 import { TagsFilter } from "@/components/vault/TagsFilter";
 import { ReportCompareDialog } from "@/components/vault/ReportCompareDialog";
+import { VaultCollectionHealth } from "@/components/vault/VaultCollectionHealth";
+import { VaultHygieneCard } from "@/components/vault/VaultHygieneCard";
+import { VaultCoverageGaps } from "@/components/vault/VaultCoverageGaps";
+import { VaultQuickFilters } from "@/components/vault/VaultQuickFilters";
 
 import { useNavigate } from "react-router-dom";
 import { isWithinInterval, startOfDay, endOfDay, subDays, format } from "date-fns";
