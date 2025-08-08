@@ -55,12 +55,12 @@ export function SummaryViewer({
     | 'heart_rate';
 
   const METRIC_DEFS: Record<MetricKey, { label: string; unit?: string; match: string[] }> = {
-    ldl: { label: 'LDL Cholesterol', unit: 'mg/dL', match: ['ldl'] },
-    hba1c: { label: 'HbA1c', unit: '%', match: ['hba1c', 'a1c', 'glycated hemoglobin'] },
-    glucose: { label: 'Glucose', unit: 'mg/dL', match: ['glucose', 'fasting glucose'] },
-    creatinine: { label: 'Creatinine', unit: 'mg/dL', match: ['creatinine'] },
-    egfr: { label: 'eGFR', unit: 'mL/min', match: ['egfr', 'gfr'] },
-    triglycerides: { label: 'Triglycerides', unit: 'mg/dL', match: ['triglyceride'] },
+    ldl: { label: 'LDL Cholesterol', unit: 'mg/dL', match: ['ldl', 'ldl-c', 'ldl cholesterol'] },
+    hba1c: { label: 'HbA1c', unit: '%', match: ['hba1c', 'hb a1c', 'a1c', 'glycated hemoglobin', 'glycosylated hemoglobin'] },
+    glucose: { label: 'Glucose', unit: 'mg/dL', match: ['glucose', 'fasting glucose', 'fpg', 'fbs', 'fasting blood sugar', 'plasma glucose'] },
+    creatinine: { label: 'Creatinine', unit: 'mg/dL', match: ['creatinine', 'serum creatinine'] },
+    egfr: { label: 'eGFR', unit: 'mL/min', match: ['egfr', 'gfr', 'estimated gfr', 'estimated glomerular filtration'] },
+    triglycerides: { label: 'Triglycerides', unit: 'mg/dL', match: ['triglyceride', 'triglycerides', 'tg'] },
     systolic_bp: { label: 'Systolic BP', unit: 'mmHg', match: ['blood pressure', 'bp', 'systolic'] },
     diastolic_bp: { label: 'Diastolic BP', unit: 'mmHg', match: ['blood pressure', 'bp', 'diastolic'] },
     heart_rate: { label: 'Heart Rate', unit: 'bpm', match: ['heart rate', 'pulse'] },
@@ -128,10 +128,18 @@ export function SummaryViewer({
 
     const sorted = [...reports].sort((a, b) => getReportDate(a).getTime() - getReportDate(b).getTime());
 
+    const pushPoint = (k: MetricKey, date: Date, label: string, value: number) => {
+      if (!Number.isFinite(value)) return;
+      byKey[k].points.push({ date: date.toISOString(), label, value });
+    };
+
+    const nameMatchesKey = (name: string, key: MetricKey) =>
+      METRIC_DEFS[key].match.some((m) => name.includes(m));
+
     sorted.forEach((r) => {
       const date = getReportDate(r);
       const label = format(date, 'MMM d');
-      
+
       // parsed_data can be string or object
       let pd: any = r.parsed_data;
       if (typeof pd === 'string') {
@@ -140,66 +148,83 @@ export function SummaryViewer({
 
       const type = (pd?.reportType || r.report_type || pd?.type || '').toString().toLowerCase();
 
-      // Lab tests
-      if (type.includes('lab')) {
-        const tests = Array.isArray(pd?.tests)
-          ? pd.tests
-          : Array.isArray(pd?.lab_tests)
-            ? pd.lab_tests
-            : [];
-        tests.forEach((t: any) => {
-          const name = String(t.name || t.test || '').toLowerCase();
-          const valueNum = parseNumber(t.value ?? t.result ?? t.measured_value);
-          if (valueNum == null) return;
-          keys.forEach((k) => {
-            if (k === 'systolic_bp' || k === 'diastolic_bp' || k === 'heart_rate') return;
-            if (METRIC_DEFS[k].match.some((m) => name.includes(m))) {
-              byKey[k].points.push({ date: date.toISOString(), label, value: valueNum });
-            }
+      // ---------- Collect LAB-like data from various shapes ----------
+      const labArrays: any[][] = [];
+      if (Array.isArray(pd?.tests)) labArrays.push(pd.tests);
+      if (Array.isArray(pd?.lab_tests)) labArrays.push(pd.lab_tests);
+      if (Array.isArray(pd?.results)) labArrays.push(pd.results);
+      if (Array.isArray(pd?.extractedData?.labTestResults)) labArrays.push(pd.extractedData.labTestResults);
+      if (Array.isArray(pd?.structured?.lab?.tests)) labArrays.push(pd.structured.lab.tests);
+
+      if (type.includes('lab') || labArrays.length) {
+        labArrays.forEach((arr) => {
+          arr.forEach((t: any) => {
+            const rawName = String(t.name || t.test || t.testName || t.parameter || '').toLowerCase();
+            const rawVal = t.value ?? t.result ?? t.measured_value ?? t.measuredValue ?? t.reading ?? t.latestValue ?? t.current ?? t.observed;
+            const valueNum = typeof rawVal === 'number' ? rawVal : parseNumber(String(rawVal ?? ''));
+            if (valueNum == null) return;
+            (keys as MetricKey[]).forEach((k) => {
+              if (k === 'systolic_bp' || k === 'diastolic_bp' || k === 'heart_rate') return;
+              if (nameMatchesKey(rawName, k)) pushPoint(k, date, label, valueNum);
+            });
           });
         });
       }
 
-      // Vitals
-      if (type.includes('vital')) {
-        const vitalsRaw = pd?.vitals;
-        const vitalsArr = Array.isArray(vitalsRaw)
-          ? vitalsRaw
-          : vitalsRaw && typeof vitalsRaw === 'object'
-            ? Object.entries(vitalsRaw).map(([k, v]) => ({ type: k, value: v }))
-            : [];
+      // ---------- Collect VITALS from various shapes ----------
+      const vitalsCandidate = pd?.vitals || pd?.extractedData?.vitals || pd?.structured?.vitals;
+      const vitalsArr = Array.isArray(vitalsCandidate)
+        ? vitalsCandidate
+        : vitalsCandidate && typeof vitalsCandidate === 'object'
+          ? Object.entries(vitalsCandidate).map(([k, v]) => ({ type: k, value: v }))
+          : [];
+
+      if (type.includes('vital') || vitalsArr.length) {
         vitalsArr.forEach((v: any) => {
           const typeName = String(v.type || v.name || '').toLowerCase();
-          const val = String(v.value ?? v.reading ?? '');
-          if (typeName.includes('blood_pressure') || /bp|blood\s*pressure/.test(typeName)) {
-            const m = val.match(/(\d{2,3})\s*\/\s*(\d{2,3})/);
+          const valStr = String(v.value ?? v.reading ?? '');
+          if (typeName.includes('blood_pressure') || /\bbp\b|blood\s*pressure/.test(typeName)) {
+            const m = valStr.match(/(\d{2,3})\s*\/\s*(\d{2,3})/);
             if (m) {
               const sys = parseFloat(m[1]);
               const dia = parseFloat(m[2]);
-              if (keys.includes('systolic_bp')) {
-                byKey['systolic_bp'].points.push({ date: date.toISOString(), label, value: sys });
-              }
-              if (keys.includes('diastolic_bp')) {
-                byKey['diastolic_bp'].points.push({ date: date.toISOString(), label, value: dia });
-              }
+              if (keys.includes('systolic_bp')) pushPoint('systolic_bp', date, label, sys);
+              if (keys.includes('diastolic_bp')) pushPoint('diastolic_bp', date, label, dia);
             }
-          } else if (typeName.includes('heart_rate') || /heart\s*rate|pulse/.test(typeName)) {
-            const hr = parseNumber(val);
-            if (hr != null && keys.includes('heart_rate')) {
-              byKey['heart_rate'].points.push({ date: date.toISOString(), label, value: hr });
-            }
+          } else if (typeName.includes('heart_rate') || /heart\s*rate|\bpulse\b/.test(typeName)) {
+            const hr = parseNumber(valStr);
+            if (hr != null && keys.includes('heart_rate')) pushPoint('heart_rate', date, label, hr);
           } else {
-            // Map other numeric vitals if they match metric keywords
-            const valueNum = parseNumber(val);
-            if (valueNum != null) {
+            const vn = parseNumber(valStr);
+            if (vn != null) {
               (Object.keys(METRIC_DEFS) as MetricKey[]).forEach((k) => {
                 if (k === 'systolic_bp' || k === 'diastolic_bp' || k === 'heart_rate') return;
-                if (METRIC_DEFS[k].match.some((m) => typeName.includes(m))) {
-                  byKey[k].points.push({ date: date.toISOString(), label, value: valueNum });
-                }
+                if (nameMatchesKey(typeName, k)) pushPoint(k, date, label, vn);
               });
             }
           }
+        });
+      }
+
+      // ---------- Parse GENERAL sections text for known metrics ----------
+      const sectionTexts: string[] = [];
+      if (Array.isArray(pd?.sections)) {
+        pd.sections.forEach((s: any) => {
+          if (s?.content) sectionTexts.push(String(s.content));
+        });
+      } else if (typeof pd?.narrative === 'string') {
+        sectionTexts.push(pd.narrative);
+      }
+
+      if (sectionTexts.length) {
+        const fullText = sectionTexts.join('\n').toLowerCase();
+        (keys as MetricKey[]).forEach((k) => {
+          // If we don't yet have points for this key at this date, try to extract a nearby number
+          if (byKey[k].points.find((p) => p.date === date.toISOString())) return;
+          const matched = METRIC_DEFS[k].match.some((m) => fullText.includes(m));
+          if (!matched) return;
+          const num = parseNumber(fullText);
+          if (num != null) pushPoint(k, date, label, num);
         });
       }
     });
