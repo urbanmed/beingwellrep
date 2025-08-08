@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,14 +131,25 @@ export function SummaryViewer({
     sorted.forEach((r) => {
       const date = getReportDate(r);
       const label = format(date, 'MMM d');
-      const pd: any = r.parsed_data;
-      if (!pd) return;
+      
+      // parsed_data can be string or object
+      let pd: any = r.parsed_data;
+      if (typeof pd === 'string') {
+        try { pd = JSON.parse(pd); } catch { /* ignore parse errors */ }
+      }
+
+      const type = (pd?.reportType || r.report_type || pd?.type || '').toString().toLowerCase();
 
       // Lab tests
-      if (pd.reportType === 'lab' && Array.isArray(pd.tests)) {
-        pd.tests.forEach((t: any) => {
-          const name = String(t.name || '').toLowerCase();
-          const valueNum = parseNumber(t.value);
+      if (type.includes('lab')) {
+        const tests = Array.isArray(pd?.tests)
+          ? pd.tests
+          : Array.isArray(pd?.lab_tests)
+            ? pd.lab_tests
+            : [];
+        tests.forEach((t: any) => {
+          const name = String(t.name || t.test || '').toLowerCase();
+          const valueNum = parseNumber(t.value ?? t.result ?? t.measured_value);
           if (valueNum == null) return;
           keys.forEach((k) => {
             if (k === 'systolic_bp' || k === 'diastolic_bp' || k === 'heart_rate') return;
@@ -150,11 +161,17 @@ export function SummaryViewer({
       }
 
       // Vitals
-      if (pd.reportType === 'vitals' && Array.isArray(pd.vitals)) {
-        pd.vitals.forEach((v: any) => {
-          const type = String(v.type || '').toLowerCase();
-          const val = String(v.value || '');
-          if (type === 'blood_pressure') {
+      if (type.includes('vital')) {
+        const vitalsRaw = pd?.vitals;
+        const vitalsArr = Array.isArray(vitalsRaw)
+          ? vitalsRaw
+          : vitalsRaw && typeof vitalsRaw === 'object'
+            ? Object.entries(vitalsRaw).map(([k, v]) => ({ type: k, value: v }))
+            : [];
+        vitalsArr.forEach((v: any) => {
+          const typeName = String(v.type || v.name || '').toLowerCase();
+          const val = String(v.value ?? v.reading ?? '');
+          if (typeName.includes('blood_pressure') || /bp|blood\s*pressure/.test(typeName)) {
             const m = val.match(/(\d{2,3})\s*\/\s*(\d{2,3})/);
             if (m) {
               const sys = parseFloat(m[1]);
@@ -166,11 +183,21 @@ export function SummaryViewer({
                 byKey['diastolic_bp'].points.push({ date: date.toISOString(), label, value: dia });
               }
             }
-          }
-          if (type === 'heart_rate') {
+          } else if (typeName.includes('heart_rate') || /heart\s*rate|pulse/.test(typeName)) {
             const hr = parseNumber(val);
             if (hr != null && keys.includes('heart_rate')) {
               byKey['heart_rate'].points.push({ date: date.toISOString(), label, value: hr });
+            }
+          } else {
+            // Map other numeric vitals if they match metric keywords
+            const valueNum = parseNumber(val);
+            if (valueNum != null) {
+              (Object.keys(METRIC_DEFS) as MetricKey[]).forEach((k) => {
+                if (k === 'systolic_bp' || k === 'diastolic_bp' || k === 'heart_rate') return;
+                if (METRIC_DEFS[k].match.some((m) => typeName.includes(m))) {
+                  byKey[k].points.push({ date: date.toISOString(), label, value: valueNum });
+                }
+              });
             }
           }
         });
@@ -395,8 +422,17 @@ export function SummaryViewer({
               <p className="text-sm text-muted-foreground">Loading trends…</p>
             </CardContent>
           </Card>
-        ) : (
+        ) : metricSeries.length > 0 ? (
           renderHighRiskTrends()
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>High-risk trends</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">No trendable data found from the selected reports.</p>
+            </CardContent>
+          </Card>
         )}
 
         {content.overall_health_trajectory && (
@@ -648,6 +684,7 @@ export function SummaryViewer({
     if (hasPriorityStructure) {
       return (
         <div className="space-y-6">
+          {summary.summary_type === 'trend_analysis' && renderTrendAnalysis()}
           {content.summary && (
             <div className="p-4 bg-muted/50 rounded-lg">
               <p className="text-foreground leading-relaxed">{content.summary}</p>
@@ -744,8 +781,9 @@ export function SummaryViewer({
                 <Download className="h-4 w-4" />
               </Button>
             </div>
-          </div>
-        </DialogHeader>
+            </div>
+            <DialogDescription className="sr-only">AI-generated medical summary details dialog</DialogDescription>
+          </DialogHeader>
 
         <Separator />
 
