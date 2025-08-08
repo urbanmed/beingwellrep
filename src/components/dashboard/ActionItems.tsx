@@ -84,6 +84,81 @@ function parseAbnormalFromText(text: string, report: any): FlaggedResult[] {
   return results;
 }
 
+// Inference helpers to flag results even when explicit status is missing
+function inferStatusFromValueAndRange(value: any, referenceRange?: any): 'critical' | 'high' | 'low' | null {
+  if (value == null || referenceRange == null) return null;
+  const num = parseFloat(String(value).replace(/[^\d.-]/g, ''));
+  if (isNaN(num)) return null;
+  const range = String(referenceRange).toLowerCase().trim();
+
+  // Formats like "10-20"
+  if (range.includes('-')) {
+    const [lowStr, highStr] = range.split('-').map((p) => parseFloat(p.trim().replace(/[^\d.-]/g, '')));
+    if (!isNaN(lowStr) && !isNaN(highStr)) {
+      const low = lowStr;
+      const high = highStr;
+      if (num < low * 0.5 || num > high * 2) return 'critical';
+      if (num < low) return 'low';
+      if (num > high) return 'high';
+      return null;
+    }
+  }
+
+  // Formats like "< 5" or "> 10"
+  const less = range.match(/<\s*([0-9.]+)/);
+  if (less) {
+    const lim = parseFloat(less[1]);
+    if (!isNaN(lim)) {
+      if (num >= lim * 2) return 'critical';
+      if (num >= lim) return 'high';
+      return null;
+    }
+  }
+  const greater = range.match(/>\s*([0-9.]+)/);
+  if (greater) {
+    const lim = parseFloat(greater[1]);
+    if (!isNaN(lim)) {
+      if (num <= lim / 2) return 'critical';
+      if (num < lim) return 'low';
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function inferVitalStatus(type: string, value: any, unit?: string): 'critical' | 'high' | 'low' | null {
+  const num = parseFloat(String(value).replace(/[^\d.-]/g, ''));
+  if (isNaN(num)) return null;
+  const t = String(type || '').toLowerCase();
+
+  if (t.includes('heart') || t.includes('pulse') || t === 'hr' || t === 'bpm') {
+    if (num < 40 || num > 140) return 'critical';
+    if (num < 60 || num > 100) return num < 60 ? 'low' : 'high';
+    return null;
+  }
+
+  if (t.includes('blood') || t.includes('systolic') || t.includes('diastolic') || t.includes('bp')) {
+    if (num > 180 || num < 70) return 'critical';
+    if (num > 140 || num < 90) return num < 90 ? 'low' : 'high';
+    return null;
+  }
+
+  if (t.includes('temp')) {
+    const isF = unit?.toLowerCase().includes('f');
+    if (isF) {
+      if (num > 104 || num < 95) return 'critical';
+      if (num > 100.4 || num < 97) return num < 97 ? 'low' : 'high';
+    } else {
+      if (num > 40 || num < 35) return 'critical';
+      if (num > 38 || num < 36) return num < 36 ? 'low' : 'high';
+    }
+    return null;
+  }
+
+  return null;
+}
+
 export function ActionItems() {
   const { reports } = useReports();
   const { summaries } = useSummaries();
@@ -129,35 +204,61 @@ export function ActionItems() {
           ? JSON.parse(report.parsed_data) 
           : report.parsed_data;
         
-        // Check lab results with enhanced parsing
-        if (data?.tests) {
+        // Check lab results with enhanced parsing and inference
+        if (data?.tests && Array.isArray(data.tests)) {
           data.tests.forEach((test: any) => {
-            const status = normalizeTestStatus(test.status);
+            const refRange = test.referenceRange || test.reference_range || test.refRange;
+            let status = normalizeTestStatus(test.status);
+            if (!status) status = inferStatusFromValueAndRange(test.value, refRange);
             if (status && ['critical', 'high', 'low', 'abnormal'].includes(status)) {
               const severity = determineSeverityLevel(status);
-              
               flagged.push({
                 id: `${report.id}-${test.name}`,
                 testName: test.name,
                 value: test.value + (test.unit ? ` ${test.unit}` : ''),
                 status: status as any,
-                referenceRange: test.referenceRange || test.reference_range || test.refRange,
+                referenceRange: refRange,
                 reportId: report.id,
                 reportTitle: report.title || 'Medical Report',
                 reportDate: report.report_date,
-                severity
+                severity,
               });
             }
           });
         }
-        
-        // Check vitals with enhanced parsing
-        if (data?.vitals) {
-          data.vitals.forEach((vital: any) => {
-            const status = normalizeTestStatus(vital.status);
+
+        // Also handle alternate shapes
+        const labArrays = [data?.labTestResults, data?.extractedData?.labTestResults].filter(Boolean);
+        labArrays.forEach((arr: any[]) => {
+          if (!Array.isArray(arr)) return;
+          arr.forEach((test: any) => {
+            const refRange = test.referenceRange || test.reference_range || test.refRange;
+            let status = normalizeTestStatus(test.status);
+            if (!status) status = inferStatusFromValueAndRange(test.value, refRange);
             if (status && ['critical', 'high', 'low', 'abnormal'].includes(status)) {
               const severity = determineSeverityLevel(status);
-              
+              flagged.push({
+                id: `${report.id}-${test.name}`,
+                testName: test.name,
+                value: test.value + (test.unit ? ` ${test.unit}` : ''),
+                status: status as any,
+                referenceRange: refRange,
+                reportId: report.id,
+                reportTitle: report.title || 'Medical Report',
+                reportDate: report.report_date,
+                severity,
+              });
+            }
+          });
+        });
+        
+        // Check vitals with enhanced parsing and inference
+        if (data?.vitals && Array.isArray(data.vitals)) {
+          data.vitals.forEach((vital: any) => {
+            let status = normalizeTestStatus(vital.status);
+            if (!status) status = inferVitalStatus(vital.type, vital.value, vital.unit);
+            if (status && ['critical', 'high', 'low', 'abnormal'].includes(status)) {
+              const severity = determineSeverityLevel(status);
               flagged.push({
                 id: `${report.id}-${vital.type}`,
                 testName: vital.type.replace(/_/g, ' '),
@@ -166,7 +267,7 @@ export function ActionItems() {
                 reportId: report.id,
                 reportTitle: report.title || 'Medical Report',
                 reportDate: report.report_date,
-                severity
+                severity,
               });
             }
           });
