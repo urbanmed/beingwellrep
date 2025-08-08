@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, User, FolderOpen, Brain, MessageCircle } from "lucide-react";
+import { Home, User, FolderOpen, Brain, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -9,7 +9,7 @@ const navItems = [
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
-const centerItem = { icon: MessageCircle, label: "AI Assistant", path: "/ai-assistant" };
+const centerItem = { icon: Bot, label: "AI Assistant", path: "/ai-assistant" };
 
 export function BottomNavigation() {
   const location = useLocation();
@@ -44,13 +44,15 @@ export function BottomNavigation() {
         <div className="flex justify-center px-4">
           <NavLink
             to={centerItem.path}
+            aria-label={centerItem.label}
             className={cn(
-              "flex flex-col items-center justify-center w-14 h-14 rounded-full transition-all",
+              "relative overflow-hidden flex flex-col items-center justify-center w-14 h-14 rounded-full transition-all focus-visible:ring-2 focus-visible:ring-ring",
               location.pathname === centerItem.path
-                ? "bg-primary text-primary-foreground shadow-lg scale-110"
-                : "bg-primary/90 text-primary-foreground hover:bg-primary hover:scale-105 shadow-md"
+                ? "bg-gradient-to-br from-primary to-primary text-primary-foreground shadow-lg ring-2 ring-primary/40 scale-110"
+                : "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground hover:scale-105 shadow-md"
             )}
           >
+            <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-primary-foreground/20 to-transparent" />
             <centerItem.icon className="h-6 w-6" />
           </NavLink>
         </div>
