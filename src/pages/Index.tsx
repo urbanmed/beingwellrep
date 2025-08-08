@@ -130,7 +130,7 @@ const Index = () => {
       <PersonalizedGreeting />
       <div className="p-4 space-y-6">
         {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <Card 
             className="bg-destructive border-destructive cursor-pointer hover:bg-destructive/90 transition-colors"
             onClick={handleSosClick}
@@ -145,13 +145,6 @@ const Index = () => {
             <CardContent className="px-6 pb-4 pt-4 text-center">
               <Brain className="h-6 w-6 text-primary mx-auto mb-1" />
               <h3 className="medical-heading-sm">Insights</h3>
-            </CardContent>
-          </Card>
-
-          <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/upload')}>
-            <CardContent className="px-6 pb-4 pt-4 text-center">
-              <Plus className="h-6 w-6 text-primary mx-auto mb-1" />
-              <h3 className="medical-heading-sm">Upload</h3>
             </CardContent>
           </Card>
         </div>

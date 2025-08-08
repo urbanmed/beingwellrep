@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ProfilePhotoUpload } from "@/components/profile/ProfilePhotoUpload";
 import { cn } from "@/lib/utils";
+import { FloatingUploadButton } from "@/components/vault/FloatingUploadButton";
 
 const accessibilityOptions = [
   { id: "wheelchair", label: "Wheelchair accessible facilities" },
@@ -750,6 +751,7 @@ export default function ProfileEdit() {
           </form>
         </Form>
       </div>
+      <FloatingUploadButton />
     </div>
   );
 }
