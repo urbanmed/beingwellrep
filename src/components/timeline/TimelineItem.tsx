@@ -13,16 +13,16 @@ interface TimelineItemProps {
   isExpanded: boolean;
   onToggleExpanded: () => void;
   onViewDetails?: (item: TimelineItemType) => void;
+  compact?: boolean;
 }
 
-export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails }: TimelineItemProps) {
+export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails, compact = false }: TimelineItemProps) {
   const { downloadFile, isDownloading } = useFileDownload();
-  const [imageError, setImageError] = useState(false);
 
   const formatDate = (dateStr: string) => {
     const date = parseISO(dateStr);
     return format(date, 'MMM d, yyyy • h:mm a');
-  };
+    };
 
   const getStatusBadge = () => {
     if (item.type === 'report') {
@@ -67,38 +67,37 @@ export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails
   return (
     <Card className={cn(
       "transition-all duration-200 hover:shadow-md",
-      isExpanded && "shadow-md"
+      isExpanded && "shadow-md",
+      compact && "hover:shadow-sm"
     )}>
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
+      <CardContent className={cn(compact ? "p-3" : "p-4")}> 
+        <div className={cn("flex items-start", compact ? "gap-2" : "gap-3")}> 
           <div className={cn(
-            "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-            item.type === 'report' ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent-foreground"
+            "flex-shrink-0 rounded-full flex items-center justify-center",
+            item.type === 'report' ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent-foreground",
+            compact ? "w-7 h-7" : "w-8 h-8"
           )}>
             {item.type === 'report' ? (
-              <FileText className="h-4 w-4" />
+              <FileText className={cn(compact ? "h-3 w-3" : "h-4 w-4")} />
             ) : (
-              <Brain className="h-4 w-4" />
+              <Brain className={cn(compact ? "h-3 w-3" : "h-4 w-4")} />
             )}
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-sm truncate">{item.title}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(item.date)}
-                  </span>
+                <h3 className={cn("font-medium truncate", compact ? "text-xs" : "text-sm")}>{item.title}</h3>
+                <div className={cn("flex items-center gap-2 mt-1")}> 
+                  <span className="text-xs text-muted-foreground">{formatDate(item.date)}</span>
                   {getStatusBadge()}
                 </div>
               </div>
-
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onToggleExpanded}
-                className="flex-shrink-0"
+                className="flex-shrink-0 h-8 w-8 p-0"
               >
                 {isExpanded ? (
                   <ChevronDown className="h-4 w-4" />
@@ -109,15 +108,15 @@ export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails
             </div>
 
             {isExpanded && (
-              <div className="mt-3 space-y-3 animate-accordion-down">
+              <div className={cn("space-y-3 animate-accordion-down", compact ? "mt-2" : "mt-3")}> 
                 {item.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-3">
+                  <p className={cn("text-muted-foreground line-clamp-3", compact ? "text-xs" : "text-sm")}>
                     {item.description}
                   </p>
                 )}
 
                 {item.type === 'report' && (
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className={cn("grid grid-cols-2 gap-2", compact ? "text-[11px]" : "text-xs")}>
                     {item.reportType && (
                       <div>
                         <span className="font-medium">Type:</span> {item.reportType}
@@ -137,7 +136,7 @@ export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails
                 )}
 
                 {item.type === 'summary' && item.sourceReportIds && item.sourceReportIds.length > 0 && (
-                  <div className="text-xs">
+                  <div className={cn(compact ? "text-[11px]" : "text-xs")}> 
                     <span className="font-medium">Based on:</span> {item.sourceReportIds.length} report(s)
                   </div>
                 )}
@@ -145,25 +144,25 @@ export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails
                 {item.tags && item.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {item.tags.map((tag, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
+                      <Badge key={index} variant="outline" className="text-[11px]"> 
                         {tag}
                       </Badge>
                     ))}
                   </div>
                 )}
 
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" onClick={handleViewDetails}>
-                    <Eye className="h-3 w-3 mr-2" />
-                    View Details
+                <div className="flex gap-2 pt-1"> 
+                  <Button variant="outline" size="sm" onClick={handleViewDetails} className={cn(compact && "h-8 px-2")}> 
+                    <Eye className={cn("mr-2", compact ? "h-3 w-3" : "h-3 w-3")} />
+                    View
                   </Button>
-                  
                   {item.type === 'report' && (
                     <Button 
                       variant="outline" 
                       size="sm" 
                       onClick={handleDownload}
                       disabled={isDownloading(item.id)}
+                      className={cn(compact && "h-8 px-2")}
                     >
                       <Download className="h-3 w-3 mr-2" />
                       {isDownloading(item.id) ? 'Downloading...' : 'Download'}
