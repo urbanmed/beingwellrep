@@ -72,11 +72,11 @@ const REPORT_TYPE_CONFIG = {
 const getStatusIcon = (status: string) => {
   switch (status) {
     case 'completed':
-      return <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />;
+      return <CheckCircle2 className="h-3.5 w-3.5 text-success" />;
     case 'failed':
-      return <AlertCircle className="h-3.5 w-3.5 text-red-600" />;
+      return <AlertCircle className="h-3.5 w-3.5 text-destructive" />;
     case 'processing':
-      return <Clock className="h-3.5 w-3.5 text-yellow-600 animate-pulse" />;
+      return <Clock className="h-3.5 w-3.5 text-warning animate-pulse" />;
     default:
       return <FileText className="h-3.5 w-3.5 text-muted-foreground" />;
   }
@@ -114,12 +114,12 @@ export function GridView({ reports, selectedReports, onSelectReport, onNavigateT
     onNavigateToReport(reportId);
   };
 
-  const handleDownloadClick = (e: React.MouseEvent, report: Report) => {
-    e.stopPropagation();
-    if (report.file_url) {
-      downloadFile(report.file_url, report.file_name);
-    }
-  };
+const handleDownloadClick = (e: React.MouseEvent, report: Report) => {
+  e.stopPropagation();
+  if (report.file_url) {
+    downloadFile(report.id, report.file_name, report.file_url);
+  }
+};
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -209,11 +209,11 @@ export function GridView({ reports, selectedReports, onSelectReport, onNavigateT
                   </div>
 
                   {/* Error message */}
-                  {report.processing_error && (
-                    <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
-                      {report.processing_error}
-                    </div>
-                  )}
+{report.processing_error && (
+  <div className="text-xs text-destructive bg-destructive/10 px-2 py-1 rounded">
+    {report.processing_error}
+  </div>
+)}
 
                   {/* Tags */}
                   {report.tags && report.tags.length > 0 && (

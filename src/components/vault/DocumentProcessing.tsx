@@ -22,7 +22,8 @@ export function DocumentProcessing() {
 
 const [selectedItem, setSelectedItem] = useState<TimelineItemType | null>(null);
   const [mode, setMode] = useState<'tracker' | 'processed'>("tracker");
- 
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'failed'>('all');
+
   const handleViewDetails = (item: TimelineItemType) => {
     if (item.type === 'summary') {
       navigate(`/summaries?id=${item.id}`);
@@ -42,7 +43,17 @@ const [selectedItem, setSelectedItem] = useState<TimelineItemType | null>(null);
   };
 
 const stats = getStats();
-  const processedItems = items.filter(item => item.type === 'report' && item.parsingStatus === 'completed');
+
+  const statusMatches = (it: TimelineItemType) =>
+    statusFilter === 'all' || (it.type !== 'report' ? true : it.parsingStatus === statusFilter);
+
+  const processedItems = items.filter((item) => item.type === 'report' && statusMatches(item));
+
+  const statusGroupedItems = Object.fromEntries(
+    Object.entries(groupedItems)
+      .map(([period, arr]) => [period, (arr as TimelineItemType[]).filter(statusMatches)])
+      .filter(([, arr]) => (arr as TimelineItemType[]).length > 0)
+  ) as Record<string, TimelineItemType[]>;
 
   if (loading) {
     return (
@@ -74,6 +85,27 @@ return (
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <ToggleGroup
+            type="single"
+            value={statusFilter}
+            onValueChange={(v) => v && setStatusFilter(v as 'all' | 'completed' | 'processing' | 'failed')}
+            className="justify-start"
+          >
+            <ToggleGroupItem value="all" variant={statusFilter === 'all' ? 'default' : 'outline'} size="sm">
+              All
+            </ToggleGroupItem>
+            <ToggleGroupItem value="completed" variant={statusFilter === 'completed' ? 'default' : 'outline'} size="sm">
+              Completed
+            </ToggleGroupItem>
+            <ToggleGroupItem value="processing" variant={statusFilter === 'processing' ? 'default' : 'outline'} size="sm">
+              Processing
+            </ToggleGroupItem>
+            <ToggleGroupItem value="failed" variant={statusFilter === 'failed' ? 'default' : 'outline'} size="sm">
+              Failed
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
         <p className="text-muted-foreground text-sm mt-1">
           Track processing progress and review processed documents
         </p>
@@ -86,7 +118,7 @@ return (
               <Card>
                 <CardContent className="p-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{stats.totalReports}</div>
+                    <div className="text-2xl font-bold text-primary">{stats.totalReports}</div>
                     <div className="text-xs text-muted-foreground">Reports</div>
                   </div>
                 </CardContent>
@@ -94,7 +126,7 @@ return (
               <Card>
                 <CardContent className="p-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">{stats.processedReports}</div>
+                    <div className="text-2xl font-bold text-success">{stats.processedReports}</div>
                     <div className="text-xs text-muted-foreground">Processed</div>
                   </div>
                 </CardContent>
@@ -102,7 +134,7 @@ return (
               <Card>
                 <CardContent className="p-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">{stats.totalSummaries}</div>
+                    <div className="text-2xl font-bold text-accent-foreground">{stats.totalSummaries}</div>
                     <div className="text-xs text-muted-foreground">Summaries</div>
                   </div>
                 </CardContent>
@@ -118,7 +150,7 @@ return (
 
             {/* Timeline Content */}
             <div className="space-y-6">
-              {Object.keys(groupedItems).length === 0 ? (
+              {Object.keys(statusGroupedItems).length === 0 ? (
                 <Card>
                   <CardContent className="p-8 text-center">
                     <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -132,7 +164,7 @@ return (
                   </CardContent>
                 </Card>
               ) : (
-                Object.entries(groupedItems).map(([period, periodItems]) => (
+                Object.entries(statusGroupedItems).map(([period, periodItems]) => (
                   <div key={period} className="space-y-3">
                     <div className="flex items-center gap-2 sticky top-0 bg-background/80 backdrop-blur-sm py-2 z-10">
                       <h3 className="text-lg font-semibold">{period}</h3>
