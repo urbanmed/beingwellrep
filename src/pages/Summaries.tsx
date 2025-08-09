@@ -88,7 +88,12 @@ export default function Summaries() {
     <div className="p-4 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Button onClick={() => setIsGenerateDialogOpen(true)}>
+        <Button
+          onClick={() => setIsGenerateDialogOpen(true)}
+          variant="secondary"
+          size="sm"
+          className="rounded-full h-9 px-3 text-sm shadow-none"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Generate Summary
         </Button>
@@ -126,6 +131,7 @@ export default function Summaries() {
               <Button
                 variant={activeFilter === 'all' ? 'default' : 'outline'}
                 size="sm"
+                className="rounded-full h-8 px-3 text-xs shadow-none"
                 onClick={() => setActiveFilter('all')}
               >
                 All ({summaries.length})
@@ -133,6 +139,7 @@ export default function Summaries() {
               <Button
                 variant={activeFilter === 'comprehensive' ? 'default' : 'outline'}
                 size="sm"
+                className="rounded-full h-8 px-3 text-xs shadow-none"
                 onClick={() => setActiveFilter('comprehensive')}
               >
                 Comprehensive ({summaryTypeCounts.comprehensive})
@@ -140,6 +147,7 @@ export default function Summaries() {
               <Button
                 variant={activeFilter === 'abnormal_findings' ? 'default' : 'outline'}
                 size="sm"
+                className="rounded-full h-8 px-3 text-xs shadow-none"
                 onClick={() => setActiveFilter('abnormal_findings')}
               >
                 Abnormal ({summaryTypeCounts.abnormal_findings})
@@ -147,6 +155,7 @@ export default function Summaries() {
               <Button
                 variant={activeFilter === 'trend_analysis' ? 'default' : 'outline'}
                 size="sm"
+                className="rounded-full h-8 px-3 text-xs shadow-none"
                 onClick={() => setActiveFilter('trend_analysis')}
               >
                 Trends ({summaryTypeCounts.trend_analysis})
@@ -154,6 +163,7 @@ export default function Summaries() {
               <Button
                 variant={activeFilter === 'doctor_prep' ? 'default' : 'outline'}
                 size="sm"
+                className="rounded-full h-8 px-3 text-xs shadow-none"
                 onClick={() => setActiveFilter('doctor_prep')}
               >
                 Doctor Prep ({summaryTypeCounts.doctor_prep})
