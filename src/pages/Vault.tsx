@@ -14,9 +14,6 @@ export default function Vault() {
 
   return (
     <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20">
-      <header className="mb-4 sm:mb-6">
-        <h1 className="text-lg sm:text-2xl font-semibold">Document Processing</h1>
-      </header>
       <DocumentProcessing />
       <FloatingUploadButton />
     </main>
