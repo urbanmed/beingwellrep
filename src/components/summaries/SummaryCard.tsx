@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
@@ -93,89 +93,99 @@ export function SummaryCard({ summary, onView, onPin, onDelete }: SummaryCardPro
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleCardClick}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${config?.color || 'bg-gray-500'} bg-opacity-10`}>
-              <Icon className="h-5 w-5" style={{ color: config?.color?.replace('bg-', '') || '#6b7280' }} />
-            </div>
-            <div>
-              <CardTitle className="font-semibold leading-tight">{summary.title}</CardTitle>
-              <CardDescription className="text-sm mt-1">
-                {config?.description || "AI-generated summary"}
-              </CardDescription>
-            </div>
+    <Card className="group cursor-pointer hover:shadow-sm" onClick={handleCardClick}>
+      <CardContent className="p-3">
+        <div className="flex items-start gap-3">
+          {/* Type icon */}
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center ${config?.color || 'bg-muted'} bg-opacity-10`}>
+            <Icon className="h-4 w-4" />
           </div>
-          <div className="flex items-center gap-2">
-            {summary.is_pinned && (
-              <Star className="h-4 w-4 text-yellow-500 fill-current" />
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild data-dropdown-trigger>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-background">
-                <DropdownMenuItem onClick={(e) => handleDropdownAction('pin', e)}>
-                  {summary.is_pinned ? (
-                    <>
-                      <PinOff className="h-4 w-4 mr-2" />
-                      Unpin
-                    </>
-                  ) : (
-                    <>
-                      <Pin className="h-4 w-4 mr-2" />
-                      Pin
-                    </>
+
+          {/* Main content */}
+          <div className="min-w-0 flex-1">
+            {/* Top row: title, description, actions */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm font-medium leading-tight truncate">{summary.title}</CardTitle>
+                  {summary.is_pinned && (
+                    <Star className="h-3.5 w-3.5 text-yellow-500 fill-current" />
                   )}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={(e) => handleDropdownAction('delete', e)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </CardHeader>
+                </div>
+                <CardDescription className="text-xs mt-0.5">
+                  {config?.description || "AI-generated summary"}
+                </CardDescription>
+              </div>
 
-      <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground line-clamp-3">
-          {getContentPreview(parsedContent)}
-        </p>
+              {/* Actions */}
+              <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild data-dropdown-trigger>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-background">
+                    <DropdownMenuItem onClick={(e) => handleDropdownAction('pin', e)}>
+                      {summary.is_pinned ? (
+                        <>
+                          <PinOff className="h-4 w-4 mr-2" />
+                          Unpin
+                        </>
+                      ) : (
+                        <>
+                          <Pin className="h-4 w-4 mr-2" />
+                          Pin
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={(e) => handleDropdownAction('delete', e)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {typeof riskScore === 'number' && (
-              <Badge variant={riskVariant as any} className="text-xs">
-                Risk: {riskLevel?.toUpperCase()} • {Math.round(riskScore)}/100
-              </Badge>
-            )}
-            {severityBadgeInfo && (
-              <Badge variant={severityBadgeInfo.variant} className="text-xs">
-                {severityBadgeInfo.label}
-              </Badge>
-            )}
-            {summary.confidence_score && (
-              <Badge variant="outline" className="text-xs">
-                {Math.round(summary.confidence_score * 100)}% confidence
-              </Badge>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Calendar className="h-3 w-3" />
-            {formatDistanceToNow(new Date(summary.generated_at), { addSuffix: true })}
-          </div>
-        </div>
+            {/* Preview */}
+            <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+              {getContentPreview(parsedContent)}
+            </p>
 
-        <div className="text-xs text-muted-foreground">
-          Based on {summary.source_report_ids?.length || 0} report(s)
+            {/* Meta row */}
+            <div className="mt-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {typeof riskScore === 'number' && (
+                  <Badge variant={riskVariant as any} className="h-5 px-1.5 text-[10px]">
+                    Risk: {riskLevel?.toUpperCase()} • {Math.round(riskScore)}/100
+                  </Badge>
+                )}
+                {severityBadgeInfo && (
+                  <Badge variant={severityBadgeInfo.variant} className="h-5 px-1.5 text-[10px]">
+                    {severityBadgeInfo.label}
+                  </Badge>
+                )}
+                {summary.confidence_score && (
+                  <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                    {Math.round(summary.confidence_score * 100)}% confidence
+                  </Badge>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Calendar className="h-3 w-3" />
+                {formatDistanceToNow(new Date(summary.generated_at), { addSuffix: true })}
+              </div>
+            </div>
+
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              Based on {summary.source_report_ids?.length || 0} report(s)
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
