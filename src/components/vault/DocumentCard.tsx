@@ -40,6 +40,7 @@ interface DocumentCardProps {
     samePeriod: Report[];
     samePhysician: Report[];
   };
+  variant?: "default" | "slim";
 }
 
 const REPORT_TYPE_CONFIG = {
@@ -81,7 +82,8 @@ export function DocumentCard({
   onSelect, 
   onNavigate, 
   showRelated = false,
-  relatedDocuments 
+  relatedDocuments,
+  variant = "default",
 }: DocumentCardProps) {
   const { downloadFile, isDownloading } = useFileDownload();
   const config = REPORT_TYPE_CONFIG[report.report_type as keyof typeof REPORT_TYPE_CONFIG] || REPORT_TYPE_CONFIG.general;
@@ -123,156 +125,229 @@ export function DocumentCard({
     return null;
   };
 
+if (variant === "slim") {
   return (
     <Card 
-      className="cursor-pointer transition-all hover:shadow-md group relative overflow-hidden"
+      className="group cursor-pointer hover:shadow-sm"
       onClick={() => onNavigate(report.id)}
     >
-      {getPriorityIndicator(config.priority)}
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start space-x-3 flex-1">
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={(checked) => onSelect(report.id, checked as boolean)}
-              className="mt-1"
-              onClick={(e) => e.stopPropagation()}
-            />
-            
-            <div className="flex items-center space-x-2 mt-1">
-              <span className="text-lg">{config.icon}</span>
-              {getStatusIcon(report.parsing_status)}
-            </div>
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <h3 className="font-semibold text-lg truncate">{report.title}</h3>
-                <Badge className={config.color}>
-                  {report.report_type.replace('_', ' ')}
-                </Badge>
-                {report.is_critical && (
-                  <Badge variant="destructive" className="text-xs">
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    Critical
-                  </Badge>
-                )}
-                {getStatusBadge(report.parsing_status, report.extraction_confidence)}
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-muted-foreground mb-3">
-                <div className="flex items-center">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  {format(new Date(report.report_date), 'MMM d, yyyy')}
-                </div>
-                {report.physician_name && (
-                  <div className="flex items-center">
-                    <span className="text-xs mr-1">👨‍⚕️</span>
-                    <span className="truncate">{report.physician_name}</span>
-                  </div>
-                )}
-                {report.facility_name && (
-                  <div className="flex items-center">
-                    <span className="text-xs mr-1">🏥</span>
-                    <span className="truncate">{report.facility_name}</span>
-                  </div>
-                )}
-                {report.file_size && (
-                  <div className="flex items-center">
-                    <span className="text-xs mr-1">📊</span>
-                    <span>{(report.file_size / 1024).toFixed(1)} KB</span>
-                  </div>
-                )}
-              </div>
-              
-              {report.description && (
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {report.description}
-                </p>
-              )}
-              
-              {report.processing_error && (
-                <div className="bg-destructive/10 border border-destructive/20 rounded-md p-2 mb-3">
-                  <p className="text-sm text-destructive">
-                    {report.processing_error}
-                  </p>
-                </div>
-              )}
-              
-              {report.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-3">
-                  {report.tags.map((tag, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
+      <CardContent className="p-3">
+        <div className="flex items-start gap-3">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={(checked) => onSelect(report.id, checked as boolean)}
+            className="mt-1"
+            onClick={(e) => e.stopPropagation()}
+          />
 
-              {/* Related Documents */}
-              {showRelated && relatedDocuments && (relatedDocuments.samePeriod.length > 0 || relatedDocuments.samePhysician.length > 0) && (
-                <Collapsible>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-6 p-1 text-xs text-muted-foreground hover:text-foreground">
-                      <Link className="h-3 w-3 mr-1" />
-                      Related documents ({relatedDocuments.samePeriod.length + relatedDocuments.samePhysician.length})
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-2 space-y-1">
-                    {relatedDocuments.samePeriod.map(related => (
-                      <div key={related.id} className="text-xs text-muted-foreground pl-4 border-l-2 border-muted">
-                        <span className="font-medium">{related.title}</span> - Same period
-                      </div>
-                    ))}
-                    {relatedDocuments.samePhysician.map(related => (
-                      <div key={related.id} className="text-xs text-muted-foreground pl-4 border-l-2 border-primary/30">
-                        <span className="font-medium">{related.title}</span> - Same physician
-                      </div>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-
-              {/* Quick Actions */}
-              <div className="flex gap-2 mt-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onNavigate(report.id);
-                  }}
-                  className="h-7 text-xs"
-                >
-                  <Eye className="h-3 w-3 mr-1" />
-                  View
-                </Button>
-                {report.file_url && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      downloadFile(report.id, report.file_name, report.file_url);
-                    }}
-                    disabled={isDownloading(report.id)}
-                    className="h-7 text-xs"
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    {isDownloading(report.id) ? "Downloading..." : "Download"}
-                  </Button>
-                )}
-              </div>
+          <div className="flex-shrink-0">
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center ${config.color}`}>
+              <span className="text-base">{config.icon}</span>
             </div>
           </div>
-          
-          <div onClick={(e) => e.stopPropagation()}>
-            <ReportActions
-              reportId={report.id}
-              ocrStatus={report.parsing_status}
-            />
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-medium truncate">{report.title}</h3>
+              {report.is_critical && (
+                <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">Critical</Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="capitalize">{report.report_type.replace('_', ' ')}</span>
+              <span>•</span>
+              <span>{format(new Date(report.report_date), 'MMM d, yyyy')}</span>
+            </div>
+            <div className="mt-1 flex items-center gap-2">
+              {getStatusIcon(report.parsing_status)}
+              {getStatusBadge(report.parsing_status, report.extraction_confidence)}
+            </div>
+          </div>
+
+          <div className="flex-shrink-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigate(report.id);
+              }}
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </Button>
+            {report.file_url && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadFile(report.id, report.file_name, report.file_url);
+                }}
+                disabled={isDownloading(report.id)}
+              >
+                <Download className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>
     </Card>
   );
+}
+
+return (
+  <Card 
+    className="cursor-pointer transition-all hover:shadow-md group relative overflow-hidden"
+    onClick={() => onNavigate(report.id)}
+  >
+    {getPriorityIndicator(config.priority)}
+    <CardContent className="p-4">
+      <div className="flex items-start justify-between">
+        <div className="flex items-start space-x-3 flex-1">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={(checked) => onSelect(report.id, checked as boolean)}
+            className="mt-1"
+            onClick={(e) => e.stopPropagation()}
+          />
+          
+          <div className="flex items-center space-x-2 mt-1">
+            <span className="text-lg">{config.icon}</span>
+            {getStatusIcon(report.parsing_status)}
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <h3 className="font-semibold text-lg truncate">{report.title}</h3>
+              <Badge className={config.color}>
+                {report.report_type.replace('_', ' ')}
+              </Badge>
+              {report.is_critical && (
+                <Badge variant="destructive" className="text-xs">
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  Critical
+                </Badge>
+              )}
+              {getStatusBadge(report.parsing_status, report.extraction_confidence)}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-muted-foreground mb-3">
+              <div className="flex items-center">
+                <Calendar className="h-3 w-3 mr-1" />
+                {format(new Date(report.report_date), 'MMM d, yyyy')}
+              </div>
+              {report.physician_name && (
+                <div className="flex items-center">
+                  <span className="text-xs mr-1">👨‍⚕️</span>
+                  <span className="truncate">{report.physician_name}</span>
+                </div>
+              )}
+              {report.facility_name && (
+                <div className="flex items-center">
+                  <span className="text-xs mr-1">🏥</span>
+                  <span className="truncate">{report.facility_name}</span>
+                </div>
+              )}
+              {report.file_size && (
+                <div className="flex items-center">
+                  <span className="text-xs mr-1">📊</span>
+                  <span>{(report.file_size / 1024).toFixed(1)} KB</span>
+                </div>
+              )}
+            </div>
+            
+            {report.description && (
+              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                {report.description}
+              </p>
+            )}
+            
+            {report.processing_error && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-md p-2 mb-3">
+                <p className="text-sm text-destructive">
+                  {report.processing_error}
+                </p>
+              </div>
+            )}
+            
+            {report.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-3">
+                {report.tags.map((tag, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {/* Related Documents */}
+            {showRelated && relatedDocuments && (relatedDocuments.samePeriod.length > 0 || relatedDocuments.samePhysician.length > 0) && (
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 p-1 text-xs text-muted-foreground hover:text-foreground">
+                    <Link className="h-3 w-3 mr-1" />
+                    Related documents ({relatedDocuments.samePeriod.length + relatedDocuments.samePhysician.length})
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 space-y-1">
+                  {relatedDocuments.samePeriod.map(related => (
+                    <div key={related.id} className="text-xs text-muted-foreground pl-4 border-l-2 border-muted">
+                      <span className="font-medium">{related.title}</span> - Same period
+                    </div>
+                  ))}
+                  {relatedDocuments.samePhysician.map(related => (
+                    <div key={related.id} className="text-xs text-muted-foreground pl-4 border-l-2 border-primary/30">
+                      <span className="font-medium">{related.title}</span> - Same physician
+                    </div>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            {/* Quick Actions */}
+            <div className="flex gap-2 mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigate(report.id);
+                }}
+                className="h-7 text-xs"
+              >
+                <Eye className="h-3 w-3 mr-1" />
+                View
+              </Button>
+              {report.file_url && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    downloadFile(report.id, report.file_name, report.file_url);
+                  }}
+                  disabled={isDownloading(report.id)}
+                  className="h-7 text-xs"
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  {isDownloading(report.id) ? "Downloading..." : "Download"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div onClick={(e) => e.stopPropagation()}>
+          <ReportActions
+            reportId={report.id}
+            ocrStatus={report.parsing_status}
+          />
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
 }

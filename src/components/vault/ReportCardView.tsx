@@ -119,7 +119,7 @@ const formatFileSize = (bytes: number) => {
 
 export function ReportCardView({ reports, selectedReports, onSelectReport, onNavigateToReport }: ReportCardViewProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid gap-3">
       {reports.map((report) => (
         <DocumentCard
           key={report.id}
@@ -127,6 +127,7 @@ export function ReportCardView({ reports, selectedReports, onSelectReport, onNav
           isSelected={selectedReports.includes(report.id)}
           onSelect={onSelectReport}
           onNavigate={onNavigateToReport}
+          variant="slim"
         />
       ))}
     </div>
