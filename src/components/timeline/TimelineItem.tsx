@@ -93,6 +93,7 @@ export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails
             item.type === 'report' ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent-foreground",
             compact ? "w-7 h-7" : "w-8 h-8"
           )}>
+            {item.type === 'report' ? (
               <FileText className={cn(compact ? "h-3 w-3" : "h-4 w-4")} />
             ) : (
               <Brain className={cn(compact ? "h-3 w-3" : "h-4 w-4")} />
