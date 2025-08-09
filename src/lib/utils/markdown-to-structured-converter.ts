@@ -21,17 +21,38 @@ interface StructuredData {
  * Converts markdown content from extractedData into structured format
  */
 export function convertMarkdownToStructured(extractedData: {
-  patientInformation?: string;
-  hospitalLabInformation?: string;
-  labTestResults?: string;
+  patientInformation?: unknown;
+  hospitalLabInformation?: unknown;
+  labTestResults?: unknown;
 }): StructuredData {
   const result: StructuredData = {
     sections: []
   };
 
+  const normalize = (value: unknown): string | null => {
+    if (value == null) return null;
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) return value.map(v => (typeof v === 'string' ? v : String(v))).join('\n');
+    if (typeof value === 'object') {
+      // Try common shapes {content: "..."} or join values
+      // @ts-ignore
+      if (typeof (value as any).content === 'string') return (value as any).content as string;
+      return Object.values(value as Record<string, unknown>)
+        .map(v => (typeof v === 'string' ? v : ''))
+        .filter(Boolean)
+        .join('\n');
+    }
+    try {
+      return String(value);
+    } catch {
+      return null;
+    }
+  };
+
   // Parse patient information
-  if (extractedData.patientInformation) {
-    const patientData = parsePatientInformation(extractedData.patientInformation);
+  const patientInfo = normalize(extractedData.patientInformation);
+  if (patientInfo) {
+    const patientData = parsePatientInformation(patientInfo);
     result.patient = patientData.patient;
     result.reportDate = patientData.reportDate;
     result.visitDate = patientData.visitDate;
@@ -46,8 +67,9 @@ export function convertMarkdownToStructured(extractedData: {
   }
 
   // Parse medical/facility information
-  if (extractedData.hospitalLabInformation) {
-    const medicalData = parseMedicalInformation(extractedData.hospitalLabInformation);
+  const medicalInfo = normalize(extractedData.hospitalLabInformation);
+  if (medicalInfo) {
+    const medicalData = parseMedicalInformation(medicalInfo);
     result.facility = medicalData.facility;
     result.provider = medicalData.provider;
     
@@ -61,8 +83,9 @@ export function convertMarkdownToStructured(extractedData: {
   }
 
   // Parse lab test results
-  if (extractedData.labTestResults) {
-    const labSections = parseLabResults(extractedData.labTestResults);
+  const labInfo = normalize(extractedData.labTestResults);
+  if (labInfo) {
+    const labSections = parseLabResults(labInfo);
     result.sections.push(...labSections);
   }
 
