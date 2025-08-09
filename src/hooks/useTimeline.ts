@@ -29,8 +29,8 @@ export interface TimelineFilters {
 }
 
 export function useTimeline() {
-  const { reports, loading: reportsLoading } = useReports();
-  const { summaries, loading: summariesLoading } = useSummaries();
+  const { reports, loading: reportsLoading, refetch: refetchReports } = useReports();
+  const { summaries, loading: summariesLoading, refetch: refetchSummaries } = useSummaries();
   
   const [filters, setFilters] = useState<TimelineFilters>({
     search: '',
@@ -51,13 +51,13 @@ export function useTimeline() {
         type: 'report',
         title: report.title,
         date: report.report_date,
-        description: report.description,
-        tags: report.tags,
+        description: report.description || undefined,
+        tags: report.tags || undefined,
         isVisible: true,
-        reportType: report.report_type,
-        facility: report.facility_name,
-        physician: report.physician_name,
-        parsingStatus: report.parsing_status
+        reportType: report.report_type || undefined,
+        facility: report.facility_name || undefined,
+        physician: report.physician_name || undefined,
+        parsingStatus: report.parsing_status || undefined,
       });
     });
 
@@ -68,13 +68,13 @@ export function useTimeline() {
         type: 'summary',
         title: summary.title,
         date: summary.generated_at,
-        description: summary.content?.substring(0, 100) + '...',
+        description: (summary.content?.substring(0, 100) || '') + (summary.content && summary.content.length > 100 ? '...' : ''),
         tags: [],
         isVisible: true,
         summaryType: summary.summary_type,
-        isPinned: summary.is_pinned,
-        rating: summary.user_rating,
-        sourceReportIds: summary.source_report_ids
+        isPinned: summary.is_pinned || undefined,
+        rating: summary.user_rating || undefined,
+        sourceReportIds: summary.source_report_ids || undefined,
       });
     });
 
@@ -197,6 +197,9 @@ export function useTimeline() {
     availableTags,
     loading: reportsLoading || summariesLoading,
     updateFilters,
-    toggleItemExpanded
+    toggleItemExpanded,
+    refetch: async () => {
+      await Promise.all([refetchReports(), refetchSummaries()]);
+    }
   };
 }

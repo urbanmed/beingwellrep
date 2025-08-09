@@ -6,6 +6,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { TimelineFilters } from "@/components/timeline/TimelineFilters";
 import { TimelineItem } from "@/components/timeline/TimelineItem";
 import { useTimeline, TimelineItem as TimelineItemType } from "@/hooks/useTimeline";
+import { EditReportMetaDialog } from "@/components/reports/EditReportMetaDialog";
 
 export function DocumentProcessing() {
   const navigate = useNavigate();

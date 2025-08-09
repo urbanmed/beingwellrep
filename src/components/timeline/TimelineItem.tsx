@@ -7,16 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { TimelineItem as TimelineItemType } from "@/hooks/useTimeline";
 import { useFileDownload } from "@/hooks/useFileDownload";
 import { cn } from "@/lib/utils";
+import { ReportNotesButton } from "@/components/notes/ReportNotesButton";
 
 interface TimelineItemProps {
   item: TimelineItemType;
   isExpanded: boolean;
   onToggleExpanded: () => void;
   onViewDetails?: (item: TimelineItemType) => void;
+  onEditReport?: (item: TimelineItemType) => void;
   compact?: boolean;
 }
 
-export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails, compact = false }: TimelineItemProps) {
+export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails, onEditReport, compact = false }: TimelineItemProps) {
   const { downloadFile, isDownloading } = useFileDownload();
 
   const formatDate = (dateStr: string) => {
@@ -157,16 +159,27 @@ export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails
                     View
                   </Button>
                   {item.type === 'report' && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleDownload}
-                      disabled={isDownloading(item.id)}
-                      className={cn(compact && "h-8 px-2")}
-                    >
-                      <Download className="h-3 w-3 mr-2" />
-                      {isDownloading(item.id) ? 'Downloading...' : 'Download'}
-                    </Button>
+                    <>
+                      <ReportNotesButton reportId={item.id} reportTitle={item.title} />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => onEditReport?.(item)}
+                        className={cn(compact && "h-8 px-2")}
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleDownload}
+                        disabled={isDownloading(item.id)}
+                        className={cn(compact && "h-8 px-2")}
+                      >
+                        <Download className="h-3 w-3 mr-2" />
+                        {isDownloading(item.id) ? 'Downloading...' : 'Download'}
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
