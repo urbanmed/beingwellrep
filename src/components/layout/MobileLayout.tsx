@@ -13,7 +13,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <main className="flex-1 pb-16">
+      <main className="flex-1 pb-[calc(64px+env(safe-area-inset-bottom))]">
         {children}
       </main>
       {pathname !== "/vault" && <FloatingUploadButton />}

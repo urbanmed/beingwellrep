@@ -4,7 +4,7 @@ export function Header() {
   const navigate = useNavigate();
 
   return (
-    <header className="bg-background border-b border-border sticky top-0 z-50">
+    <header className="bg-background border-b border-border sticky top-0 z-50" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="flex items-center justify-center px-4 py-3">
         <div 
           className="cursor-pointer"
