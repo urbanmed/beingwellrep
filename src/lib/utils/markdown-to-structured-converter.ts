@@ -29,6 +29,9 @@ export function convertMarkdownToStructured(extractedData: {
     sections: []
   };
 
+  const isPlainObject = (val: unknown): val is Record<string, unknown> =>
+    !!val && typeof val === 'object' && !Array.isArray(val);
+
   const normalize = (value: unknown): string | null => {
     if (value == null) return null;
     if (typeof value === 'string') return value;
@@ -37,10 +40,10 @@ export function convertMarkdownToStructured(extractedData: {
       // Try common shapes {content: "..."} or join values
       // @ts-ignore
       if (typeof (value as any).content === 'string') return (value as any).content as string;
-      return Object.values(value as Record<string, unknown>)
+      const pieces = Object.values(value as Record<string, unknown>)
         .map(v => (typeof v === 'string' ? v : ''))
-        .filter(Boolean)
-        .join('\n');
+        .filter(Boolean);
+      return pieces.length ? pieces.join('\n') : null;
     }
     try {
       return String(value);
@@ -49,41 +52,98 @@ export function convertMarkdownToStructured(extractedData: {
     }
   };
 
-  // Parse patient information
+  // Handle object-based patient information directly
+  if (isPlainObject(extractedData.patientInformation)) {
+    const p = extractedData.patientInformation as Record<string, any>;
+    result.patient = {
+      name: p.name || p.patient_name,
+      dateOfBirth: p.dateOfBirth || p.dob || p.date_of_birth,
+      id: p.id || p.patient_id || p.mrn,
+    };
+    const additional: Record<string, string> = {};
+    Object.entries(p).forEach(([k, v]) => {
+      const key = String(k);
+      if (!['name','patient_name','dateOfBirth','dob','date_of_birth','id','patient_id','mrn'].includes(key) && v != null && v !== '') {
+        additional[key] = String(v);
+      }
+    });
+    if (Object.keys(additional).length) {
+      result.sections.push({ title: 'Patient Details', category: 'Patient Information', content: additional });
+    }
+  }
+
+  // Handle object-based medical/facility information directly
+  if (isPlainObject(extractedData.hospitalLabInformation)) {
+    const m = extractedData.hospitalLabInformation as Record<string, any>;
+    result.facility = m.facility || m.facility_name || m.lab || m.lab_name;
+    result.provider = m.provider || m.doctor || m.physician || m.ordering_provider || m.ordering_physician;
+    const additional: Record<string, string> = {};
+    Object.entries(m).forEach(([k, v]) => {
+      const key = String(k);
+      if (!['facility','facility_name','lab','lab_name','provider','doctor','physician','ordering_provider','ordering_physician'].includes(key) && v != null && v !== '') {
+        additional[key] = String(v);
+      }
+    });
+    if (Object.keys(additional).length) {
+      result.sections.push({ title: 'Medical Information', category: 'Facility & Provider', content: additional });
+    }
+  }
+
+  // Handle array/object-based lab results directly
+  const mapTest = (t: any) => ({
+    testName: t.testName || t.test || t.name || t.parameter || t.analyte || '',
+    result: t.result != null ? String(t.result) : (t.value != null ? String(t.value) : ''),
+    units: t.units || t.unit || '',
+    referenceRange: t.referenceRange || t.reference || t.referenceInterval || t.normalRange || '',
+    status: normalizeStatus(t.status || t.flag || t.interpretation || ''),
+  });
+
+  let labHandled = false;
+  if (Array.isArray(extractedData.labTestResults)) {
+    const tests = (extractedData.labTestResults as any[])
+      .map(mapTest)
+      .filter(t => t.testName || t.result);
+    if (tests.length) {
+      result.sections.push({ title: 'Laboratory Results', category: 'Lab Tests', content: tests });
+      labHandled = true;
+    }
+  } else if (isPlainObject(extractedData.labTestResults)) {
+    const entries = Object.entries(extractedData.labTestResults as Record<string, any>);
+    const tests = entries.map(([name, val]) => {
+      if (isPlainObject(val)) return mapTest({ name, ...val });
+      return { testName: name, result: String(val), units: '', referenceRange: '', status: normalizeStatus('') };
+    }).filter(t => t.testName || t.result);
+    if (tests.length) {
+      result.sections.push({ title: 'Laboratory Results', category: 'Lab Tests', content: tests });
+      labHandled = true;
+    }
+  }
+
+  // Parse patient information (string-based)
   const patientInfo = normalize(extractedData.patientInformation);
-  if (patientInfo) {
+  if (patientInfo && !result.patient) {
     const patientData = parsePatientInformation(patientInfo);
     result.patient = patientData.patient;
     result.reportDate = patientData.reportDate;
     result.visitDate = patientData.visitDate;
-    
     if (patientData.additionalContent) {
-      result.sections.push({
-        title: "Patient Details",
-        category: "Patient Information",
-        content: patientData.additionalContent
-      });
+      result.sections.push({ title: 'Patient Details', category: 'Patient Information', content: patientData.additionalContent });
     }
   }
 
-  // Parse medical/facility information
+  // Parse medical/facility information (string-based)
   const medicalInfo = normalize(extractedData.hospitalLabInformation);
-  if (medicalInfo) {
+  if (medicalInfo && !(result.facility || result.provider)) {
     const medicalData = parseMedicalInformation(medicalInfo);
-    result.facility = medicalData.facility;
-    result.provider = medicalData.provider;
-    
+    result.facility = medicalData.facility || result.facility;
+    result.provider = medicalData.provider || result.provider;
     if (medicalData.additionalContent) {
-      result.sections.push({
-        title: "Medical Information",
-        category: "Facility & Provider",
-        content: medicalData.additionalContent
-      });
+      result.sections.push({ title: 'Medical Information', category: 'Facility & Provider', content: medicalData.additionalContent });
     }
   }
 
-  // Parse lab test results
-  const labInfo = normalize(extractedData.labTestResults);
+  // Parse lab test results (string-based)
+  const labInfo = !labHandled ? normalize(extractedData.labTestResults) : null;
   if (labInfo) {
     const labSections = parseLabResults(labInfo);
     result.sections.push(...labSections);

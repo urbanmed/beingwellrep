@@ -26,9 +26,10 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
   // Check if this is a custom processed report
   const isCustomReport = report.report_type === 'custom';
   
-  // Extract patient and facility data from the extracted text
-  const { patient, facility } = extractPatientAndFacilityData(report.extracted_text);
-
+  // Extract patient and facility data only for non-custom reports
+  const patientFacility = !isCustomReport
+    ? extractPatientAndFacilityData(report.extracted_text)
+    : { patient: null, facility: null };
   return (
     <div className="space-y-6">
       <ReportHeader report={report} />
@@ -40,16 +41,16 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
         <>
           {/* Patient and Facility Information Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {patient && <PatientInfoCard patient={patient} />}
-            {facility && (
+            {patientFacility.patient && <PatientInfoCard patient={patientFacility.patient} />}
+            {patientFacility.facility && (
               <DoctorInfoCard
-                facility={facility.facility}
-                orderingPhysician={facility.orderingPhysician}
-                collectionDate={facility.collectionDate}
-                reportDate={facility.reportDate}
-                address={facility.address}
-                phone={facility.phone}
-                email={facility.email}
+                facility={patientFacility.facility.facility}
+                orderingPhysician={patientFacility.facility.orderingPhysician}
+                collectionDate={patientFacility.facility.collectionDate}
+                reportDate={patientFacility.facility.reportDate}
+                address={patientFacility.facility.address}
+                phone={patientFacility.facility.phone}
+                email={patientFacility.facility.email}
               />
             )}
           </div>
