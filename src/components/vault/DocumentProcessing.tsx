@@ -8,10 +8,6 @@ import { TimelineItem } from "@/components/timeline/TimelineItem";
 import { useTimeline, TimelineItem as TimelineItemType } from "@/hooks/useTimeline";
 import { ViewModeSelector, ViewMode } from "@/components/vault/ViewModeSelector";
 import { MixedGridView } from "@/components/vault/MixedGridView";
-import { DeleteConfirmDialog } from "@/components/reports/DeleteConfirmDialog";
-import { DeleteSummaryDialog } from "@/components/summaries/DeleteSummaryDialog";
-import { useReports } from "@/hooks/useReports";
-import { useSummaries } from "@/hooks/useSummaries";
 
 
 export function DocumentProcessing() {
@@ -29,13 +25,6 @@ export function DocumentProcessing() {
   } = useTimeline();
 
   const [viewMode, setViewMode] = useState<ViewMode>("timeline");
-  const [selectedItem, setSelectedItem] = useState<TimelineItemType | null>(null);
-  const [openReportDelete, setOpenReportDelete] = useState(false);
-  const [openSummaryDelete, setOpenSummaryDelete] = useState(false);
-
-  const { deleteReport } = useReports();
-  const { deleteSummary } = useSummaries();
-
   const handleViewDetails = (item: TimelineItemType) => {
     if (item.type === 'summary') {
       navigate(`/summaries?id=${item.id}`);
@@ -56,16 +45,7 @@ export function DocumentProcessing() {
 
   const stats = getStats();
 
-  const statusMatches = (it: TimelineItemType) =>
-    statusFilter === 'all' || (it.type !== 'report' ? true : it.parsingStatus === statusFilter);
-
-  const processedItems = items.filter((item) => item.type === 'report' && statusMatches(item));
-
-  const statusGroupedItems = Object.fromEntries(
-    Object.entries(groupedItems)
-      .map(([period, arr]) => [period, (arr as TimelineItemType[]).filter(statusMatches)])
-      .filter(([, arr]) => (arr as TimelineItemType[]).length > 0)
-  ) as Record<string, TimelineItemType[]>;
+  const statusGroupedItems = groupedItems as Record<string, TimelineItemType[]>;
 
   if (loading) {
     return (
@@ -77,12 +57,13 @@ export function DocumentProcessing() {
 
   return (
     <section className="space-y-4">
-      {/* Page header */}
-
-      {/* Status filter */}
-      
-
-      {mode === 'tracker' ? (
+      <header className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">Document Processing</h1>
+        <div className="w-48">
+          <ViewModeSelector viewMode={viewMode} onViewModeChange={setViewMode} />
+        </div>
+      </header>
+      {viewMode === 'timeline' ? (
         <>
           {/* Stats Cards */}
           <div className="grid grid-cols-3 gap-4">
@@ -163,11 +144,15 @@ export function DocumentProcessing() {
         </>
       ) : (
         <>
-          {processedItems.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">No processed documents yet.</div>
+          {viewMode === 'card' ? (
+            <MixedGridView
+              items={items}
+              onViewDetails={handleViewDetails}
+              onDelete={() => {}}
+            />
           ) : (
             <div className="space-y-2">
-              {processedItems.map((item) => (
+              {items.map((item) => (
                 <TimelineItem
                   key={item.id}
                   item={item}
