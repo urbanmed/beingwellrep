@@ -21,12 +21,12 @@ export function EmergencyContactsSection() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="medical-heading">Emergency Contacts</h3>
+          <h3 className="text-lg font-semibold text-foreground">Emergency Contacts</h3>
           <p className="text-sm text-muted-foreground">
             Add contacts for emergency situations
           </p>
         </div>
-        <Button onClick={() => setShowAddDialog(true)} size="sm">
+        <Button onClick={() => setShowAddDialog(true)} size="sm" className="rounded-full h-8 px-3 text-xs shadow-none">
           <Plus className="h-4 w-4 mr-2" />
           Add Contact
         </Button>
@@ -34,7 +34,7 @@ export function EmergencyContactsSection() {
 
       {loading ? (
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="text-center text-muted-foreground">
               Loading emergency contacts...
             </div>
@@ -42,7 +42,7 @@ export function EmergencyContactsSection() {
         </Card>
       ) : contacts.length === 0 ? (
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="text-center space-y-3">
               <Phone className="h-12 w-12 text-muted-foreground mx-auto" />
               <div>

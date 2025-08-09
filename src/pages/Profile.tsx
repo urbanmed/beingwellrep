@@ -70,30 +70,30 @@ export default function Profile() {
     <div className="p-4 space-y-6">
       {/* Profile Completion Banner */}
       <ProfileCompletionBanner />
-
+      <h1 className="sr-only">Profile</h1>
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="profile">My Profile</TabsTrigger>
-          <TabsTrigger value="family">Family</TabsTrigger>
-          <TabsTrigger value="emergency">Emergency</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 rounded-full h-10 p-1">
+          <TabsTrigger value="profile" className="rounded-full h-8 px-3 text-xs shadow-none">My Profile</TabsTrigger>
+          <TabsTrigger value="family" className="rounded-full h-8 px-3 text-xs shadow-none">Family</TabsTrigger>
+          <TabsTrigger value="emergency" className="rounded-full h-8 px-3 text-xs shadow-none">Emergency</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
           {/* Profile Header */}
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center space-x-4">
-                <Avatar className="h-16 w-16">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-12 w-12">
                   {avatarUrl ? (
                     <AvatarImage src={avatarUrl} alt="Profile photo" />
                   ) : (
-                    <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-                      {user?.email ? getInitials(user.email) : <User className="h-8 w-8" />}
+                    <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                      {user?.email ? getInitials(user.email) : <User className="h-6 w-6" />}
                     </AvatarFallback>
                   )}
                 </Avatar>
                  <div className="flex-1">
-                   <h2 className="medical-heading">
+                   <h2 className="medical-heading text-lg">
                      {user?.email?.split('@')[0] || 'User'}
                    </h2>
                   <div className="space-y-1 text-sm text-muted-foreground">
@@ -115,6 +115,7 @@ export default function Profile() {
                   variant="outline"
                   size="sm"
                   onClick={() => navigate("/profile/edit")}
+                  className="rounded-full h-8 px-3 text-xs shadow-none"
                 >
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Profile
@@ -124,44 +125,44 @@ export default function Profile() {
           </Card>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
              <Card className="text-center">
-               <CardContent className="p-6">
-                 <div className="flex flex-col items-center space-y-3">
-                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
-                     <FileText className="h-6 w-6 text-primary" />
+               <CardContent className="p-4">
+                 <div className="flex flex-col items-center space-y-2">
+                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                     <FileText className="h-5 w-5 text-primary" />
                    </div>
                    <div className="space-y-1">
-                     <div className="text-2xl font-bold text-foreground">0</div>
-                     <p className="text-sm text-muted-foreground">Documents</p>
+                     <div className="text-xl font-bold text-foreground">0</div>
+                     <p className="text-xs text-muted-foreground">Documents</p>
                    </div>
                  </div>
                </CardContent>
              </Card>
 
              <Card className="text-center">
-               <CardContent className="p-6">
-                 <div className="flex flex-col items-center space-y-3">
-                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
-                     <Activity className="h-6 w-6 text-primary" />
+               <CardContent className="p-4">
+                 <div className="flex flex-col items-center space-y-2">
+                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                     <Activity className="h-5 w-5 text-primary" />
                    </div>
                    <div className="space-y-1">
-                     <div className="text-2xl font-bold text-foreground">0</div>
-                     <p className="text-sm text-muted-foreground">Reports</p>
+                     <div className="text-xl font-bold text-foreground">0</div>
+                     <p className="text-xs text-muted-foreground">Reports</p>
                    </div>
                  </div>
                </CardContent>
              </Card>
 
              <Card className="text-center">
-               <CardContent className="p-6">
-                 <div className="flex flex-col items-center space-y-3">
-                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
-                     <Users className="h-6 w-6 text-primary" />
+               <CardContent className="p-4">
+                 <div className="flex flex-col items-center space-y-2">
+                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                     <Users className="h-5 w-5 text-primary" />
                    </div>
                    <div className="space-y-1">
-                     <div className="text-2xl font-bold text-foreground">{familyMembers.length}</div>
-                     <p className="text-sm text-muted-foreground">Family Members</p>
+                     <div className="text-xl font-bold text-foreground">{familyMembers.length}</div>
+                     <p className="text-xs text-muted-foreground">Family Members</p>
                    </div>
                  </div>
                </CardContent>
@@ -171,8 +172,8 @@ export default function Profile() {
           {/* Menu Options */}
           <div className="space-y-2">
              <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-               <CardHeader className="py-4">
-                 <CardTitle className="medical-subheading flex items-center justify-between">
+               <CardHeader className="py-3">
+                 <CardTitle className="medical-subheading text-base flex items-center justify-between">
                    <div className="flex items-center">
                      <Settings className="h-5 w-5 mr-3 text-primary" />
                      Account Settings
@@ -183,8 +184,8 @@ export default function Profile() {
              </Card>
 
              <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-               <CardHeader className="py-4">
-                 <CardTitle className="medical-subheading flex items-center justify-between">
+               <CardHeader className="py-3">
+                 <CardTitle className="medical-subheading text-base flex items-center justify-between">
                    <div className="flex items-center">
                      <FileText className="h-5 w-5 mr-3 text-primary" />
                      My Documents
@@ -195,8 +196,8 @@ export default function Profile() {
              </Card>
 
              <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-               <CardHeader className="py-4">
-                 <CardTitle className="medical-subheading flex items-center justify-between">
+               <CardHeader className="py-3">
+                 <CardTitle className="medical-subheading text-base flex items-center justify-between">
                    <div className="flex items-center">
                      <Activity className="h-5 w-5 mr-3 text-primary" />
                      Health Analytics
@@ -209,11 +210,11 @@ export default function Profile() {
 
           {/* Sign Out */}
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-4">
               <Button 
                 variant="destructive" 
                 onClick={handleSignOut}
-                className="w-full"
+                className="w-full rounded-full h-9 shadow-none"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out

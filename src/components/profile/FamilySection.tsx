@@ -74,7 +74,7 @@ export function FamilySection() {
     return (
       <div className="animate-pulse space-y-4">
         <div className="h-8 bg-muted rounded w-1/4"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="h-32 bg-muted rounded"></div>
           ))}
@@ -87,12 +87,12 @@ export function FamilySection() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Family Members</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-lg font-semibold text-foreground">Family Members</h2>
+          <p className="text-sm text-muted-foreground">
             Manage health records for your family members
           </p>
         </div>
-        <Button onClick={() => setShowAddDialog(true)}>
+        <Button onClick={() => setShowAddDialog(true)} size="sm" className="rounded-full h-9 px-3 text-sm shadow-none">
           <Plus className="mr-2 h-4 w-4" />
           Add Family Member
         </Button>
@@ -114,7 +114,7 @@ export function FamilySection() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {familyMembers.map((member) => (
             <FamilyMemberCard
               key={member.id}
