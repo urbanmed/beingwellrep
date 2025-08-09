@@ -150,8 +150,7 @@ export function DocumentProcessing() {
 
   return (
     <section className="space-y-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Document Processing</h1>
+      <header className="flex items-center justify-end">
         <div className="flex items-center gap-2">
           <Button variant={selectionMode ? "secondary" : "outline"} size="sm" onClick={toggleSelectionMode}>
             {selectionMode ? "Cancel" : "Select"}
