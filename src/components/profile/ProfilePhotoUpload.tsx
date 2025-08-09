@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Camera, Upload, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ export function ProfilePhotoUpload({
 }: ProfilePhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentPhotoUrl || null);
+  const [storagePath, setStoragePath] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -61,46 +63,52 @@ export function ProfilePhotoUpload({
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
 
-      // Delete old photo if it exists and we can parse its path
-      if (previewUrl) {
-        const parsed = parseStorageUrl(previewUrl);
-        if (parsed?.bucket === 'profile-images' && parsed.path) {
-          await supabase.storage
-            .from('profile-images')
-            .remove([parsed.path]);
+      // Delete old photo if we know its storagePath
+      try {
+        if (storagePath) {
+          console.log("[ProfilePhotoUpload] Removing old photo at", storagePath);
+          await supabase.storage.from('profile-images').remove([storagePath]);
+        } else if (previewUrl) {
+          // Fallback: parse from preview URL if available
+          const parsed = parseStorageUrl(previewUrl);
+          if (parsed?.bucket === 'profile-images' && parsed.path) {
+            console.log("[ProfilePhotoUpload] Removing old photo via parsed URL path", parsed.path);
+            await supabase.storage.from('profile-images').remove([parsed.path]);
+          }
         }
+      } catch (rmErr) {
+        console.warn("[ProfilePhotoUpload] Removing old photo failed (continuing):", rmErr);
       }
 
       // Upload new photo
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const newStoragePath = `${user.id}/${fileName}`;
+      const { error: uploadError } = await supabase.storage
         .from('profile-images')
-        .upload(`${user.id}/${fileName}`, file, {
+        .upload(newStoragePath, file, {
           cacheControl: '3600',
           upsert: true
         });
 
       if (uploadError) throw uploadError;
 
-      // Build storage path and get signed URL for preview
-      const storagePath = `${user.id}/${fileName}`;
-
       // Update profile in database with storage path (not a public URL)
       const { error: updateError } = await supabase
         .from('profiles')
         .upsert({
           user_id: user.id,
-          avatar_url: storagePath,
+          avatar_url: newStoragePath,
         });
 
       if (updateError) throw updateError;
 
       // Generate a signed URL for preview
-      const signed = await getSignedUrl({ bucket: 'profile-images', path: storagePath });
+      const signed = await getSignedUrl({ bucket: 'profile-images', path: newStoragePath });
       const signedUrl = signed?.url || null;
 
       // Update local state
+      setStoragePath(newStoragePath);
       setPreviewUrl(signedUrl);
-      onPhotoChange?.(signedUrl || '');
+      onPhotoChange?.(newStoragePath);
 
       toast({
         title: "Photo uploaded successfully",
@@ -114,22 +122,28 @@ export function ProfilePhotoUpload({
       });
     } finally {
       setIsUploading(false);
+      // Reset input so the same file can be re-selected if needed
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
   const handleRemovePhoto = async () => {
-    if (!user || !previewUrl) return;
+    if (!user) return;
 
     setIsUploading(true);
     try {
-      // Delete from storage if it's a Supabase URL
-      if (previewUrl.includes('supabase')) {
-        const fileName = previewUrl.split('/').pop();
-        if (fileName) {
-          await supabase.storage
-            .from('profile-images')
-            .remove([`${user.id}/${fileName}`]);
+      // Prefer removing using known storagePath; fallback to parsing previewUrl
+      let pathToRemove: string | null = storagePath || null;
+      if (!pathToRemove && previewUrl) {
+        const parsed = parseStorageUrl(previewUrl);
+        if (parsed?.bucket === 'profile-images' && parsed.path) {
+          pathToRemove = parsed.path;
         }
+      }
+
+      if (pathToRemove) {
+        console.log("[ProfilePhotoUpload] Removing photo at", pathToRemove);
+        await supabase.storage.from('profile-images').remove([pathToRemove]);
       }
 
       // Update profile in database
@@ -144,6 +158,7 @@ export function ProfilePhotoUpload({
 
       // Update local state
       setPreviewUrl(null);
+      setStoragePath(null);
       onPhotoChange?.(null);
 
       toast({
@@ -170,11 +185,48 @@ export function ProfilePhotoUpload({
     let isMounted = true;
     async function syncPreview() {
       if (!currentPhotoUrl) {
-        if (isMounted) setPreviewUrl(null);
+        if (isMounted) {
+          setPreviewUrl(null);
+          setStoragePath(null);
+        }
         return;
       }
-      const signed = await getSignedUrl({ fileUrl: currentPhotoUrl });
-      if (isMounted) setPreviewUrl(signed?.url || currentPhotoUrl);
+
+      // Detect if it's a URL or a storage path
+      let isUrl = false;
+      try {
+        // new URL throws if not absolute URL
+        // @ts-ignore
+        new URL(currentPhotoUrl);
+        isUrl = true;
+      } catch {
+        isUrl = false;
+      }
+
+      if (isUrl) {
+        // Parse storage info from the URL and sign again for freshness
+        const parsed = parseStorageUrl(currentPhotoUrl);
+        if (parsed?.bucket && parsed.path) {
+          const signed = await getSignedUrl({ bucket: parsed.bucket, path: parsed.path });
+          if (isMounted) {
+            setStoragePath(parsed.path);
+            setPreviewUrl(signed?.url || currentPhotoUrl);
+          }
+          return;
+        }
+        // If parsing fails, just use it as-is
+        if (isMounted) {
+          setStoragePath(null);
+          setPreviewUrl(currentPhotoUrl);
+        }
+      } else {
+        // Treat it as a storage path
+        const signed = await getSignedUrl({ bucket: 'profile-images', path: currentPhotoUrl });
+        if (isMounted) {
+          setStoragePath(currentPhotoUrl);
+          setPreviewUrl(signed?.url || null);
+        }
+      }
     }
     syncPreview();
     return () => { isMounted = false; };
@@ -202,6 +254,7 @@ export function ProfilePhotoUpload({
             {previewUrl && (
               <Button
                 size="sm"
+                type="button"
                 variant="destructive"
                 className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
                 onClick={handleRemovePhoto}
@@ -216,6 +269,7 @@ export function ProfilePhotoUpload({
             <Button
               variant="outline"
               size="sm"
+              type="button"
               onClick={triggerFileInput}
               disabled={isUploading}
               className="flex items-center gap-2"
