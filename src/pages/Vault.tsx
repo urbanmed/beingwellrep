@@ -51,7 +51,10 @@ export default function Vault() {
   
   const [statusFilter, setStatusFilter] = useState<'critical' | 'processing_errors' | 'untagged' | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [compareOpen, setCompareOpen] = useState(false);
+const [compareOpen, setCompareOpen] = useState(false);
+
+// Processing status pill filter
+const [processingStatus, setProcessingStatus] = useState<'all' | 'completed' | 'processing' | 'failed'>('all');
 
   const { reports, loading, deleteMultipleReports, refetch } = useReports();
 
