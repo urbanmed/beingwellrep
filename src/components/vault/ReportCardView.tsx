@@ -3,12 +3,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useFileDownload } from "@/hooks/useFileDownload";
-import {
-  FileText,
-  AlertTriangle,
-  Clock,
-  CheckCircle2,
-  Download,
+import { 
+  FileText, 
+  AlertTriangle, 
+  Clock, 
+  CheckCircle2, 
+  Download, 
   Eye,
   Activity,
   Stethoscope,
@@ -22,7 +22,6 @@ import {
 import { format } from "date-fns";
 
 import { ReportNotesButton } from "@/components/notes/ReportNotesButton";
-import { DocumentCard } from "@/components/vault/DocumentCard";
 
 interface Report {
   id: string;
@@ -118,17 +117,152 @@ const formatFileSize = (bytes: number) => {
 };
 
 export function ReportCardView({ reports, selectedReports, onSelectReport, onNavigateToReport }: ReportCardViewProps) {
+  const { downloadFile } = useFileDownload();
+
+  const handleViewClick = (e: React.MouseEvent, reportId: string) => {
+    e.stopPropagation();
+    onNavigateToReport(reportId);
+  };
+
+  const handleDownloadClick = (e: React.MouseEvent, report: Report) => {
+    e.stopPropagation();
+    if (report.file_url) {
+      downloadFile(report.file_url, report.file_name);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {reports.map((report) => (
-        <DocumentCard
-          key={report.id}
-          report={report}
-          isSelected={selectedReports.includes(report.id)}
-          onSelect={onSelectReport}
-          onNavigate={onNavigateToReport}
-        />
-      ))}
+      {reports.map((report) => {
+        const config = REPORT_TYPE_CONFIG[report.report_type as keyof typeof REPORT_TYPE_CONFIG] || REPORT_TYPE_CONFIG.general;
+        const IconComponent = config.icon;
+        
+        return (
+          <Card 
+            key={report.id}
+            className="group cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] border-l-4 border-l-transparent hover:border-l-primary/50"
+            onClick={() => onNavigateToReport(report.id)}
+          >
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                {/* Header with checkbox and priority */}
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    checked={selectedReports.includes(report.id)}
+                    onCheckedChange={(checked) => onSelectReport(report.id, checked as boolean)}
+                    className="mt-1 flex-shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  
+                  {/* Priority indicator */}
+                  <div className="flex-shrink-0 mt-1">
+                    {getPriorityIndicator(report.report_type)}
+                  </div>
+
+                  {/* Report icon */}
+                  <div className="flex-shrink-0">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${config.color}`}>
+                      <IconComponent className="h-5 w-5" />
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={(e) => handleViewClick(e, report.id)}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                    <ReportNotesButton reportId={report.id} reportTitle={report.title} />
+                    {report.file_url && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={(e) => handleDownloadClick(e, report)}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Title and critical indicator */}
+                <div className="flex items-start gap-2">
+                  <h3 className="medical-heading-sm leading-tight flex-1">
+                    {report.title}
+                  </h3>
+                  {report.is_critical && (
+                    <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+                  )}
+                </div>
+
+                {/* Type and date */}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="medical-label capitalize">
+                    {report.report_type.replace(/_/g, ' ')}
+                  </span>
+                  <span className="medical-annotation">
+                    {format(new Date(report.report_date), 'MMM d, yyyy')}
+                  </span>
+                </div>
+
+                {/* Physician and facility */}
+                {(report.physician_name || report.facility_name) && (
+                  <div className="medical-annotation">
+                    {report.physician_name && (
+                      <span>{report.physician_name}</span>
+                    )}
+                    {report.physician_name && report.facility_name && (
+                      <span> • </span>
+                    )}
+                    {report.facility_name && (
+                      <span>{report.facility_name}</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Status and file info */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(report.parsing_status)}
+                    {getStatusBadge(report)}
+                  </div>
+                  <span className="medical-annotation">
+                    {formatFileSize(report.file_size)}
+                  </span>
+                </div>
+
+                {/* Error message */}
+                {report.processing_error && (
+                  <div className="text-xs text-destructive bg-destructive/10 px-2 py-1 rounded">
+                    {report.processing_error}
+                  </div>
+                )}
+
+                {/* Tags */}
+                {report.tags && report.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {report.tags.slice(0, 2).map((tag, index) => (
+                      <Badge key={index} variant="outline" className="text-xs px-1.5 py-0">
+                        {tag}
+                      </Badge>
+                    ))}
+                    {report.tags.length > 2 && (
+                      <Badge variant="outline" className="text-xs px-1.5 py-0">
+                        +{report.tags.length - 2}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

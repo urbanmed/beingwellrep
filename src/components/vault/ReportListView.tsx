@@ -112,12 +112,12 @@ export function ReportListView({ reports, selectedReports, onSelectReport, onNav
     onNavigateToReport(reportId);
   };
 
-const handleDownloadClick = (e: React.MouseEvent, report: Report) => {
-  e.stopPropagation();
-  if (report.file_url) {
-    downloadFile(report.id, report.file_name, report.file_url);
-  }
-};
+  const handleDownloadClick = (e: React.MouseEvent, report: Report) => {
+    e.stopPropagation();
+    if (report.file_url) {
+      downloadFile(report.file_url, report.file_name);
+    }
+  };
 
   return (
     <div className="space-y-1">
