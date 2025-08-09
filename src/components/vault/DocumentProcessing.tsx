@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Clock } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
 import { TimelineFilters } from "@/components/timeline/TimelineFilters";
 import { TimelineItem } from "@/components/timeline/TimelineItem";
 import { useTimeline, TimelineItem as TimelineItemType } from "@/hooks/useTimeline";
-import { EditReportMetaDialog } from "@/components/reports/EditReportMetaDialog";
+
 
 export function DocumentProcessing() {
   const navigate = useNavigate();
@@ -67,49 +67,9 @@ export function DocumentProcessing() {
   return (
     <section className="space-y-4">
       {/* Page header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4" />
-          <h1 className="text-base sm:text-lg font-semibold">Processing</h1>
-        </div>
-        <ToggleGroup
-          type="single"
-          value={mode}
-          onValueChange={(v) => v && setMode(v as 'tracker' | 'processed')}
-          className="justify-start sm:justify-end"
-        >
-          <ToggleGroupItem value="tracker" variant={mode === 'tracker' ? 'default' : 'outline'} size="sm">
-            Tracker
-          </ToggleGroupItem>
-          <ToggleGroupItem value="processed" variant={mode === 'processed' ? 'default' : 'outline'} size="sm">
-            Processed
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </div>
 
       {/* Status filter */}
-      <div className="flex flex-wrap gap-2">
-        <ToggleGroup
-          type="single"
-          value={statusFilter}
-          onValueChange={(v) => v && setStatusFilter(v as 'all' | 'completed' | 'processing' | 'failed')}
-          className="justify-start"
-        >
-          <ToggleGroupItem value="all" variant={statusFilter === 'all' ? 'default' : 'outline'} size="sm">
-            All
-          </ToggleGroupItem>
-          <ToggleGroupItem value="completed" variant={statusFilter === 'completed' ? 'default' : 'outline'} size="sm">
-            Completed
-          </ToggleGroupItem>
-          <ToggleGroupItem value="processing" variant={statusFilter === 'processing' ? 'default' : 'outline'} size="sm">
-            Processing
-          </ToggleGroupItem>
-          <ToggleGroupItem value="failed" variant={statusFilter === 'failed' ? 'default' : 'outline'} size="sm">
-            Failed
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </div>
-      <p className="text-muted-foreground text-sm">Track processing progress and review processed documents</p>
+      
 
       {mode === 'tracker' ? (
         <>
