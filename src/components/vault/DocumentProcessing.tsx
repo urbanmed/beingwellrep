@@ -8,6 +8,10 @@ import { TimelineItem } from "@/components/timeline/TimelineItem";
 import { useTimeline, TimelineItem as TimelineItemType } from "@/hooks/useTimeline";
 import { ViewModeSelector, ViewMode } from "@/components/vault/ViewModeSelector";
 import { MixedGridView } from "@/components/vault/MixedGridView";
+import { DeleteConfirmDialog } from "@/components/reports/DeleteConfirmDialog";
+import { DeleteSummaryDialog } from "@/components/summaries/DeleteSummaryDialog";
+import { useReports } from "@/hooks/useReports";
+import { useSummaries } from "@/hooks/useSummaries";
 
 
 export function DocumentProcessing() {
@@ -25,11 +29,51 @@ export function DocumentProcessing() {
   } = useTimeline();
 
   const [viewMode, setViewMode] = useState<ViewMode>("timeline");
+  const [selectedItem, setSelectedItem] = useState<TimelineItemType | null>(null);
+  const [openReportDelete, setOpenReportDelete] = useState(false);
+  const [openSummaryDelete, setOpenSummaryDelete] = useState(false);
+
+  const { deleteReport } = useReports();
+  const { deleteSummary } = useSummaries();
+
   const handleViewDetails = (item: TimelineItemType) => {
     if (item.type === 'summary') {
       navigate(`/summaries?id=${item.id}`);
     } else {
       navigate(`/reports/${item.id}`);
+    }
+  };
+
+  const handleDeleteRequest = (item: TimelineItemType) => {
+    setSelectedItem(item);
+    if (item.type === 'report') {
+      setOpenReportDelete(true);
+    } else {
+      setOpenSummaryDelete(true);
+    }
+  };
+
+  const handleConfirmReportDelete = async () => {
+    if (!selectedItem) return;
+    try {
+      await deleteReport(selectedItem.id);
+      setOpenReportDelete(false);
+      setSelectedItem(null);
+      await refetch();
+    } catch (e) {
+      // Errors are surfaced via toasts in hooks
+    }
+  };
+
+  const handleConfirmSummaryDelete = async () => {
+    if (!selectedItem) return;
+    try {
+      await deleteSummary(selectedItem.id);
+      setOpenSummaryDelete(false);
+      setSelectedItem(null);
+      await refetch();
+    } catch (e) {
+      // Errors are surfaced via toasts in hooks
     }
   };
 
@@ -133,6 +177,7 @@ export function DocumentProcessing() {
                         isExpanded={expandedItems.has(item.id)}
                         onToggleExpanded={() => toggleItemExpanded(item.id)}
                         onViewDetails={handleViewDetails}
+                        onDelete={handleDeleteRequest}
                         compact
                       />
                     ))}
@@ -148,7 +193,7 @@ export function DocumentProcessing() {
             <MixedGridView
               items={items}
               onViewDetails={handleViewDetails}
-              onDelete={() => {}}
+              onDelete={handleDeleteRequest}
             />
           ) : (
             <div className="space-y-2">
@@ -159,6 +204,7 @@ export function DocumentProcessing() {
                   isExpanded={expandedItems.has(item.id)}
                   onToggleExpanded={() => toggleItemExpanded(item.id)}
                   onViewDetails={handleViewDetails}
+                  onDelete={handleDeleteRequest}
                   compact
                 />
               ))}
@@ -166,6 +212,18 @@ export function DocumentProcessing() {
           )}
         </>
       )}
+      {/* Delete dialogs */}
+      <DeleteConfirmDialog
+        isOpen={openReportDelete}
+        onClose={() => setOpenReportDelete(false)}
+        onConfirm={handleConfirmReportDelete}
+      />
+      <DeleteSummaryDialog
+        isOpen={openSummaryDelete}
+        onClose={() => setOpenSummaryDelete(false)}
+        onConfirm={handleConfirmSummaryDelete}
+        summaryTitle={selectedItem?.title}
+      />
     </section>
   );
 }
