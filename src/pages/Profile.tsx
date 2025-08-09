@@ -93,10 +93,10 @@ export default function Profile() {
                   )}
                 </Avatar>
                  <div className="flex-1">
-                   <h2 className="medical-heading text-lg">
+                   <h2 className="medical-heading-sm">
                      {user?.email?.split('@')[0] || 'User'}
                    </h2>
-                  <div className="space-y-1 text-sm text-muted-foreground">
+                  <div className="space-y-0.5 medical-label-xs text-muted-foreground">
                     {user?.email && (
                       <div className="flex items-center">
                         <Mail className="h-4 w-4 mr-2" />
@@ -173,7 +173,7 @@ export default function Profile() {
           <div className="space-y-2">
              <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
                <CardHeader className="py-3">
-                 <CardTitle className="medical-subheading text-base flex items-center justify-between">
+                 <CardTitle className="medical-subheading flex items-center justify-between">
                    <div className="flex items-center">
                      <Settings className="h-5 w-5 mr-3 text-primary" />
                      Account Settings
@@ -185,7 +185,7 @@ export default function Profile() {
 
              <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
                <CardHeader className="py-3">
-                 <CardTitle className="medical-subheading text-base flex items-center justify-between">
+                 <CardTitle className="medical-subheading flex items-center justify-between">
                    <div className="flex items-center">
                      <FileText className="h-5 w-5 mr-3 text-primary" />
                      My Documents
@@ -197,7 +197,7 @@ export default function Profile() {
 
              <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
                <CardHeader className="py-3">
-                 <CardTitle className="medical-subheading text-base flex items-center justify-between">
+                 <CardTitle className="medical-subheading flex items-center justify-between">
                    <div className="flex items-center">
                      <Activity className="h-5 w-5 mr-3 text-primary" />
                      Health Analytics
