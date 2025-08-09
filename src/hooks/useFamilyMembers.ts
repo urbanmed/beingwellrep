@@ -140,7 +140,9 @@ export function useFamilyMembers() {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${memberId}-${Date.now()}.${fileExt}`;
-      const filePath = `family-photos/${fileName}`;
+      const userId = user?.id;
+      if (!userId) throw new Error("Not authenticated");
+      const filePath = `${userId}/family-photos/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('profile-images')
@@ -148,25 +150,21 @@ export function useFamilyMembers() {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('profile-images')
-        .getPublicUrl(filePath);
-
-      // Update the family member's photo_url
+      // Store the storage path (not a public URL)
       const { error: updateError } = await supabase
         .from("family_members")
-        .update({ photo_url: publicUrl })
+        .update({ photo_url: filePath })
         .eq("id", memberId);
 
       if (updateError) throw updateError;
 
       setFamilyMembers(prev =>
         prev.map(member => 
-          member.id === memberId ? { ...member, photo_url: publicUrl } : member
+          member.id === memberId ? { ...member, photo_url: filePath } : member
         )
       );
 
-      return publicUrl;
+      return filePath;
     } catch (error) {
       console.error("Error uploading family member photo:", error);
       toast({

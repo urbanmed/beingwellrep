@@ -125,9 +125,9 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
               const alternativePath = `${authData.user.id}/${alternativeFile.name}`;
               console.log(`Using alternative file: ${alternativePath}`);
               
-              const publicUrl = supabase.storage.from(bucket).getPublicUrl(alternativePath);
-              setDocumentUrl(publicUrl.data.publicUrl);
-              setWorkingFileUrl(publicUrl.data.publicUrl);
+              const signed = await getSignedUrl({ bucket, path: alternativePath });
+              setDocumentUrl(signed?.url || null);
+              setWorkingFileUrl(alternativePath);
               setFileExists(true);
             } else {
               console.log('No suitable alternative files found');

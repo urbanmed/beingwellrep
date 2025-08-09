@@ -12,6 +12,7 @@ import { ProfileCompletionBanner } from "@/components/profile/ProfileCompletionB
 import { FamilySection } from "@/components/profile/FamilySection";
 import { EmergencyContactsSection } from "@/components/profile/EmergencyContactsSection";
 import { useFamilyMembers } from "@/hooks/useFamilyMembers";
+import { getSignedUrl } from "@/lib/storage";
 
 export default function Profile() {
   const { user, signOut } = useAuth();
@@ -32,7 +33,10 @@ export default function Profile() {
           .single();
 
         if (data?.avatar_url) {
-          setAvatarUrl(data.avatar_url);
+          const signed = await getSignedUrl({ fileUrl: data.avatar_url });
+          setAvatarUrl(signed?.url || null);
+        } else {
+          setAvatarUrl(null);
         }
       } catch (error) {
         // Silently handle error - profile might not exist yet

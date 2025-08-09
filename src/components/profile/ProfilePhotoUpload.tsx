@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Camera, Upload, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { getSignedUrl, parseStorageUrl } from "@/lib/storage";
 
 interface ProfilePhotoUploadProps {
   currentPhotoUrl?: string | null;
@@ -60,13 +61,13 @@ export function ProfilePhotoUpload({
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
 
-      // Delete old photo if it exists
-      if (previewUrl && previewUrl.includes('supabase')) {
-        const oldPath = previewUrl.split('/').pop();
-        if (oldPath) {
+      // Delete old photo if it exists and we can parse its path
+      if (previewUrl) {
+        const parsed = parseStorageUrl(previewUrl);
+        if (parsed?.bucket === 'profile-images' && parsed.path) {
           await supabase.storage
             .from('profile-images')
-            .remove([`${user.id}/${oldPath}`]);
+            .remove([parsed.path]);
         }
       }
 
@@ -80,26 +81,26 @@ export function ProfilePhotoUpload({
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('profile-images')
-        .getPublicUrl(`${user.id}/${fileName}`);
+      // Build storage path and get signed URL for preview
+      const storagePath = `${user.id}/${fileName}`;
 
-      const publicUrl = urlData.publicUrl;
-
-      // Update profile in database
+      // Update profile in database with storage path (not a public URL)
       const { error: updateError } = await supabase
         .from('profiles')
         .upsert({
           user_id: user.id,
-          avatar_url: publicUrl,
+          avatar_url: storagePath,
         });
 
       if (updateError) throw updateError;
 
+      // Generate a signed URL for preview
+      const signed = await getSignedUrl({ bucket: 'profile-images', path: storagePath });
+      const signedUrl = signed?.url || null;
+
       // Update local state
-      setPreviewUrl(publicUrl);
-      onPhotoChange?.(publicUrl);
+      setPreviewUrl(signedUrl);
+      onPhotoChange?.(signedUrl || '');
 
       toast({
         title: "Photo uploaded successfully",
@@ -163,6 +164,21 @@ export function ProfilePhotoUpload({
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
+
+  // Make sure we can render existing stored values (path or legacy URL)
+  useEffect(() => {
+    let isMounted = true;
+    async function syncPreview() {
+      if (!currentPhotoUrl) {
+        if (isMounted) setPreviewUrl(null);
+        return;
+      }
+      const signed = await getSignedUrl({ fileUrl: currentPhotoUrl });
+      if (isMounted) setPreviewUrl(signed?.url || currentPhotoUrl);
+    }
+    syncPreview();
+    return () => { isMounted = false; };
+  }, [currentPhotoUrl]);
 
   const getInitials = (email: string) => {
     return email.split('@')[0].slice(0, 2).toUpperCase();

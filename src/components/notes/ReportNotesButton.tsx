@@ -47,10 +47,8 @@ export function ReportNotesButton({ reportId, reportTitle }: ReportNotesButtonPr
             .from("medical-documents")
             .upload(path, file);
           if (!uploadErr) {
-            const { data: pub } = supabase.storage
-              .from("medical-documents")
-              .getPublicUrl(path);
-            attached_file_url = pub.publicUrl;
+            // Store storage path; signed URLs will be generated when displaying attachments
+            attached_file_url = path;
           }
         }
       }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
 import { MoreVertical, Edit, Trash2, Camera } from "lucide-react";
 import type { FamilyMember } from "@/types/family-member";
 import { formatDate } from "@/lib/utils";
+import { getSignedUrl } from "@/lib/storage";
 
 interface FamilyMemberCardProps {
   member: FamilyMember;
@@ -22,6 +23,21 @@ interface FamilyMemberCardProps {
 
 export function FamilyMemberCard({ member, onEdit, onDelete, onPhotoUpload }: FamilyMemberCardProps) {
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
+  const [signedPhotoUrl, setSignedPhotoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSigned() {
+      if (member.photo_url) {
+        const signed = await getSignedUrl({ bucket: 'profile-images', path: member.photo_url });
+        if (isMounted) setSignedPhotoUrl(signed?.url || null);
+      } else {
+        if (isMounted) setSignedPhotoUrl(null);
+      }
+    }
+    loadSigned();
+    return () => { isMounted = false; };
+  }, [member.photo_url]);
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -56,7 +72,7 @@ export function FamilyMemberCard({ member, onEdit, onDelete, onPhotoUpload }: Fa
           <div className="flex items-center space-x-3">
             <div className="relative">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={member.photo_url} alt={`${member.first_name} ${member.last_name}`} />
+                <AvatarImage src={signedPhotoUrl || undefined} alt={`${member.first_name} ${member.last_name}`} />
                 <AvatarFallback>{getInitials()}</AvatarFallback>
               </Avatar>
               <div className="absolute -bottom-1 -right-1">

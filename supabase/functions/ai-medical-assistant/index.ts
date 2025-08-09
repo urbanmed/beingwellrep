@@ -40,14 +40,14 @@ serve(async (req) => {
 
     // Get Supabase credentials
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
     
-    if (!supabaseUrl || !supabaseKey) {
+    if (!supabaseUrl || !supabaseAnonKey) {
       throw new Error('Supabase credentials not configured');
     }
 
     // Initialize Supabase client
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     // Get authorization header
     const authHeader = req.headers.get('Authorization');
