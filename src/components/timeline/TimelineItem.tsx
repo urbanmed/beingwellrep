@@ -45,7 +45,7 @@ export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails
           {item.isPinned && <Pin className="h-3 w-3 text-primary" />}
           {item.rating && (
             <div className="flex items-center gap-1">
-              <Star className="h-3 w-3 text-yellow-500 fill-current" />
+              <Star className="h-3 w-3 text-warning fill-current" />
               <span className="text-xs">{item.rating}/5</span>
             </div>
           )}
@@ -73,7 +73,7 @@ export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails
         <div className="flex items-start gap-3">
           <div className={cn(
             "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-            item.type === 'report' ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"
+            item.type === 'report' ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent-foreground"
           )}>
             {item.type === 'report' ? (
               <FileText className="h-4 w-4" />
