@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { ChevronDown, ChevronRight, FileText, Brain, Download, Eye, Pin, Star } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, Brain, Download, Eye, Pin, Star, Trash } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,10 +15,11 @@ interface TimelineItemProps {
   onToggleExpanded: () => void;
   onViewDetails?: (item: TimelineItemType) => void;
   onEditReport?: (item: TimelineItemType) => void;
+  onDelete?: (item: TimelineItemType) => void;
   compact?: boolean;
 }
 
-export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails, onEditReport, compact = false }: TimelineItemProps) {
+export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails, onEditReport, onDelete, compact = false }: TimelineItemProps) {
   const { downloadFile, isDownloading } = useFileDownload();
 
   const formatDate = (dateStr: string) => {
@@ -181,6 +182,16 @@ export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails
                       </Button>
                     </>
                   )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => onDelete?.(item)}
+                    className={cn("ml-auto h-8 w-8 p-0", compact && "h-8 w-8")}
+                    aria-label="Delete"
+                    title="Delete"
+                  >
+                    <Trash className="h-4 w-4 text-destructive" />
+                  </Button>
                 </div>
               </div>
             )}

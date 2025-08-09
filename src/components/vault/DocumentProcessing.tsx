@@ -6,6 +6,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TimelineFilters } from "@/components/timeline/TimelineFilters";
 import { TimelineItem } from "@/components/timeline/TimelineItem";
 import { useTimeline, TimelineItem as TimelineItemType } from "@/hooks/useTimeline";
+import { ViewModeSelector, ViewMode } from "@/components/vault/ViewModeSelector";
+import { MixedGridView } from "@/components/vault/MixedGridView";
+import { DeleteConfirmDialog } from "@/components/reports/DeleteConfirmDialog";
+import { DeleteSummaryDialog } from "@/components/summaries/DeleteSummaryDialog";
+import { useReports } from "@/hooks/useReports";
+import { useSummaries } from "@/hooks/useSummaries";
 
 
 export function DocumentProcessing() {
@@ -18,12 +24,17 @@ export function DocumentProcessing() {
     availableTags,
     loading,
     updateFilters,
-    toggleItemExpanded
+    toggleItemExpanded,
+    refetch,
   } = useTimeline();
 
+  const [viewMode, setViewMode] = useState<ViewMode>("timeline");
   const [selectedItem, setSelectedItem] = useState<TimelineItemType | null>(null);
-  const [mode, setMode] = useState<'tracker' | 'processed'>("tracker");
-  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'failed'>('all');
+  const [openReportDelete, setOpenReportDelete] = useState(false);
+  const [openSummaryDelete, setOpenSummaryDelete] = useState(false);
+
+  const { deleteReport } = useReports();
+  const { deleteSummary } = useSummaries();
 
   const handleViewDetails = (item: TimelineItemType) => {
     if (item.type === 'summary') {
