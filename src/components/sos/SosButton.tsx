@@ -4,6 +4,7 @@ import { AlertTriangle, X } from 'lucide-react';
 import { useSosActivation } from '@/hooks/useSosActivation';
 import { useEmergencyContacts } from '@/hooks/useEmergencyContacts';
 import { SosCountdownModal } from './SosCountdownModal';
+import { Geolocation } from '@capacitor/geolocation';
 
 interface SosButtonProps {
   size?: 'sm' | 'default' | 'lg';
@@ -28,22 +29,29 @@ export function SosButton({ size = 'default', variant = 'destructive', className
 
     // Get user location if available
     let locationData = null;
-    if (navigator.geolocation) {
-      try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 5000,
-            enableHighAccuracy: true,
+    try {
+      const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 5000 });
+      locationData = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (_) {
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000, enableHighAccuracy: true });
           });
-        });
-        locationData = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          timestamp: new Date().toISOString(),
-        };
-      } catch (error) {
-        console.warn('Could not get location:', error);
+          locationData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            timestamp: new Date().toISOString(),
+          };
+        } catch (error) {
+          console.warn('Could not get location:', error);
+        }
       }
     }
 

@@ -17,6 +17,8 @@ import {
   RotateCw
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getSignedUrl, isNativePlatform } from "@/lib/storage";
+import { Browser } from "@capacitor/browser";
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -69,7 +71,7 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
 
         console.log(`Checking file: bucket=${bucket}, path=${filePath}`);
 
-        // Try direct download first
+        // Try direct download first to confirm existence
         const { error: downloadError } = await supabase.storage
           .from(bucket)
           .download(filePath);
@@ -77,11 +79,11 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
         if (!downloadError) {
           console.log('File found at original path');
           setFileExists(true);
-          const publicUrl = supabase.storage.from(bucket).getPublicUrl(filePath);
-          setDocumentUrl(publicUrl.data.publicUrl);
+          const signed = await getSignedUrl({ bucket, path: filePath });
+          setDocumentUrl(signed?.url || null);
         } else {
           console.log('File not found at original path, searching for alternatives:', downloadError);
-          
+
           // If direct download fails, search for alternative files in the user's folder
           const { data: files, error: listError } = await supabase.storage
             .from(bucket)
@@ -148,9 +150,13 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
     checkFileExistence();
   }, [report.file_url]);
 
-  const handleViewOriginal = () => {
+  const handleViewOriginal = async () => {
     if (documentUrl) {
-      window.open(documentUrl, '_blank');
+      if (isNativePlatform()) {
+        await Browser.open({ url: documentUrl });
+      } else {
+        window.open(documentUrl, '_blank');
+      }
     }
   };
 

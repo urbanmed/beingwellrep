@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { parseStorageUrl } from "@/lib/storage";
 
 export function useFileDownload() {
   const [downloading, setDownloading] = useState<Set<string>>(new Set());
@@ -16,10 +17,19 @@ export function useFileDownload() {
         throw new Error("File URL not available");
       }
 
-      // Extract bucket and path from the file URL
-      const urlParts = fileUrl.split('/');
-      const bucket = urlParts[urlParts.length - 2];
-      const filePath = urlParts[urlParts.length - 1];
+      // Resolve bucket and full path safely (supports full storage URL or plain path)
+      let bucket: string | undefined;
+      let filePath: string | undefined;
+
+      const parsed = parseStorageUrl(fileUrl);
+      if (parsed) {
+        bucket = parsed.bucket;
+        filePath = parsed.path;
+      } else {
+        // Assume fileUrl is a path inside the default bucket
+        bucket = 'medical-documents';
+        filePath = fileUrl;
+      }
 
       const { data, error } = await supabase.storage
         .from(bucket)

@@ -26,6 +26,8 @@ interface ChatRequest {
 
 serve(async (req) => {
   // Handle CORS preflight requests
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -171,6 +173,8 @@ Please provide a helpful response based on the available medical documents. If y
       response: aiResponse,
       context_documents: contextDocuments,
       citations: citations,
+      request_id: requestId,
+      duration_ms: Date.now() - start,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

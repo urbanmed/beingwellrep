@@ -5,6 +5,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
+import { getSignedUrl, isNativePlatform } from "@/lib/storage";
+import { Browser } from "@capacitor/browser";
 
 interface SimpleDocumentDisplayProps {
   report: {
@@ -19,6 +21,7 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
   const [isChecking, setIsChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [workingFileUrl, setWorkingFileUrl] = useState<string | null>(null);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
   // Check if file exists in storage and find fallback if needed
   useEffect(() => {
@@ -107,30 +110,25 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
     checkFileExists();
   }, [report.file_url]);
 
-  // Construct the proper Supabase storage URL
-  const getDocumentUrl = () => {
-    if (!fileExists) return null;
-    
-    // Use the working file URL if available, otherwise fall back to original
-    const fileUrl = workingFileUrl || report.file_url;
-    if (!fileUrl) return null;
-    
-    try {
-      const { data } = supabase.storage
-        .from('medical-documents')
-        .getPublicUrl(fileUrl);
-      return data.publicUrl;
-    } catch (error) {
-      console.error('Error constructing document URL:', error);
-      return null;
-    }
-  };
+  // Build a signed URL any time we have a valid path
+  useEffect(() => {
+    const buildSigned = async () => {
+      if (!fileExists) return;
+      const filePath = workingFileUrl || report.file_url;
+      if (!filePath) return;
+      const signed = await getSignedUrl({ bucket: 'medical-documents', path: filePath });
+      setSignedUrl(signed?.url || null);
+    };
+    buildSigned();
+  }, [fileExists, workingFileUrl, report.file_url]);
 
-  const documentUrl = getDocumentUrl();
-
-  const handleViewOriginal = () => {
-    if (documentUrl) {
-      window.open(documentUrl, '_blank');
+  const handleViewOriginal = async () => {
+    if (signedUrl) {
+      if (isNativePlatform()) {
+        await Browser.open({ url: signedUrl });
+      } else {
+        window.open(signedUrl, '_blank');
+      }
     }
   };
 
@@ -162,7 +160,7 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
               <FileText className="h-5 w-5" />
               Original Document
             </CardTitle>
-            {fileExists && documentUrl && (
+            {fileExists && signedUrl && (
               <Button onClick={handleViewOriginal} size="sm" className="gap-2">
                 <ExternalLink className="h-4 w-4" />
                 View Original
@@ -197,7 +195,7 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
                 The original document file could not be found. It may have been deleted or moved.
               </AlertDescription>
             </Alert>
-          ) : documentUrl ? (
+          ) : signedUrl ? (
             <div className="space-y-4">
               {/* Document Preview Card */}
               <div 

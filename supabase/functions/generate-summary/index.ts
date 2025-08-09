@@ -92,6 +92,8 @@ Schema:
 };
 
 serve(async (req) => {
+  const start = Date.now();
+  const requestId = crypto.randomUUID();
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -243,20 +245,23 @@ serve(async (req) => {
       throw new Error(`Failed to save summary: ${summaryError.message}`);
     }
 
-    console.log('Summary generated successfully:', summary.id);
-
+    console.log(`[generate-summary:${requestId}] success in ${Date.now() - start}ms`, { count: reportIds.length });
     return new Response(JSON.stringify({
       success: true,
       summary: summary,
-      content: parsedResponse
+      content: parsedResponse,
+      request_id: requestId,
+      duration_ms: Date.now() - start
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in generate-summary function:', error);
+    console.error(`[generate-summary:${requestId}] error after ${Date.now() - start}ms`, error);
     return new Response(JSON.stringify({ 
-      error: error.message || 'An unexpected error occurred'
+      error: (error as any).message || 'An unexpected error occurred',
+      request_id: requestId,
+      duration_ms: Date.now() - start
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

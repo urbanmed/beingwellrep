@@ -16,6 +16,7 @@ import { AIInsightsCarousel } from '@/components/dashboard/AIInsightsCarousel';
 import { TrendsTimelineMini } from '@/components/dashboard/TrendsTimelineMini';
 import { HealthTasksReminders } from '@/components/dashboard/HealthTasksReminders';
 import { PersonalizedTipsHealth } from '@/components/dashboard/PersonalizedTipsHealth';
+import { Geolocation as CapGeolocation } from '@capacitor/geolocation';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -43,22 +44,29 @@ const Index = () => {
 
     // Get user location if available
     let locationData = null;
-    if (navigator.geolocation) {
-      try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 5000,
-            enableHighAccuracy: true,
+    try {
+      const position = await CapGeolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 5000 });
+      locationData = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (_) {
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000, enableHighAccuracy: true });
           });
-        });
-        locationData = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          timestamp: new Date().toISOString(),
-        };
-      } catch (error) {
-        console.warn('Could not get location:', error);
+          locationData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            timestamp: new Date().toISOString(),
+          };
+        } catch (error) {
+          console.warn('Could not get location:', error);
+        }
       }
     }
 

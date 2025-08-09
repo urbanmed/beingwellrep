@@ -76,7 +76,7 @@ export function TimelineItem({ report, isSelected, onSelect, onNavigate, showDat
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (report.file_url) {
-      downloadFile(report.file_url, report.file_name);
+      downloadFile(report.id, report.file_name, report.file_url);
     }
   };
 
