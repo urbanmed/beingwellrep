@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TimelineItem as TimelineItemType } from "@/hooks/useTimeline";
 import { Brain, Eye, FileText, Pin, Star, Trash } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -9,9 +10,12 @@ interface MixedGridViewProps {
   items: TimelineItemType[];
   onViewDetails: (item: TimelineItemType) => void;
   onDelete: (item: TimelineItemType) => void;
+  selectionMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (item: TimelineItemType, checked: boolean) => void;
 }
 
-export function MixedGridView({ items, onViewDetails, onDelete }: MixedGridViewProps) {
+export function MixedGridView({ items, onViewDetails, onDelete, selectionMode = false, selectedIds, onToggleSelect }: MixedGridViewProps) {
   const formatDate = (dateStr: string) => {
     const date = parseISO(dateStr);
     return format(date, "MMM d, yyyy");
@@ -23,6 +27,15 @@ export function MixedGridView({ items, onViewDetails, onDelete }: MixedGridViewP
         <Card key={item.id} className="group transition-all duration-200 hover:shadow-md">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
+              {selectionMode && (
+                <div className="pt-1">
+                  <Checkbox
+                    checked={selectedIds?.has(item.id) ?? false}
+                    onCheckedChange={(checked) => onToggleSelect?.(item, !!checked)}
+                    aria-label="Select item"
+                  />
+                </div>
+              )}
               <div className="flex-shrink-0 mt-0.5">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.type === 'report' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent-foreground'}`}>
                   {item.type === 'report' ? <FileText className="h-4 w-4" /> : <Brain className="h-4 w-4" />}

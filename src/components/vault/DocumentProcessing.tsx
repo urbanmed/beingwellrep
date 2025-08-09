@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 import { TimelineFilters } from "@/components/timeline/TimelineFilters";
 import { TimelineItem } from "@/components/timeline/TimelineItem";
@@ -32,8 +33,11 @@ export function DocumentProcessing() {
   const [selectedItem, setSelectedItem] = useState<TimelineItemType | null>(null);
   const [openReportDelete, setOpenReportDelete] = useState(false);
   const [openSummaryDelete, setOpenSummaryDelete] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [openBulkDelete, setOpenBulkDelete] = useState(false);
 
-  const { deleteReport } = useReports();
+  const { deleteReport, deleteMultipleReports } = useReports();
   const { deleteSummary } = useSummaries();
 
   const handleViewDetails = (item: TimelineItemType) => {
@@ -77,6 +81,51 @@ export function DocumentProcessing() {
     }
   };
 
+  // Selection handlers
+  const toggleSelectionMode = () => {
+    setSelectionMode((prev) => {
+      if (prev) setSelectedIds(new Set());
+      return !prev;
+    });
+  };
+
+  const handleToggleItemSelect = (item: TimelineItemType, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(item.id);
+      else next.delete(item.id);
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === items.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(items.map((i) => i.id)));
+    }
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    const selected = items.filter((i) => selectedIds.has(i.id));
+    const reportIds = selected.filter((i) => i.type === 'report').map((i) => i.id);
+    const summaryIds = selected.filter((i) => i.type === 'summary').map((i) => i.id);
+    try {
+      if (reportIds.length) {
+        await deleteMultipleReports(reportIds);
+      }
+      if (summaryIds.length) {
+        await Promise.all(summaryIds.map((id) => deleteSummary(id)));
+      }
+      setOpenBulkDelete(false);
+      setSelectedIds(new Set());
+      setSelectionMode(false);
+      await refetch();
+    } catch (e) {
+      // handled by hooks toasts
+    }
+  };
+
   const getStats = () => {
     const totalReports = items.filter(item => item.type === 'report').length;
     const totalSummaries = items.filter(item => item.type === 'summary').length;
@@ -103,10 +152,34 @@ export function DocumentProcessing() {
     <section className="space-y-4">
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Document Processing</h1>
-        <div className="w-48">
-          <ViewModeSelector viewMode={viewMode} onViewModeChange={setViewMode} />
+        <div className="flex items-center gap-2">
+          <Button variant={selectionMode ? "secondary" : "outline"} size="sm" onClick={toggleSelectionMode}>
+            {selectionMode ? "Cancel" : "Select"}
+          </Button>
+          <div className="w-48">
+            <ViewModeSelector viewMode={viewMode} onViewModeChange={setViewMode} />
+          </div>
         </div>
       </header>
+      {selectionMode && (
+        <div className="flex items-center justify-between rounded-md border p-2 bg-muted/30">
+          <div className="text-sm">{selectedIds.size} selected</div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleSelectAll}>
+              {selectedIds.size === items.length ? "Clear all" : "Select all"}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setOpenBulkDelete(true)}
+              disabled={selectedIds.size === 0}
+            >
+              Delete selected
+            </Button>
+          </div>
+        </div>
+      )}
+
       {viewMode === 'timeline' ? (
         <>
           {/* Stats Cards */}
@@ -178,6 +251,9 @@ export function DocumentProcessing() {
                         onToggleExpanded={() => toggleItemExpanded(item.id)}
                         onViewDetails={handleViewDetails}
                         onDelete={handleDeleteRequest}
+                        selectionMode={selectionMode}
+                        selected={selectedIds.has(item.id)}
+                        onSelectChange={(checked) => handleToggleItemSelect(item, checked)}
                         compact
                       />
                     ))}
@@ -194,6 +270,9 @@ export function DocumentProcessing() {
               items={items}
               onViewDetails={handleViewDetails}
               onDelete={handleDeleteRequest}
+              selectionMode={selectionMode}
+              selectedIds={selectedIds}
+              onToggleSelect={handleToggleItemSelect}
             />
           ) : (
             <div className="space-y-2">
@@ -205,6 +284,9 @@ export function DocumentProcessing() {
                   onToggleExpanded={() => toggleItemExpanded(item.id)}
                   onViewDetails={handleViewDetails}
                   onDelete={handleDeleteRequest}
+                  selectionMode={selectionMode}
+                  selected={selectedIds.has(item.id)}
+                  onSelectChange={(checked) => handleToggleItemSelect(item, checked)}
                   compact
                 />
               ))}
@@ -213,6 +295,13 @@ export function DocumentProcessing() {
         </>
       )}
       {/* Delete dialogs */}
+      <DeleteConfirmDialog
+        isOpen={openBulkDelete}
+        onClose={() => setOpenBulkDelete(false)}
+        onConfirm={handleConfirmBulkDelete}
+        title={`Delete ${selectedIds.size} selected item${selectedIds.size !== 1 ? 's' : ''}?`}
+        description={`This will permanently delete ${selectedIds.size} item${selectedIds.size !== 1 ? 's' : ''} (reports and summaries). This action cannot be undone.`}
+      />
       <DeleteConfirmDialog
         isOpen={openReportDelete}
         onClose={() => setOpenReportDelete(false)}

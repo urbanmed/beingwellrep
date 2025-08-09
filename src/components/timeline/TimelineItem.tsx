@@ -8,6 +8,7 @@ import { TimelineItem as TimelineItemType } from "@/hooks/useTimeline";
 import { useFileDownload } from "@/hooks/useFileDownload";
 import { cn } from "@/lib/utils";
 import { ReportNotesButton } from "@/components/notes/ReportNotesButton";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface TimelineItemProps {
   item: TimelineItemType;
@@ -17,9 +18,12 @@ interface TimelineItemProps {
   onEditReport?: (item: TimelineItemType) => void;
   onDelete?: (item: TimelineItemType) => void;
   compact?: boolean;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onSelectChange?: (checked: boolean) => void;
 }
 
-export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails, onEditReport, onDelete, compact = false }: TimelineItemProps) {
+export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails, onEditReport, onDelete, compact = false, selectionMode = false, selected = false, onSelectChange, }: TimelineItemProps) {
   const { downloadFile, isDownloading } = useFileDownload();
 
   const formatDate = (dateStr: string) => {
@@ -75,12 +79,20 @@ export function TimelineItem({ item, isExpanded, onToggleExpanded, onViewDetails
     )}>
       <CardContent className={cn(compact ? "p-3" : "p-4")}> 
         <div className={cn("flex items-start", compact ? "gap-2" : "gap-3")}> 
+          {selectionMode && (
+            <div className={cn("pt-1", compact ? "pt-0.5" : "pt-1")}>
+              <Checkbox
+                checked={selected}
+                onCheckedChange={(checked) => onSelectChange?.(!!checked)}
+                aria-label="Select item"
+              />
+            </div>
+          )}
           <div className={cn(
             "flex-shrink-0 rounded-full flex items-center justify-center",
             item.type === 'report' ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent-foreground",
             compact ? "w-7 h-7" : "w-8 h-8"
           )}>
-            {item.type === 'report' ? (
               <FileText className={cn(compact ? "h-3 w-3" : "h-4 w-4")} />
             ) : (
               <Brain className={cn(compact ? "h-3 w-3" : "h-4 w-4")} />
