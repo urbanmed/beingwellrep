@@ -4,7 +4,7 @@ import { AlertTriangle, X } from 'lucide-react';
 import { useSosActivation } from '@/hooks/useSosActivation';
 import { useEmergencyContacts } from '@/hooks/useEmergencyContacts';
 import { SosCountdownModal } from './SosCountdownModal';
-import { Geolocation } from '@capacitor/geolocation';
+import { getLocation } from '@/lib/utils/location';
 
 interface SosButtonProps {
   size?: 'sm' | 'default' | 'lg';
@@ -27,33 +27,8 @@ export function SosButton({ size = 'default', variant = 'destructive', className
       return;
     }
 
-    // Get user location if available
-    let locationData = null;
-    try {
-      const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 5000 });
-      locationData = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-        timestamp: new Date().toISOString(),
-      };
-    } catch (_) {
-      if (navigator.geolocation) {
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000, enableHighAccuracy: true });
-          });
-          locationData = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            timestamp: new Date().toISOString(),
-          };
-        } catch (error) {
-          console.warn('Could not get location:', error);
-        }
-      }
-    }
+    // Get user location if available (Capacitor with web fallback)
+    const locationData = await getLocation({ enableHighAccuracy: true, timeout: 8000 });
 
     // Trigger SOS activation in database
     const result = await triggerSos(locationData);

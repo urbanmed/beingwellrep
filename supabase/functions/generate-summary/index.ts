@@ -99,18 +99,32 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { reportIds, summaryType, customPrompt }: SummaryRequest = await req.json();
-
-    console.log('Generating summary for reports:', reportIds, 'Type:', summaryType);
-
-    // Get the user from the authorization header
+    // Authorization header and Supabase client with RLS context
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
       throw new Error('No authorization header');
     }
-
     const token = authHeader.replace('Bearer ', '');
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+
+    const { reportIds, summaryType, customPrompt }: SummaryRequest = await req.json();
+
+    // Basic input validation
+    const allowedTypes = ['comprehensive','abnormal_findings','trend_analysis','doctor_prep'] as const;
+    if (!Array.isArray(reportIds) || reportIds.some(r => typeof r !== 'string')) {
+      return new Response(JSON.stringify({ error: 'Invalid reportIds', request_id: requestId }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    if (!allowedTypes.includes(summaryType)) {
+      return new Response(JSON.stringify({ error: 'Invalid summaryType', request_id: requestId }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    if (customPrompt && typeof customPrompt !== 'string') {
+      return new Response(JSON.stringify({ error: 'Invalid customPrompt', request_id: requestId }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    console.log(`[generate-summary:${requestId}] start`, { report_count: reportIds.length });
+
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
@@ -147,7 +161,9 @@ serve(async (req) => {
     // Get the appropriate prompt
     const systemPrompt = customPrompt || MEDICAL_PROMPTS[summaryType];
 
-    // Call OpenAI API
+    // Call OpenAI API with timeout
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 25000);
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -155,7 +171,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: combinedText }
@@ -163,7 +179,9 @@ serve(async (req) => {
         temperature: 0.3,
         max_tokens: 2000,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(t);
 
     if (!response.ok) {
       throw new Error(`OpenAI API error: ${response.statusText}`);
@@ -245,7 +263,7 @@ serve(async (req) => {
       throw new Error(`Failed to save summary: ${summaryError.message}`);
     }
 
-    console.log(`[generate-summary:${requestId}] success in ${Date.now() - start}ms`, { count: reportIds.length });
+    console.log(`[generate-summary:${requestId}] outcome=success user=${user.id} report_count=${reportIds.length} duration_ms=${Date.now() - start}`);
     return new Response(JSON.stringify({
       success: true,
       summary: summary,

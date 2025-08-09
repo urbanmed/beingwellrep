@@ -17,8 +17,8 @@ import {
   RotateCw
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getSignedUrl, isNativePlatform } from "@/lib/storage";
-import { Browser } from "@capacitor/browser";
+import { getSignedUrl } from "@/lib/storage";
+import { openInSystemBrowser } from "@/lib/utils/mobile";
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -152,11 +152,7 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
 
   const handleViewOriginal = async () => {
     if (documentUrl) {
-      if (isNativePlatform()) {
-        await Browser.open({ url: documentUrl });
-      } else {
-        window.open(documentUrl, '_blank');
-      }
+      await openInSystemBrowser(documentUrl);
     }
   };
 

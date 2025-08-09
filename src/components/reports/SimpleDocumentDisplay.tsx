@@ -5,8 +5,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
-import { getSignedUrl, isNativePlatform } from "@/lib/storage";
-import { Browser } from "@capacitor/browser";
+import { getSignedUrl } from "@/lib/storage";
+import { openInSystemBrowser } from "@/lib/utils/mobile";
 
 interface SimpleDocumentDisplayProps {
   report: {
@@ -124,11 +124,7 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
 
   const handleViewOriginal = async () => {
     if (signedUrl) {
-      if (isNativePlatform()) {
-        await Browser.open({ url: signedUrl });
-      } else {
-        window.open(signedUrl, '_blank');
-      }
+      await openInSystemBrowser(signedUrl);
     }
   };
 

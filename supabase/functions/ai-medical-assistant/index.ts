@@ -46,19 +46,20 @@ serve(async (req) => {
       throw new Error('Supabase credentials not configured');
     }
 
-    // Initialize Supabase client
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
     // Get authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('No authorization header');
     }
+    const token = authHeader.replace('Bearer ', '');
+
+    // Initialize Supabase client with RLS context
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
 
     // Get user from auth token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
       throw new Error('Invalid or expired token');
@@ -66,8 +67,11 @@ serve(async (req) => {
 
     const { message, conversation_id }: ChatRequest = await req.json();
 
-    if (!message?.trim()) {
-      throw new Error('Message is required');
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return new Response(JSON.stringify({ error: 'Message is required', request_id: requestId }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    if (!conversation_id || typeof conversation_id !== 'string') {
+      return new Response(JSON.stringify({ error: 'conversation_id is required', request_id: requestId }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     console.log(`Processing message from user ${user.id}: ${message}`);
@@ -129,7 +133,9 @@ ${contextText || 'No relevant documents found for this query.'}`;
 
 Please provide a helpful response based on the available medical documents. If you reference specific information, mention which document it came from.`;
 
-    // Call OpenAI API
+    // Call OpenAI API with timeout
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 25000);
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -145,7 +151,9 @@ Please provide a helpful response based on the available medical documents. If y
         temperature: 0.7,
         max_tokens: 1500,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(t);
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -169,6 +177,7 @@ Please provide a helpful response based on the available medical documents. If y
       confidence: doc.confidence,
     }));
 
+    console.log(`[ai-medical-assistant:${requestId}] outcome=success user=${user.id} duration_ms=${Date.now() - start} docs=${contextDocuments.length}`);
     return new Response(JSON.stringify({
       response: aiResponse,
       context_documents: contextDocuments,
@@ -180,10 +189,12 @@ Please provide a helpful response based on the available medical documents. If y
     });
 
   } catch (error) {
-    console.error('Error in AI medical assistant:', error);
+    console.error(`[ai-medical-assistant:${requestId}] outcome=error duration_ms=${Date.now() - start}`, error);
     return new Response(JSON.stringify({ 
-      error: error.message,
-      response: "I'm sorry, I encountered an error while processing your request. Please try again."
+      error: (error as any).message,
+      response: "I'm sorry, I encountered an error while processing your request. Please try again.",
+      request_id: requestId,
+      duration_ms: Date.now() - start,
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
