@@ -21,6 +21,7 @@ import Cards from "./pages/Cards";
 
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
+import Concierge from "./pages/Concierge";
 
 import NotFound from "./pages/NotFound";
 import { LoginPage } from "./pages/auth/LoginPage";
@@ -134,6 +135,13 @@ const AppRoutes: FC = () => (
       <ProtectedRoute>
         <MobileLayout>
           <AIAssistant />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
+    <Route path="/concierge" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Concierge />
         </MobileLayout>
       </ProtectedRoute>
     } />

@@ -1,12 +1,12 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, User, FolderOpen, Brain, Bot } from "lucide-react";
+import { Home, Headphones, FolderOpen, Brain, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
   { icon: FolderOpen, label: "Vault", path: "/vault" },
   { icon: Brain, label: "Insights", path: "/summaries" },
-  { icon: User, label: "Profile", path: "/profile" },
+  { icon: Headphones, label: "Concierge", path: "/concierge" },
 ];
 
 const centerItem = { icon: Bot, label: "AI Assistant", path: "/ai-assistant" };
