@@ -112,11 +112,11 @@ const Index = () => {
     <div className="space-y-3">
       <div className="p-4 space-y-6">
         {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-3 grid-rows-2 gap-3 sm:gap-4">
           {/* Reports */}
           <Card
             aria-label="Open Reports"
-            className="cursor-pointer hover:shadow-md transition-shadow"
+            className="cursor-pointer hover:shadow-md transition-shadow col-start-1 row-start-1"
             onClick={() => navigate('/reports')}
           >
             <CardContent className="p-3">
@@ -132,7 +132,7 @@ const Index = () => {
           {/* Insights */}
           <Card
             aria-label="Open Insights"
-            className="cursor-pointer hover:shadow-md transition-shadow"
+            className="cursor-pointer hover:shadow-md transition-shadow col-start-2 row-start-1"
             onClick={() => navigate('/summaries')}
           >
             <CardContent className="p-3">
@@ -145,13 +145,13 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          {/* SOS - standout */}
+          {/* SOS - standout spanning 2 rows */}
           <Card
             aria-label="Trigger SOS"
-            className="bg-destructive/90 border-destructive cursor-pointer hover:bg-destructive transition-colors"
+            className="bg-destructive/90 border-destructive cursor-pointer hover:bg-destructive transition-colors col-start-3 row-span-2"
             onClick={handleSosClick}
           >
-            <CardContent className="p-3">
+            <CardContent className="p-3 h-full flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <span className="medical-subheading text-destructive-foreground">SOS</span>
                 <div className="rounded-lg bg-destructive-foreground/20 p-2">
@@ -164,7 +164,7 @@ const Index = () => {
           {/* Prescriptions */}
           <Card
             aria-label="Open Prescriptions"
-            className="cursor-pointer hover:shadow-md transition-shadow"
+            className="cursor-pointer hover:shadow-md transition-shadow col-start-1 row-start-2"
             onClick={() => navigate('/prescriptions')}
           >
             <CardContent className="p-3">
@@ -180,7 +180,7 @@ const Index = () => {
           {/* My Cards */}
           <Card
             aria-label="Open My Cards"
-            className="cursor-pointer hover:shadow-md transition-shadow"
+            className="cursor-pointer hover:shadow-md transition-shadow col-start-2 row-start-2"
             onClick={() => navigate('/cards')}
           >
             <CardContent className="p-3">
