@@ -121,7 +121,7 @@ const Index = () => {
           >
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
-                <span className="medical-heading-sm">Reports</span>
+                <span className="medical-subheading">Reports</span>
                 <div className="rounded-lg bg-primary/10 p-2">
                   <FileText className="h-5 w-5 text-primary" />
                 </div>
@@ -137,7 +137,7 @@ const Index = () => {
           >
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
-                <span className="medical-heading-sm">Insights</span>
+                <span className="medical-subheading">Insights</span>
                 <div className="rounded-lg bg-primary/10 p-2">
                   <Brain className="h-5 w-5 text-primary" />
                 </div>
@@ -153,7 +153,7 @@ const Index = () => {
           >
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
-                <span className="medical-heading-sm text-destructive-foreground">SOS</span>
+                <span className="medical-subheading text-destructive-foreground">SOS</span>
                 <div className="rounded-lg bg-destructive-foreground/20 p-2">
                   <AlertTriangle className="h-5 w-5 text-destructive-foreground" />
                 </div>
@@ -169,7 +169,7 @@ const Index = () => {
           >
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
-                <span className="medical-heading-sm">Prescriptions</span>
+                <span className="medical-subheading">Prescriptions</span>
                 <div className="rounded-lg bg-primary/10 p-2">
                   <Pill className="h-5 w-5 text-primary" />
                 </div>
@@ -185,7 +185,7 @@ const Index = () => {
           >
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
-                <span className="medical-heading-sm">My Cards</span>
+                <span className="medical-subheading">My Cards</span>
                 <div className="rounded-lg bg-primary/10 p-2">
                   <CreditCard className="h-5 w-5 text-primary" />
                 </div>
