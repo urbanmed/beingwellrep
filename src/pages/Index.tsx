@@ -8,7 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSosActivation } from '@/hooks/useSosActivation';
 import { useEmergencyContacts } from '@/hooks/useEmergencyContacts';
 import { SosCountdownModal } from '@/components/sos/SosCountdownModal';
-import { PersonalizedGreeting } from '@/components/layout/PersonalizedGreeting';
+
 import { RecommendationsSummary } from '@/components/dashboard/RecommendationsSummary';
 import { ActionItems } from '@/components/dashboard/ActionItems';
 import { RecentReportsVault } from '@/components/dashboard/RecentReportsVault';
@@ -110,7 +110,6 @@ const Index = () => {
 
   return (
     <div className="space-y-3">
-      <PersonalizedGreeting />
       <div className="p-4 space-y-6">
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-4">
