@@ -113,17 +113,17 @@ const Index = () => {
       <div className="p-4 space-y-6">
         {/* Quick Actions */}
         <div className="grid grid-cols-3 gap-3 sm:gap-4">
-          {/* SOS - standout */}
+          {/* Reports */}
           <Card
-            aria-label="Trigger SOS"
-            className="bg-destructive/90 border-destructive cursor-pointer hover:bg-destructive transition-colors"
-            onClick={handleSosClick}
+            aria-label="Open Reports"
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/reports')}
           >
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
-                <span className="medical-heading-sm text-destructive-foreground">SOS</span>
-                <div className="rounded-lg bg-destructive-foreground/20 p-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive-foreground" />
+                <span className="medical-heading-sm">Reports</span>
+                <div className="rounded-lg bg-primary/10 p-2">
+                  <FileText className="h-5 w-5 text-primary" />
                 </div>
               </div>
             </CardContent>
@@ -145,17 +145,17 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          {/* Reports */}
+          {/* SOS - standout */}
           <Card
-            aria-label="Open Reports"
-            className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate('/reports')}
+            aria-label="Trigger SOS"
+            className="bg-destructive/90 border-destructive cursor-pointer hover:bg-destructive transition-colors"
+            onClick={handleSosClick}
           >
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
-                <span className="medical-heading-sm">Reports</span>
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <FileText className="h-5 w-5 text-primary" />
+                <span className="medical-heading-sm text-destructive-foreground">SOS</span>
+                <div className="rounded-lg bg-destructive-foreground/20 p-2">
+                  <AlertTriangle className="h-5 w-5 text-destructive-foreground" />
                 </div>
               </div>
             </CardContent>
