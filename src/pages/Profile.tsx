@@ -126,33 +126,45 @@ export default function Profile() {
 
            {/* Quick Stats */}
            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <Card className="text-center">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 mx-auto mb-2">
-                    <FileText className="h-4 w-4 text-primary" />
+              <Card>
+                <CardContent className="p-2">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+                      <FileText className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-foreground">0</div>
+                      <p className="text-xs text-muted-foreground">Documents</p>
+                    </div>
                   </div>
-                  <div className="text-lg font-bold text-foreground">0</div>
-                  <p className="text-xs text-muted-foreground">Documents</p>
                 </CardContent>
               </Card>
 
-              <Card className="text-center">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 mx-auto mb-2">
-                    <Activity className="h-4 w-4 text-primary" />
+              <Card>
+                <CardContent className="p-2">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+                      <Activity className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-foreground">0</div>
+                      <p className="text-xs text-muted-foreground">Reports</p>
+                    </div>
                   </div>
-                  <div className="text-lg font-bold text-foreground">0</div>
-                  <p className="text-xs text-muted-foreground">Reports</p>
                 </CardContent>
               </Card>
 
-              <Card className="text-center">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 mx-auto mb-2">
-                    <Users className="h-4 w-4 text-primary" />
+              <Card>
+                <CardContent className="p-2">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+                      <Users className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-foreground">{familyMembers.length}</div>
+                      <p className="text-xs text-muted-foreground">Family Members</p>
+                    </div>
                   </div>
-                  <div className="text-lg font-bold text-foreground">{familyMembers.length}</div>
-                  <p className="text-xs text-muted-foreground">Family Members</p>
                 </CardContent>
               </Card>
            </div>
