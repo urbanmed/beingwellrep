@@ -92,7 +92,7 @@ export function FamilyMemberCard({ member, onEdit, onDelete, onPhotoUpload }: Fa
               </div>
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-foreground">
+              <h3 className="medical-subheading truncate">
                 {member.first_name} {member.last_name}
               </h3>
               <Badge variant="secondary" className={getRelationshipColor(member.relationship)}>

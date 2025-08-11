@@ -70,7 +70,7 @@ export function EmergencyContactsSection() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <h4 className="font-medium">{contact.name}</h4>
+                        <h4 className="medical-subheading truncate">{contact.name}</h4>
                         {contact.priority <= 2 && (
                           <Badge variant="secondary" className="text-xs">
                             Primary
