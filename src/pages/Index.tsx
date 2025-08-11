@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Brain, TrendingUp, Plus, Loader2, FolderOpen, Shield, Zap, AlertTriangle } from "lucide-react";
+import { FileText, Brain, TrendingUp, Plus, Loader2, FolderOpen, Shield, Zap, AlertTriangle, Pill, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useReports } from "@/hooks/useReports";
 import { useState, useEffect, useRef } from 'react';
@@ -127,6 +127,27 @@ const Index = () => {
             <CardContent className="px-6 pb-4 pt-4 text-center">
               <Brain className="h-6 w-6 text-primary mx-auto mb-1" />
               <h3 className="medical-heading-sm">Insights</h3>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/reports')}>
+            <CardContent className="px-6 pb-4 pt-4 text-center">
+              <FileText className="h-6 w-6 text-primary mx-auto mb-1" />
+              <h3 className="medical-heading-sm">Reports</h3>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/prescriptions')}>
+            <CardContent className="px-6 pb-4 pt-4 text-center">
+              <Pill className="h-6 w-6 text-primary mx-auto mb-1" />
+              <h3 className="medical-heading-sm">Prescriptions</h3>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/cards')}>
+            <CardContent className="px-6 pb-4 pt-4 text-center">
+              <CreditCard className="h-6 w-6 text-primary mx-auto mb-1" />
+              <h3 className="medical-heading-sm">My Cards</h3>
             </CardContent>
           </Card>
         </div>
