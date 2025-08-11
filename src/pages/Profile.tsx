@@ -124,50 +124,38 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-             <Card className="text-center">
-               <CardContent className="p-4">
-                 <div className="flex flex-col items-center space-y-2">
-                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
-                     <FileText className="h-5 w-5 text-primary" />
-                   </div>
-                   <div className="space-y-1">
-                     <div className="text-xl font-bold text-foreground">0</div>
-                     <p className="text-xs text-muted-foreground">Documents</p>
-                   </div>
-                 </div>
-               </CardContent>
-             </Card>
+           {/* Quick Stats */}
+           <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <Card className="text-center">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 mx-auto mb-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="text-lg font-bold text-foreground">0</div>
+                  <p className="text-xs text-muted-foreground">Documents</p>
+                </CardContent>
+              </Card>
 
-             <Card className="text-center">
-               <CardContent className="p-4">
-                 <div className="flex flex-col items-center space-y-2">
-                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
-                     <Activity className="h-5 w-5 text-primary" />
-                   </div>
-                   <div className="space-y-1">
-                     <div className="text-xl font-bold text-foreground">0</div>
-                     <p className="text-xs text-muted-foreground">Reports</p>
-                   </div>
-                 </div>
-               </CardContent>
-             </Card>
+              <Card className="text-center">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 mx-auto mb-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="text-lg font-bold text-foreground">0</div>
+                  <p className="text-xs text-muted-foreground">Reports</p>
+                </CardContent>
+              </Card>
 
-             <Card className="text-center">
-               <CardContent className="p-4">
-                 <div className="flex flex-col items-center space-y-2">
-                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
-                     <Users className="h-5 w-5 text-primary" />
-                   </div>
-                   <div className="space-y-1">
-                     <div className="text-xl font-bold text-foreground">{familyMembers.length}</div>
-                     <p className="text-xs text-muted-foreground">Family Members</p>
-                   </div>
-                 </div>
-               </CardContent>
-             </Card>
-          </div>
+              <Card className="text-center">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 mx-auto mb-2">
+                    <Users className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="text-lg font-bold text-foreground">{familyMembers.length}</div>
+                  <p className="text-xs text-muted-foreground">Family Members</p>
+                </CardContent>
+              </Card>
+           </div>
 
           {/* Menu Options */}
           <div className="space-y-2">
