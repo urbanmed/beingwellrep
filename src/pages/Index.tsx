@@ -112,42 +112,84 @@ const Index = () => {
     <div className="space-y-3">
       <div className="p-4 space-y-6">
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card 
-            className="bg-destructive border-destructive cursor-pointer hover:bg-destructive/90 transition-colors"
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          {/* SOS - standout */}
+          <Card
+            aria-label="Trigger SOS"
+            className="bg-destructive/90 border-destructive cursor-pointer hover:bg-destructive transition-colors"
             onClick={handleSosClick}
           >
-            <CardContent className="px-6 pb-4 pt-4 text-center">
-              <AlertTriangle className="h-6 w-6 text-destructive-foreground mx-auto mb-1" />
-              <h3 className="medical-heading-sm text-destructive-foreground">SOS</h3>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <span className="medical-heading-sm text-destructive-foreground">SOS</span>
+                <div className="rounded-lg bg-destructive-foreground/20 p-2">
+                  <AlertTriangle className="h-5 w-5 text-destructive-foreground" />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/summaries')}>
-            <CardContent className="px-6 pb-4 pt-4 text-center">
-              <Brain className="h-6 w-6 text-primary mx-auto mb-1" />
-              <h3 className="medical-heading-sm">Insights</h3>
+          {/* Insights */}
+          <Card
+            aria-label="Open Insights"
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/summaries')}
+          >
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <span className="medical-heading-sm">Insights</span>
+                <div className="rounded-lg bg-primary/10 p-2">
+                  <Brain className="h-5 w-5 text-primary" />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/reports')}>
-            <CardContent className="px-6 pb-4 pt-4 text-center">
-              <FileText className="h-6 w-6 text-primary mx-auto mb-1" />
-              <h3 className="medical-heading-sm">Reports</h3>
+          {/* Reports */}
+          <Card
+            aria-label="Open Reports"
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/reports')}
+          >
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <span className="medical-heading-sm">Reports</span>
+                <div className="rounded-lg bg-primary/10 p-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/prescriptions')}>
-            <CardContent className="px-6 pb-4 pt-4 text-center">
-              <Pill className="h-6 w-6 text-primary mx-auto mb-1" />
-              <h3 className="medical-heading-sm">Prescriptions</h3>
+          {/* Prescriptions */}
+          <Card
+            aria-label="Open Prescriptions"
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/prescriptions')}
+          >
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <span className="medical-heading-sm">Prescriptions</span>
+                <div className="rounded-lg bg-primary/10 p-2">
+                  <Pill className="h-5 w-5 text-primary" />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate('/cards')}>
-            <CardContent className="px-6 pb-4 pt-4 text-center">
-              <CreditCard className="h-6 w-6 text-primary mx-auto mb-1" />
-              <h3 className="medical-heading-sm">My Cards</h3>
+          {/* My Cards */}
+          <Card
+            aria-label="Open My Cards"
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/cards')}
+          >
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <span className="medical-heading-sm">My Cards</span>
+                <div className="rounded-lg bg-primary/10 p-2">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
