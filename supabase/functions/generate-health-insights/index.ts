@@ -131,7 +131,69 @@ async function generateInsights(userId: string) {
 async function generateTrendInsight(userId: string, reports: any[], summaries: any[]) {
   if (reports.length < 3) return null;
 
-  // Analyze trends in reports over time
+  try {
+    // Use OpenAI for advanced trend analysis
+    const reportsSummary = reports.slice(0, 10).map(r => ({
+      date: r.report_date,
+      type: r.report_type,
+      title: r.title,
+      parsed_data: r.parsed_data
+    }));
+
+    const prompt = `Analyze the following medical reports for health trends:
+    
+    ${JSON.stringify(reportsSummary, null, 2)}
+    
+    Identify significant trends in health metrics, progression of conditions, and patterns over time.
+    Provide a confidence score (0-1) and specific observations about improving, stable, or declining health indicators.`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a medical AI that analyzes health trends. Be specific and evidence-based.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.2,
+        max_tokens: 800,
+      }),
+    });
+
+    if (response.ok) {
+      const aiData = await response.json();
+      const analysis = aiData.choices[0].message.content;
+      
+      return {
+        user_id: userId,
+        insight_type: 'trend',
+        title: 'AI-Powered Health Trend Analysis',
+        description: analysis.substring(0, 500), // Truncate for database
+        severity: 'info',
+        confidence_score: 0.80,
+        data_source_ids: reports.slice(0, 10).map(r => r.id),
+        insight_data: {
+          aiAnalysis: analysis,
+          reportsAnalyzed: Math.min(reports.length, 10),
+          timeframe: '90 days'
+        },
+        action_items: [
+          'Review AI-identified trends with your doctor',
+          'Monitor key health indicators mentioned',
+          'Track progress on recommendations'
+        ],
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      };
+    }
+  } catch (error) {
+    console.error('Error generating AI trend insight:', error);
+  }
+
+  // Fallback to simple analysis
   const recentReports = reports.slice(0, 5);
   const olderReports = reports.slice(5, 10);
 
@@ -154,7 +216,7 @@ async function generateTrendInsight(userId: string, reports: any[], summaries: a
       'Review your recent test results',
       'Discuss trends with your healthcare provider'
     ],
-    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
   };
 }
 

@@ -2,6 +2,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import NotificationCenter from "@/components/notifications/NotificationCenter";
 
 export function Header() {
   const navigate = useNavigate();
@@ -42,11 +43,14 @@ export function Header() {
       {!loading && (
         <div className="flex items-center justify-between px-4 pb-2">
           <h2 className="text-sm font-medium text-foreground">{greetingText}</h2>
-          <Link to="/profile" aria-label="Go to profile" className="shrink-0">
-            <Avatar className="h-8 w-8 border border-border">
-              <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
-            </Avatar>
-          </Link>
+          <div className="flex items-center gap-3">
+            <NotificationCenter />
+            <Link to="/profile" aria-label="Go to profile" className="shrink-0">
+              <Avatar className="h-8 w-8 border border-border">
+                <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
+              </Avatar>
+            </Link>
+          </div>
         </div>
       )}
     </header>

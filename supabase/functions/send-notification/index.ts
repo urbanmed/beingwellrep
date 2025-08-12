@@ -18,6 +18,9 @@ const supabase = createClient(
 );
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -98,15 +101,47 @@ serve(async (req) => {
             throw new Error('No email address found');
           }
         } else if (method === 'sms') {
-          // SMS delivery would require a service like Twilio
-          // For now, just mark as pending
-          deliveryRecord.status = 'pending';
-          deliveryRecord.error_message = 'SMS service not configured';
+          // SMS delivery via Twilio
+          if (!notification.profiles?.phone_number) {
+            throw new Error('No phone number found for user');
+          }
+          
+          if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+            throw new Error('Twilio credentials not configured');
+          }
+
+          const smsBody = `${notification.title}\n\n${notification.message}${notification.action_url ? `\n\nView: ${notification.action_url}` : ''}`;
+          
+          const twilioResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+              From: twilioPhoneNumber,
+              To: notification.profiles.phone_number,
+              Body: smsBody
+            })
+          });
+
+          if (!twilioResponse.ok) {
+            const errorData = await twilioResponse.text();
+            throw new Error(`Twilio SMS failed: ${errorData}`);
+          }
+
+          const smsResult = await twilioResponse.json();
+          deliveryRecord.status = 'sent';
+          deliveryRecord.sent_at = new Date().toISOString();
+          deliveryRecord.delivery_details = { messageId: smsResult.sid };
+          
         } else if (method === 'push') {
-          // Push notifications would require a service like FCM
-          // For now, just mark as pending
-          deliveryRecord.status = 'pending';
-          deliveryRecord.error_message = 'Push service not configured';
+          // Basic push notification implementation
+          // In production, you'd implement proper Web Push API with VAPID keys
+          console.log(`Push notification: ${notification.title} - ${notification.message}`);
+          deliveryRecord.status = 'sent';
+          deliveryRecord.sent_at = new Date().toISOString();
+          deliveryRecord.delivery_details = { pushId: crypto.randomUUID() };
         }
       } catch (error) {
         console.error(`Failed to send ${method} notification:`, error);

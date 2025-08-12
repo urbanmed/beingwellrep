@@ -10,7 +10,11 @@ import {
   Activity,
   Database,
   MessageSquare,
-  LogOut
+  LogOut,
+  Clock,
+  Brain,
+  Download,
+  Upload
 } from "lucide-react";
 import {
   Sidebar,
@@ -35,15 +39,39 @@ const adminNavItems = [
     roles: ['moderator', 'admin', 'super_admin']
   },
   { 
-    title: "User Management", 
-    url: "/admin/users", 
-    icon: Users,
-    roles: ['admin', 'super_admin']
-  },
-  { 
     title: "Analytics", 
     url: "/admin/analytics", 
     icon: BarChart3,
+    roles: ['moderator', 'admin', 'super_admin']
+  },
+  { 
+    title: "Processing Queue", 
+    url: "/admin/processing", 
+    icon: Clock,
+    roles: ['moderator', 'admin', 'super_admin']
+  },
+  { 
+    title: "Health Insights", 
+    url: "/admin/insights", 
+    icon: Brain,
+    roles: ['moderator', 'admin', 'super_admin']
+  },
+  { 
+    title: "Data Export", 
+    url: "/admin/export", 
+    icon: Download,
+    roles: ['moderator', 'admin', 'super_admin']
+  },
+  { 
+    title: "Data Import", 
+    url: "/admin/import", 
+    icon: Upload,
+    roles: ['admin', 'super_admin']
+  },
+  { 
+    title: "SOS Monitoring", 
+    url: "/admin/sos", 
+    icon: AlertTriangle,
     roles: ['moderator', 'admin', 'super_admin']
   },
   { 
@@ -53,22 +81,22 @@ const adminNavItems = [
     roles: ['moderator', 'admin', 'super_admin']
   },
   { 
-    title: "Medical Data", 
-    url: "/admin/medical", 
-    icon: Activity,
-    roles: ['admin', 'super_admin']
-  },
-  { 
     title: "Custom Prompts", 
     url: "/admin/prompts", 
     icon: MessageSquare,
     roles: ['admin', 'super_admin']
   },
   { 
-    title: "SOS Monitoring", 
-    url: "/admin/sos", 
-    icon: AlertTriangle,
-    roles: ['moderator', 'admin', 'super_admin']
+    title: "Medical Data", 
+    url: "/admin/medical", 
+    icon: Activity,
+    roles: ['admin', 'super_admin']
+  },
+  { 
+    title: "User Management", 
+    url: "/admin/users", 
+    icon: Users,
+    roles: ['admin', 'super_admin']
   },
   { 
     title: "System Health", 

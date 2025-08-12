@@ -43,6 +43,11 @@ import SystemHealth from "./pages/admin/SystemHealth";
 import AuditLogs from "./pages/admin/AuditLogs";
 import Settings from "./pages/admin/Settings";
 import CustomPrompts from "./pages/admin/CustomPrompts";
+import ProcessingQueuePanel from "./components/processing/ProcessingQueuePanel";
+import HealthInsightsPanel from "./components/insights/HealthInsightsPanel";
+import ExportCenter from "./components/export/ExportCenter";
+import ImportCenter from "./components/import/ImportCenter";
+import NotificationsPage from "./pages/NotificationsPage";
 
 // Create QueryClient instance outside of component
 const queryClient = new QueryClient({
@@ -235,6 +240,49 @@ const AppRoutes: FC = () => (
             <Settings />
           </AdminLayout>
         </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/processing" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="moderator">
+          <AdminLayout>
+            <ProcessingQueuePanel />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/insights" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="moderator">
+          <AdminLayout>
+            <HealthInsightsPanel />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/export" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="moderator">
+          <AdminLayout>
+            <ExportCenter />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/import" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="admin">
+          <AdminLayout>
+            <ImportCenter />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/notifications" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <NotificationsPage />
+        </MobileLayout>
       </ProtectedRoute>
     } />
     

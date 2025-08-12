@@ -16,6 +16,7 @@ import { AIInsightsCarousel } from '@/components/dashboard/AIInsightsCarousel';
 import { TrendsTimelineMini } from '@/components/dashboard/TrendsTimelineMini';
 import { HealthTasksReminders } from '@/components/dashboard/HealthTasksReminders';
 import { PersonalizedTipsHealth } from '@/components/dashboard/PersonalizedTipsHealth';
+import HealthInsightsPanel from '@/components/insights/HealthInsightsPanel';
 import { getLocation } from '@/lib/utils/location';
 
 const Index = () => {
@@ -199,6 +200,9 @@ const Index = () => {
           <RecommendationsSummary />
           <ActionItems />
         </div>
+
+        {/* Health Insights */}
+        <HealthInsightsPanel />
 
         {/* Recent Reports */}
         <RecentReportsVault />
