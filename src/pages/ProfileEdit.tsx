@@ -147,6 +147,7 @@ export default function ProfileEdit() {
             user_id: user.id,
             ...data,
             date_of_birth: data.date_of_birth ? data.date_of_birth.toISOString().split('T')[0] : null,
+            avatar_url: currentAvatarUrl, // Include the current avatar URL
           },
           { onConflict: "user_id" }
         );
