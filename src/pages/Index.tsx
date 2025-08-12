@@ -12,7 +12,7 @@ import { SosCountdownModal } from '@/components/sos/SosCountdownModal';
 import { RecommendationsSummary } from '@/components/dashboard/RecommendationsSummary';
 import { ActionItems } from '@/components/dashboard/ActionItems';
 import { RecentReportsVault } from '@/components/dashboard/RecentReportsVault';
-import { AIInsightsCarousel } from '@/components/dashboard/AIInsightsCarousel';
+
 import { TrendsTimelineMini } from '@/components/dashboard/TrendsTimelineMini';
 import { HealthTasksReminders } from '@/components/dashboard/HealthTasksReminders';
 import { PersonalizedTipsHealth } from '@/components/dashboard/PersonalizedTipsHealth';
@@ -207,11 +207,8 @@ const Index = () => {
         {/* Recent Reports */}
         <RecentReportsVault />
 
-        {/* Insights and Trends */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <AIInsightsCarousel />
-          <TrendsTimelineMini />
-        </div>
+        {/* Trends */}
+        <TrendsTimelineMini />
 
         {/* Tasks and Tips */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
