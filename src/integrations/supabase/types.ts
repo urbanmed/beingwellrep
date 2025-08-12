@@ -332,6 +332,54 @@ export type Database = {
         }
         Relationships: []
       }
+      export_jobs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          expires_at: string | null
+          export_type: string
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
+          id: string
+          parameters: Json | null
+          progress_percentage: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          export_type: string
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          parameters?: Json | null
+          progress_percentage?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          export_type?: string
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          parameters?: Json | null
+          progress_percentage?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       family_members: {
         Row: {
           created_at: string
@@ -383,6 +431,60 @@ export type Database = {
         }
         Relationships: []
       }
+      health_insights: {
+        Row: {
+          action_items: string[] | null
+          confidence_score: number | null
+          created_at: string
+          data_source_ids: string[] | null
+          description: string
+          dismissed_at: string | null
+          expires_at: string | null
+          id: string
+          insight_data: Json | null
+          insight_type: string
+          is_dismissed: boolean
+          severity: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_items?: string[] | null
+          confidence_score?: number | null
+          created_at?: string
+          data_source_ids?: string[] | null
+          description: string
+          dismissed_at?: string | null
+          expires_at?: string | null
+          id?: string
+          insight_data?: Json | null
+          insight_type: string
+          is_dismissed?: boolean
+          severity?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_items?: string[] | null
+          confidence_score?: number | null
+          created_at?: string
+          data_source_ids?: string[] | null
+          description?: string
+          dismissed_at?: string | null
+          expires_at?: string | null
+          id?: string
+          insight_data?: Json | null
+          insight_type?: string
+          is_dismissed?: boolean
+          severity?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           citations: Json | null
@@ -420,6 +522,155 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notification_deliveries: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          delivery_details: Json | null
+          delivery_method: string
+          error_message: string | null
+          id: string
+          notification_id: string
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          delivery_details?: Json | null
+          delivery_method: string
+          error_message?: string | null
+          id?: string
+          notification_id: string
+          sent_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          delivery_details?: Json | null
+          delivery_method?: string
+          error_message?: string | null
+          id?: string
+          notification_id?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_notification_deliveries_notification_id"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          category: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_read: boolean
+          message: string
+          metadata: Json | null
+          priority: number
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          category?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean
+          message: string
+          metadata?: Json | null
+          priority?: number
+          title: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          category?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string
+          metadata?: Json | null
+          priority?: number
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      processing_queue: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          error_message: string | null
+          estimated_completion_time: string | null
+          id: string
+          max_attempts: number
+          metadata: Json | null
+          priority: number
+          processing_completed_at: string | null
+          processing_started_at: string | null
+          processing_time_ms: number | null
+          report_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          error_message?: string | null
+          estimated_completion_time?: string | null
+          id?: string
+          max_attempts?: number
+          metadata?: Json | null
+          priority?: number
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          processing_time_ms?: number | null
+          report_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          error_message?: string | null
+          estimated_completion_time?: string | null
+          id?: string
+          max_attempts?: number
+          metadata?: Json | null
+          priority?: number
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          processing_time_ms?: number | null
+          report_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
