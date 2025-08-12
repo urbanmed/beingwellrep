@@ -485,6 +485,96 @@ export type Database = {
         }
         Relationships: []
       }
+      import_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_log: Json | null
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string | null
+          id: string
+          imported_record_count: number | null
+          progress_percentage: number
+          status: string
+          updated_at: string
+          user_id: string
+          validation_results: Json | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_log?: Json | null
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url?: string | null
+          id?: string
+          imported_record_count?: number | null
+          progress_percentage?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+          validation_results?: Json | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_log?: Json | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string | null
+          id?: string
+          imported_record_count?: number | null
+          progress_percentage?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+          validation_results?: Json | null
+        }
+        Relationships: []
+      }
+      import_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          example_data: Json | null
+          file_type: string
+          id: string
+          is_active: boolean
+          name: string
+          schema_definition: Json
+          template_data: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          example_data?: Json | null
+          file_type: string
+          id?: string
+          is_active?: boolean
+          name: string
+          schema_definition?: Json
+          template_data?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          example_data?: Json | null
+          file_type?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          schema_definition?: Json
+          template_data?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           citations: Json | null
