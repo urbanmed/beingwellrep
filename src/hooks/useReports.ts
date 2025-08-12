@@ -160,7 +160,7 @@ export function useReports() {
     }
   };
 
-  const retryOCR = async (reportId: string) => {
+  const retryProcessing = async (reportId: string) => {
     try {
       const { error } = await supabase.functions.invoke('process-medical-document', {
         body: { reportId }
@@ -195,7 +195,7 @@ export function useReports() {
     fetchReports,
     deleteReport,
     deleteMultipleReports,
-    retryOCR,
+    retryProcessing,
     refetch: fetchReports
   };
 }

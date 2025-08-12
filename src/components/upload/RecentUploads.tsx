@@ -32,7 +32,7 @@ export function RecentUploads() {
   const [selectedForDeletion, setSelectedForDeletion] = useState<string[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { toast } = useToast();
-  const { deleteMultipleReports, retryOCR: retryReportOCR } = useReports();
+  const { deleteMultipleReports, retryProcessing: retryReportProcessing } = useReports();
 
   useEffect(() => {
     fetchRecentReports();
@@ -63,8 +63,8 @@ export function RecentUploads() {
     }
   };
 
-  const retryOCR = async (reportId: string) => {
-    await retryReportOCR(reportId);
+  const retryProcessing = async (reportId: string) => {
+    await retryReportProcessing(reportId);
     fetchRecentReports();
   };
 
@@ -105,12 +105,12 @@ export function RecentUploads() {
   const retryAllFailed = async () => {
     const failedReports = reports.filter(r => r.parsing_status === 'failed');
     for (const report of failedReports) {
-      await retryReportOCR(report.id);
+      await retryReportProcessing(report.id);
     }
     fetchRecentReports();
   };
 
-  const getOCRStatusIcon = (status: string) => {
+  const getProcessingStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -123,20 +123,20 @@ export function RecentUploads() {
     }
   };
 
-  const getOCRStatusBadge = (status: string, confidence: number | null) => {
+  const getProcessingStatusBadge = (status: string, confidence: number | null) => {
     switch (status) {
       case 'completed':
         return (
           <Badge variant="default" className="bg-green-500">
-            OCR Complete {confidence && `(${Math.round(confidence * 100)}%)`}
+            Processing Complete {confidence && `(${Math.round(confidence * 100)}%)`}
           </Badge>
         );
       case 'failed':
-        return <Badge variant="destructive">OCR Failed</Badge>;
+        return <Badge variant="destructive">Processing Failed</Badge>;
       case 'processing':
         return <Badge variant="secondary">Processing</Badge>;
       default:
-        return <Badge variant="outline">Pending OCR</Badge>;
+        return <Badge variant="outline">Pending Processing</Badge>;
     }
   };
 
@@ -254,7 +254,7 @@ export function RecentUploads() {
                   <p className="text-sm text-muted-foreground">{report.file_name}</p>
                 </div>
               </div>
-              {getOCRStatusBadge(report.parsing_status, report.extraction_confidence)}
+              {getProcessingStatusBadge(report.parsing_status, report.extraction_confidence)}
             </div>
 
             <div className="flex items-center space-x-4 text-xs text-muted-foreground">
@@ -275,7 +275,7 @@ export function RecentUploads() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                {getOCRStatusIcon(report.parsing_status)}
+                {getProcessingStatusIcon(report.parsing_status)}
                 <span className="text-sm capitalize">
                   {report.report_type.replace('_', ' ')}
                 </span>
@@ -286,9 +286,9 @@ export function RecentUploads() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => retryOCR(report.id)}
+                  onClick={() => retryProcessing(report.id)}
                 >
-                  Retry OCR
+                  Retry Processing
                 </Button>
               )}
               

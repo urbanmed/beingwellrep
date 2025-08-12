@@ -83,7 +83,7 @@ export function GenerateSummaryDialog({
   const [customPrompt, setCustomPrompt] = useState('');
   const [loadingReports, setLoadingReports] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const { retryOCR } = useReports();
+  const { retryProcessing } = useReports();
 
   const fetchReports = useCallback(async () => {
     setLoadingReports(true);
@@ -136,9 +136,9 @@ export function GenerateSummaryDialog({
   const processingReports = allReports.filter(r => r.parsing_status === 'processing');
   const failedReports = allReports.filter(r => r.parsing_status === 'failed');
 
-  const handleRetryOCR = async (reportId: string) => {
+  const handleRetryProcessing = async (reportId: string) => {
     try {
-      await retryOCR(reportId);
+      await retryProcessing(reportId);
       // Refresh the reports list
       await fetchReports();
     } catch (error) {
@@ -354,7 +354,7 @@ export function GenerateSummaryDialog({
                                 size="sm" 
                                 variant="outline" 
                                 className="h-6 text-xs"
-                                onClick={() => handleRetryOCR(report.id)}
+                                onClick={() => handleRetryProcessing(report.id)}
                               >
                                 <RefreshCw className="h-3 w-3 mr-1" />
                                 Retry
