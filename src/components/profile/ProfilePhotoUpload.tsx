@@ -94,10 +94,10 @@ export function ProfilePhotoUpload({
       // Update profile in database with storage path (not a public URL)
       const { error: updateError } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user.id,
+        .update({
           avatar_url: newStoragePath,
-        });
+        })
+        .eq('user_id', user.id);
 
       if (updateError) throw updateError;
 
@@ -149,10 +149,10 @@ export function ProfilePhotoUpload({
       // Update profile in database
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user.id,
+        .update({
           avatar_url: null,
-        });
+        })
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
