@@ -19,8 +19,8 @@
     --popover: 0 0% 98%;              /* Same as cards */
     --popover-foreground: 240 5% 11%; /* Dark text */
 
-    /* Primary Accent - Teal */
-    --primary: 169 59% 46%;           /* #2FBDA6 - Primary buttons, icons */
+    /* Primary Accent - Blue */
+    --primary: 202 100% 61%;          /* #37B6FF - Primary buttons, icons */
     --primary-foreground: 0 0% 100%;  /* White text on primary */
 
     /* Secondary/Muted Elements */
@@ -56,19 +56,19 @@
     /* Borders and Inputs */
     --border: 0 0% 90%;               /* Light borders */
     --input: 0 0% 90%;                /* Light input borders */
-    --ring: 169 59% 46%;              /* Primary teal for focus rings */
+    --ring: 202 100% 61%;             /* Primary blue for focus rings */
 
     --radius: 0.5rem;
 
     /* Sidebar colors */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 240 5% 11%;
-    --sidebar-primary: 169 59% 46%;
+    --sidebar-primary: 202 100% 61%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 96%;
     --sidebar-accent-foreground: 240 5% 11%;
     --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 169 59% 46%;
+    --sidebar-ring: 202 100% 61%;
   }
 
   .dark {
@@ -82,7 +82,7 @@
     --popover: 240 4% 16%;
     --popover-foreground: 0 0% 100%;
 
-    --primary: 169 59% 46%;
+    --primary: 202 100% 61%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 4% 23%;
@@ -114,15 +114,15 @@
 
     --border: 240 4% 23%;
     --input: 240 4% 23%;
-    --ring: 169 59% 46%;
+    --ring: 202 100% 61%;
     --sidebar-background: 240 5% 11%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 169 59% 46%;
+    --sidebar-primary: 202 100% 61%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 4% 23%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 240 4% 23%;
-    --sidebar-ring: 169 59% 46%;
+    --sidebar-ring: 202 100% 61%;
   }
 }
 
