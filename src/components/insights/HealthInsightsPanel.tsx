@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, TrendingUp, AlertTriangle, Target, Award, Sparkles, X, MoreHorizontal, ChevronRight } from 'lucide-react';
+import { Brain, TrendingUp, AlertTriangle, Target, Award, Sparkles, X, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,13 +7,9 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useHealthInsights, HealthInsight } from '@/hooks/useHealthInsights';
-import { useSummaries } from '@/hooks/useSummaries';
 import { formatDistanceToNow } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
-import { getContentPreview, getSeverityBadge } from '@/lib/utils/summary-parser';
 
 const HealthInsightsPanel: React.FC = () => {
-  const navigate = useNavigate();
   const {
     insights,
     loading,
@@ -26,11 +22,6 @@ const HealthInsightsPanel: React.FC = () => {
     getCriticalInsights,
     getInsightStats,
   } = useHealthInsights();
-
-  const { summaries } = useSummaries();
-  const recentSummaries = summaries
-    .sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())
-    .slice(0, 5);
 
   const stats = getInsightStats();
 
@@ -138,55 +129,6 @@ const HealthInsightsPanel: React.FC = () => {
       </CardContent>
     </Card>
   );
-
-  const SummaryCard: React.FC<{ summary: any }> = ({ summary }) => {
-    const severityBadgeRaw = getSeverityBadge(summary.content);
-    const severityBadge = severityBadgeRaw ?? { variant: 'secondary' as const, label: 'Info' };
-    const preview = getContentPreview(summary.content, 120);
-
-    return (
-      <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/summaries')}>
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <Brain className="h-5 w-5 text-primary" />
-              <div>
-                <CardTitle className="text-base leading-6">
-                  {summary.title}
-                </CardTitle>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant={severityBadge.variant} className="text-xs">
-                    {severityBadge.label}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs capitalize">
-                    {summary.summary_type.replace(/_/g, ' ')}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </CardHeader>
-
-        <CardContent className="pt-0">
-          <p className="text-sm text-muted-foreground leading-5 mb-4">
-            {preview}
-          </p>
-
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              {formatDistanceToNow(new Date(summary.generated_at), { addSuffix: true })}
-            </span>
-            {summary.confidence_score && (
-              <span>
-                {Math.round(summary.confidence_score * 100)}% confidence
-              </span>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
 
   if (loading) {
     return (
@@ -309,9 +251,8 @@ const HealthInsightsPanel: React.FC = () => {
 
       {/* Insights Tabs */}
       <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="all">All ({stats.total + recentSummaries.length})</TabsTrigger>
-          <TabsTrigger value="summaries">AI Summaries ({recentSummaries.length})</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="all">All ({stats.total})</TabsTrigger>
           <TabsTrigger value="trend">Trends ({stats.trends})</TabsTrigger>
           <TabsTrigger value="risk">Risks ({stats.risks})</TabsTrigger>
           <TabsTrigger value="recommendation">Tips ({stats.recommendations})</TabsTrigger>
@@ -319,7 +260,7 @@ const HealthInsightsPanel: React.FC = () => {
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
-          {insights.length === 0 && recentSummaries.length === 0 ? (
+          {insights.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center text-muted-foreground">
                 <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -329,35 +270,8 @@ const HealthInsightsPanel: React.FC = () => {
             </Card>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {recentSummaries.map((summary) => (
-                <SummaryCard key={summary.id} summary={summary} />
-              ))}
               {insights.map((insight) => (
                 <InsightCard key={insight.id} insight={insight} />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="summaries" className="space-y-4">
-          {recentSummaries.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center text-muted-foreground">
-                <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No AI summaries yet</p>
-                <p className="text-sm">Generate summaries from your medical reports to see AI insights</p>
-                <Button 
-                  className="mt-4" 
-                  onClick={() => navigate('/summaries')}
-                >
-                  View Summaries
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {recentSummaries.map((summary) => (
-                <SummaryCard key={summary.id} summary={summary} />
               ))}
             </div>
           )}
