@@ -138,6 +138,17 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
             throw new Error(`Upload failed: ${uploadError.message}`);
           }
 
+          // Verify file was actually uploaded by attempting to download it
+          const { error: verifyError } = await supabase.storage
+            .from('medical-documents')
+            .download(uploadData.path);
+
+          if (verifyError) {
+            // Clean up the failed upload record if it exists
+            await supabase.storage.from('medical-documents').remove([uploadData.path]);
+            throw new Error(`Upload verification failed: File was not properly stored`);
+          }
+
           // Update file progress to 50% after upload
           setUploadFileStates(prev => prev.map((f, idx) => 
             idx === i ? { ...f, progress: 50 } : f

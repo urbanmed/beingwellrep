@@ -33,7 +33,7 @@ interface EnhancedDocumentViewerProps {
 
 export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) {
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
-  const [workingFileUrl, setWorkingFileUrl] = useState<string | null>(null);
+  
   const [fileExists, setFileExists] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +56,7 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
       }
 
       const bucket = 'medical-documents';
-      const filePath = workingFileUrl || report.file_url;
+      const filePath = report.file_url;
 
       console.log(`Generating signed URL: bucket=${bucket}, path=${filePath}`);
 
@@ -139,36 +139,14 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
           .download(filePath);
 
         if (!downloadError) {
-          console.log('File found at original path');
+          console.log('File found at exact path:', filePath);
           setFileExists(true);
           const url = await generateSignedUrl();
           setDocumentUrl(url);
         } else {
-          console.log('File not found at original path, searching alternatives');
-          
-          // Search for alternative files
-          const { data: files, error: listError } = await supabase.storage
-            .from(bucket)
-            .list(authData.user.id, { limit: 100 });
-
-          if (!listError && files?.length > 0) {
-            const matchingFile = files
-              .filter(f => /\.(pdf|jpe?g|png|gif|webp)$/i.test(f.name))
-              .sort((a, b) => new Date(b.updated_at || b.created_at || 0).getTime() - 
-                              new Date(a.updated_at || a.created_at || 0).getTime())[0];
-
-            if (matchingFile) {
-              const alternativePath = `${authData.user.id}/${matchingFile.name}`;
-              setWorkingFileUrl(alternativePath);
-              setFileExists(true);
-              const url = await generateSignedUrl();
-              setDocumentUrl(url);
-            } else {
-              setFileExists(false);
-            }
-          } else {
-            setFileExists(false);
-          }
+          console.error('File not found at specified path:', filePath, downloadError);
+          setFileExists(false);
+          setError(`Document file not found. This medical document is not available in storage.`);
         }
       } catch (error) {
         console.error('Error checking file existence:', error);
@@ -190,7 +168,7 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
   };
 
   const getFileInfo = () => {
-    const fileUrl = workingFileUrl || report.file_url;
+    const fileUrl = report.file_url;
     if (!fileUrl) return { type: 'unknown', extension: '', icon: File };
     
     const extension = fileUrl.toLowerCase().split('.').pop() || '';
@@ -284,19 +262,11 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              The original document file could not be found. It may have been moved or deleted.
+              {error || "Document file not available. This medical document could not be accessed from secure storage."}
             </AlertDescription>
           </Alert>
         ) : documentUrl && viewMode === 'inline' ? (
           <div className="space-y-4">
-            {workingFileUrl && (
-              <Alert className="border-amber-200 bg-amber-50">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-amber-800">
-                  Using alternative file from your account as the original file path was not accessible.
-                </AlertDescription>
-              </Alert>
-            )}
 
             {isPDF ? (
               <div className="space-y-4">
@@ -461,11 +431,6 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
                 <p className="text-sm text-muted-foreground">
                   {fileInfo.type}
                 </p>
-                {workingFileUrl && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Using alternative file from your account
-                  </p>
-                )}
               </div>
               
               <div className="flex-shrink-0">
