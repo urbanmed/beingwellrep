@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSignedUrl } from "@/lib/storage";
+import { validateMedicalDocument, getDocumentErrorMessage, logDocumentAccess, type DocumentError } from "@/lib/utils/document-security";
 import { openInSystemBrowser } from "@/lib/utils/mobile";
 
 // Let react-pdf handle worker setup internally
@@ -36,7 +37,7 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
   
   const [fileExists, setFileExists] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<DocumentError | null>(null);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
@@ -103,14 +104,17 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
       return documentUrl;
     } catch (error) {
       console.error('Failed to refresh URL:', error);
-      setError('Failed to refresh document access. Please reload the page.');
+      setError({
+        type: 'ACCESS_DENIED',
+        message: 'Failed to refresh document access. Please reload the page.'
+      });
       return null;
     } finally {
       setIsRefreshingUrl(false);
     }
   };
 
-  // Check if file exists and get proper URL
+  // Check if file exists and get proper URL with enhanced security
   useEffect(() => {
     const checkFileExistence = async () => {
       if (!report.file_url) {
@@ -123,35 +127,37 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
         setIsChecking(true);
         setError(null);
 
-        const { data: authData } = await supabase.auth.getUser();
-        if (!authData.user) {
-          setError('User not authenticated');
+        logDocumentAccess(report.file_url, 'VALIDATE', 'SUCCESS');
+
+        // Use secure validation - no alternative file fallbacks
+        const validation = await validateMedicalDocument(report.file_url);
+        
+        if (!validation.isValid || !validation.fileExists) {
+          setFileExists(false);
+          setError(validation.error || {
+            type: 'NOT_FOUND',
+            message: 'Document validation failed'
+          });
+          logDocumentAccess(report.file_url, 'VALIDATE', 'FAILURE', validation.error?.message);
           setIsChecking(false);
           return;
         }
 
-        const bucket = 'medical-documents';
-        const filePath = report.file_url;
+        console.log('[SECURITY] File validated, generating signed URL...');
+        setFileExists(true);
+        const url = await generateSignedUrl();
+        setDocumentUrl(url);
+        logDocumentAccess(report.file_url, 'VIEW', 'SUCCESS');
 
-        // Try direct path first
-        const { error: downloadError } = await supabase.storage
-          .from(bucket)
-          .download(filePath);
-
-        if (!downloadError) {
-          console.log('File found at exact path:', filePath);
-          setFileExists(true);
-          const url = await generateSignedUrl();
-          setDocumentUrl(url);
-        } else {
-          console.error('File not found at specified path:', filePath, downloadError);
-          setFileExists(false);
-          setError(`Document file not found. This medical document is not available in storage.`);
-        }
       } catch (error) {
-        console.error('Error checking file existence:', error);
-        setError('Failed to check file availability');
+        console.error('[SECURITY] Document access error:', error);
         setFileExists(false);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        setError({
+          type: 'UNKNOWN',
+          message: errorMessage
+        });
+        logDocumentAccess(report.file_url, 'VALIDATE', 'FAILURE', errorMessage);
       } finally {
         setIsChecking(false);
       }
@@ -249,7 +255,9 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
         ) : error ? (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>
+              {getDocumentErrorMessage(error)}
+            </AlertDescription>
           </Alert>
         ) : !report.file_url ? (
           <Alert>
@@ -262,7 +270,7 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              {error || "Document file not available. This medical document could not be accessed from secure storage."}
+              Document file not available. This medical document could not be accessed from secure storage.
             </AlertDescription>
           </Alert>
         ) : documentUrl && viewMode === 'inline' ? (
@@ -330,7 +338,10 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
                     <Document
                       file={documentUrl}
                       onLoadSuccess={onDocumentLoadSuccess}
-                      onLoadError={(error) => setError(`Failed to load PDF: ${error.message}`)}
+                      onLoadError={(error) => setError({
+                        type: 'INVALID_TYPE',
+                        message: `Failed to load PDF: ${error.message}`
+                      })}
                       className="max-w-full"
                     >
                       <Page
@@ -392,7 +403,10 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
                         console.log('Image failed to load, attempting to refresh URL');
                         const newUrl = await refreshUrlIfNeeded();
                         if (!newUrl) {
-                          setError('Failed to load image. Please refresh the page.');
+                          setError({
+                            type: 'NETWORK_ERROR',
+                            message: 'Failed to load image. Please refresh the page.'
+                          });
                         }
                       }}
                     />

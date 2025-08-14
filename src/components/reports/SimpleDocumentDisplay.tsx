@@ -20,7 +20,7 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
   const [fileExists, setFileExists] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [workingFileUrl, setWorkingFileUrl] = useState<string | null>(null);
+  
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
   // Check if file exists in storage and find fallback if needed
@@ -58,45 +58,12 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
           return;
         }
 
-        console.log('Direct file not found, searching for alternatives...');
-
-        // Extract user directory from file_url (format: user_id/filename)
-        const pathParts = report.file_url.split('/');
-        if (pathParts.length >= 2) {
-          const userDirectory = pathParts[0];
-          
-          console.log('Searching in user directory:', userDirectory);
-
-          // List all files in user directory to find alternatives
-          const { data: userFiles, error: listError } = await supabase.storage
-            .from('medical-documents')
-            .list(userDirectory, {
-              limit: 100,
-              sortBy: { column: 'created_at', order: 'desc' }
-            });
-
-          if (listError) {
-            console.error('Error listing user files:', listError);
-            throw listError;
-          }
-
-          if (userFiles && userFiles.length > 0) {
-            console.log('Found alternative files:', userFiles.map(f => f.name));
-            
-            // Use the most recent alternative file
-            const mostRecentFile = userFiles[0]; // Already sorted by created_at desc
-            const alternativeFileUrl = `${userDirectory}/${mostRecentFile.name}`;
-            
-            console.log('Using alternative file:', alternativeFileUrl);
-            setWorkingFileUrl(alternativeFileUrl);
-            setFileExists(true);
-            return;
-          }
-        }
-
-        console.log('No files found for this report');
+        console.log('Direct file not found:', downloadError?.message);
+        
+        // SECURITY: Never display alternative files for medical documents
+        // Each report must show only its exact file or error
         setFileExists(false);
-        setError('No files found for this report.');
+        setError('Document file not found in storage.');
 
       } catch (err) {
         console.error('Error in file existence check:', err);
@@ -110,17 +77,25 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
     checkFileExists();
   }, [report.file_url]);
 
-  // Build a signed URL any time we have a valid path
+  // Build a signed URL for the exact file only
   useEffect(() => {
     const buildSigned = async () => {
-      if (!fileExists) return;
-      const filePath = workingFileUrl || report.file_url;
-      if (!filePath) return;
-      const signed = await getSignedUrl({ bucket: 'medical-documents', path: filePath });
-      setSignedUrl(signed?.url || null);
+      if (!fileExists || !report.file_url) return;
+      
+      try {
+        const signed = await getSignedUrl({ 
+          bucket: 'medical-documents', 
+          path: report.file_url,
+          expiresIn: 3600 // 1 hour for reliability
+        });
+        setSignedUrl(signed?.url || null);
+      } catch (error) {
+        console.error('Error generating signed URL:', error);
+        setError('Unable to generate document access URL');
+      }
     };
     buildSigned();
-  }, [fileExists, workingFileUrl, report.file_url]);
+  }, [fileExists, report.file_url]);
 
   const handleViewOriginal = async () => {
     if (signedUrl) {
@@ -128,12 +103,11 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
     }
   };
 
-  // Get file type and extension
+  // Get file type and extension from the exact file URL
   const getFileInfo = () => {
-    const fileUrl = workingFileUrl || report.file_url;
-    if (!fileUrl) return { type: 'unknown', extension: '', icon: File };
+    if (!report.file_url) return { type: 'unknown', extension: '', icon: File };
     
-    const extension = fileUrl.toLowerCase().split('.').pop() || '';
+    const extension = report.file_url.toLowerCase().split('.').pop() || '';
     
     if (extension === 'pdf') {
       return { type: 'PDF Document', extension: 'PDF', icon: FileText };
@@ -188,7 +162,7 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                The original document file could not be found. It may have been deleted or moved.
+                Document not available. The file was not properly uploaded or has been removed from storage.
               </AlertDescription>
             </Alert>
           ) : signedUrl ? (
@@ -215,11 +189,6 @@ export function SimpleDocumentDisplay({ report }: SimpleDocumentDisplayProps) {
                     <p className="text-sm text-muted-foreground">
                       {fileInfo.type}
                     </p>
-                    {workingFileUrl && (
-                      <p className="text-xs text-amber-600 mt-1">
-                        Using alternative file from your account
-                      </p>
-                    )}
                   </div>
                   
                   <div className="flex-shrink-0">
