@@ -29,13 +29,27 @@ interface CustomStructuredDataViewerProps {
       labTestResults?: string;
     };
     confidence?: number;
-  };
+  } | null;
 }
 
 export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataViewerProps) {
   console.log('CustomStructuredDataViewer rendering with:', { parsedData });
   const isMobile = useIsMobile();
   const [openSections, setOpenSections] = useState<Record<number, boolean>>({});
+
+  // Handle null parsedData case
+  if (!parsedData) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <div className="text-muted-foreground">
+            <p className="mb-2">Document is still being processed.</p>
+            <p className="text-sm">Please check back in a few moments for structured data.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Convert extractedData to structured format if needed
   let displayData = parsedData;
