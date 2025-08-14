@@ -110,181 +110,179 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="space-y-3">
-      <div className="p-4 space-y-6">
-        {/* Quick Actions */}
-        <div className="grid grid-cols-3 grid-rows-2 gap-3 sm:gap-4">
+    <div className="p-4 space-y-6">
+      {/* Quick Actions */}
+      <div className="grid grid-cols-3 grid-rows-2 gap-3 sm:gap-4">
           {/* Reports */}
-          <Card
-            aria-label="Open Reports"
-            className="cursor-pointer hover:shadow-md transition-shadow col-start-1 row-start-1"
-            onClick={() => navigate('/reports')}
-          >
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <span className="medical-subheading">Reports</span>
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
+        <Card
+          aria-label="Open Reports"
+          className="cursor-pointer hover:shadow-md transition-shadow col-start-1 row-start-1 medical-card-shadow"
+          onClick={() => navigate('/reports')}
+        >
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <span className="medical-subheading">Reports</span>
+              <div className="rounded-lg bg-primary/10 p-2">
+                <FileText className="h-5 w-5 text-primary" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Insights */}
-          <Card
-            aria-label="Open Insights"
-            className="cursor-pointer hover:shadow-md transition-shadow col-start-2 row-start-1"
-            onClick={() => navigate('/summaries')}
-          >
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <span className="medical-subheading">Insights</span>
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <Brain className="h-5 w-5 text-primary" />
-                </div>
+        {/* Insights */}
+        <Card
+          aria-label="Open Insights"
+          className="cursor-pointer hover:shadow-md transition-shadow col-start-2 row-start-1 medical-card-shadow"
+          onClick={() => navigate('/summaries')}
+        >
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <span className="medical-subheading">Insights</span>
+              <div className="rounded-lg bg-primary/10 p-2">
+                <Brain className="h-5 w-5 text-primary" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* SOS - standout spanning 2 rows */}
-          <Card
-            aria-label="Trigger SOS"
-            className="bg-destructive/90 border-destructive cursor-pointer hover:bg-destructive transition-colors col-start-3 row-span-2"
-            onClick={handleSosClick}
-          >
-            <CardContent className="p-3 h-full flex flex-col justify-center">
-              <div className="flex items-center justify-between">
-                <span className="medical-subheading text-destructive-foreground">SOS</span>
-                <div className="rounded-lg bg-destructive-foreground/20 p-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive-foreground" />
-                </div>
+        {/* SOS - standout spanning 2 rows */}
+        <Card
+          aria-label="Trigger SOS"
+          className="bg-destructive/90 border-destructive cursor-pointer hover:bg-destructive transition-colors col-start-3 row-span-2 medical-card-shadow"
+          onClick={handleSosClick}
+        >
+          <CardContent className="p-3 h-full flex flex-col justify-center">
+            <div className="flex items-center justify-between">
+              <span className="medical-subheading text-destructive-foreground">SOS</span>
+              <div className="rounded-lg bg-destructive-foreground/20 p-2">
+                <AlertTriangle className="h-5 w-5 text-destructive-foreground" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Prescriptions */}
-          <Card
-            aria-label="Open Prescriptions"
-            className="cursor-pointer hover:shadow-md transition-shadow col-start-1 row-start-2"
-            onClick={() => navigate('/prescriptions')}
-          >
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <span className="medical-subheading">Prescriptions</span>
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <Pill className="h-5 w-5 text-primary" />
-                </div>
+        {/* Prescriptions */}
+        <Card
+          aria-label="Open Prescriptions"
+          className="cursor-pointer hover:shadow-md transition-shadow col-start-1 row-start-2 medical-card-shadow"
+          onClick={() => navigate('/prescriptions')}
+        >
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <span className="medical-subheading">Prescriptions</span>
+              <div className="rounded-lg bg-primary/10 p-2">
+                <Pill className="h-5 w-5 text-primary" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* My Cards */}
-          <Card
-            aria-label="Open My Cards"
-            className="cursor-pointer hover:shadow-md transition-shadow col-start-2 row-start-2"
-            onClick={() => navigate('/cards')}
-          >
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <span className="medical-subheading">My Cards</span>
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                </div>
+        {/* My Cards */}
+        <Card
+          aria-label="Open My Cards"
+          className="cursor-pointer hover:shadow-md transition-shadow col-start-2 row-start-2 medical-card-shadow"
+          onClick={() => navigate('/cards')}
+        >
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <span className="medical-subheading">My Cards</span>
+              <div className="rounded-lg bg-primary/10 p-2">
+                <CreditCard className="h-5 w-5 text-primary" />
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Health Overview Grid */}
+      {/* Health Overview Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <RecommendationsSummary />
+        <ActionItems />
+      </div>
+
+
+      {/* Recent Reports */}
+      <RecentReportsVault />
+
+      {/* Insights and Trends */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <AIInsightsCarousel />
+        <TrendsTimelineMini />
+      </div>
+
+      {/* Tasks and Tips */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <HealthTasksReminders />
+        <PersonalizedTipsHealth />
+      </div>
+
+      {/* Quick Access */}
+      <div className="space-y-4">
+        <h2 className="medical-heading-sm">Quick Access</h2>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <RecommendationsSummary />
-          <ActionItems />
-        </div>
-
-
-        {/* Recent Reports */}
-        <RecentReportsVault />
-
-        {/* Insights and Trends */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <AIInsightsCarousel />
-          <TrendsTimelineMini />
-        </div>
-
-        {/* Tasks and Tips */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <HealthTasksReminders />
-          <PersonalizedTipsHealth />
-        </div>
-
-        {/* Legacy Features Section */}
-        <div className="space-y-4">
-          <h2 className="medical-title-sm">Quick Access</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="medical-heading-sm flex items-center">
-                  <FolderOpen className="h-4 w-4 mr-2 text-primary" />
-                  Document Vault
-                </CardTitle>
-                <CardDescription>
-                  {hasReports 
-                    ? "Secure storage for all your medical documents"
-                    : "Start building your digital health record"
-                  }
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {hasReports ? (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div className="text-center">
-                        <div className="font-semibold text-success">{completedReports.length}</div>
-                        <div className="text-muted-foreground">Processed</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-semibold text-info">{processingReports.length}</div>
-                        <div className="text-muted-foreground">Processing</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-semibold text-muted-foreground">
-                          {(reports.reduce((acc, r) => acc + (r.file_size || 0), 0) / (1024 * 1024)).toFixed(1)} MB
-                        </div>
-                        <div className="text-muted-foreground">Storage</div>
-                      </div>
+          <Card className="medical-card-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="medical-subheading flex items-center">
+                <FolderOpen className="h-4 w-4 mr-2 text-primary" />
+                Document Vault
+              </CardTitle>
+              <CardDescription className="medical-annotation">
+                {hasReports 
+                  ? "Secure storage for all your medical documents"
+                  : "Start building your digital health record"
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {hasReports ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div className="text-center">
+                      <div className="font-semibold text-success">{completedReports.length}</div>
+                      <div className="medical-annotation text-muted-foreground">Processed</div>
                     </div>
-                    <Button className="w-full" onClick={() => navigate('/vault')}>
-                      <FolderOpen className="h-4 w-4 mr-2" />
-                      Open Vault
-                    </Button>
+                    <div className="text-center">
+                      <div className="font-semibold text-info">{processingReports.length}</div>
+                      <div className="medical-annotation text-muted-foreground">Processing</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-semibold text-muted-foreground">
+                        {(reports.reduce((acc, r) => acc + (r.file_size || 0), 0) / (1024 * 1024)).toFixed(1)} MB
+                      </div>
+                      <div className="medical-annotation text-muted-foreground">Storage</div>
+                    </div>
                   </div>
-                ) : (
-                  <Button className="w-full" onClick={() => navigate('/upload')}>
-                    <Shield className="h-4 w-4 mr-2" />
-                    Start Your Vault
+                  <Button className="w-full rounded-full h-9" onClick={() => navigate('/vault')}>
+                    <FolderOpen className="h-4 w-4 mr-2" />
+                    Open Vault
                   </Button>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="medical-heading-sm flex items-center">
-                  <TrendingUp className="h-4 w-4 mr-2 text-primary" />
-                  Health Timeline
-                </CardTitle>
-                <CardDescription>
-                  Track your health journey chronologically
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="secondary" className="w-full" onClick={() => navigate("/vault")}>
-                  View Timeline
+                </div>
+              ) : (
+                <Button className="w-full rounded-full h-9" onClick={() => navigate('/upload')}>
+                  <Shield className="h-4 w-4 mr-2" />
+                  Start Your Vault
                 </Button>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="medical-card-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="medical-subheading flex items-center">
+                <TrendingUp className="h-4 w-4 mr-2 text-primary" />
+                Health Timeline
+              </CardTitle>
+              <CardDescription className="medical-annotation">
+                Track your health journey chronologically
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="secondary" className="w-full rounded-full h-9" onClick={() => navigate("/vault")}>
+                View Timeline
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

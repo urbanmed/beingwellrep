@@ -17,18 +17,16 @@ import {
 
 export default function Concierge() {
   return (
-    <div className="space-y-6 pb-8">
+    <div className="p-4 space-y-6">
       {/* Header */}
-      <div className="p-4 space-y-2">
-        <h1 className="medical-heading text-foreground">Health Concierge</h1>
+      <div className="space-y-2">
+        <h1 className="medical-heading-sm">Health Concierge</h1>
         <p className="medical-annotation text-muted-foreground">
           Premium health services with personalized care and support
         </p>
       </div>
-
-      <div className="px-4 space-y-4">
-        {/* Medication Refill Reminders */}
-        <Card className="medical-card-shadow border-border">
+      {/* Medication Refill Reminders */}
+      <Card className="medical-card-shadow border-border">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -47,26 +45,26 @@ export default function Concierge() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="justify-start gap-2 h-auto py-3">
-                <Camera className="h-4 w-4" />
-                <div className="text-left">
-                  <div className="medical-annotation font-medium">Scan Prescription</div>
-                  <div className="text-xs text-muted-foreground">OCR + Auto-setup</div>
-                </div>
-              </Button>
-              <Button variant="outline" className="justify-start gap-2 h-auto py-3">
-                <Bell className="h-4 w-4" />
-                <div className="text-left">
-                  <div className="medical-annotation font-medium">Set Reminder</div>
-                  <div className="text-xs text-muted-foreground">Manual entry</div>
-                </div>
-              </Button>
+            <Button variant="outline" className="justify-start gap-2 h-auto py-3 rounded-full">
+              <Camera className="h-4 w-4" />
+              <div className="text-left">
+                <div className="medical-annotation font-medium">Scan Prescription</div>
+                <div className="text-xs text-muted-foreground">OCR + Auto-setup</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start gap-2 h-auto py-3 rounded-full">
+              <Bell className="h-4 w-4" />
+              <div className="text-left">
+                <div className="medical-annotation font-medium">Set Reminder</div>
+                <div className="text-xs text-muted-foreground">Manual entry</div>
+              </div>
+            </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Doctor Review Layer */}
-        <Card className="medical-card-shadow border-border">
+      {/* Doctor Review Layer */}
+      <Card className="medical-card-shadow border-border">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -96,15 +94,15 @@ export default function Concierge() {
                 <div>4. Get professional medical guidance</div>
               </div>
             </div>
-            <Button className="w-full" variant="default">
+            <Button className="w-full rounded-full h-9" variant="default">
               <FileText className="h-4 w-4 mr-2" />
               Upload Case Details
             </Button>
           </CardContent>
         </Card>
 
-        {/* Premium Health Concierge */}
-        <Card className="medical-card-shadow border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+      {/* Premium Health Concierge */}
+      <Card className="medical-card-shadow border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -138,15 +136,15 @@ export default function Concierge() {
                 </div>
               </div>
             </div>
-            <Button className="w-full" variant="default">
+            <Button className="w-full rounded-full h-9" variant="default">
               <MessageCircle className="h-4 w-4 mr-2" />
               Chat with Health Manager
             </Button>
           </CardContent>
         </Card>
 
-        {/* Personalized Wellness Plans */}
-        <Card className="medical-card-shadow border-border">
+      {/* Personalized Wellness Plans */}
+      <Card className="medical-card-shadow border-border">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -173,15 +171,15 @@ export default function Concierge() {
                 <div>• Lifestyle factors</div>
               </div>
             </div>
-            <Button className="w-full" variant="outline">
+            <Button className="w-full rounded-full h-9" variant="outline">
               <Heart className="h-4 w-4 mr-2" />
               Generate Wellness Plan
             </Button>
           </CardContent>
         </Card>
 
-        {/* Basic Insurance Support */}
-        <Card className="medical-card-shadow border-border">
+      {/* Basic Insurance Support */}
+      <Card className="medical-card-shadow border-border">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -208,13 +206,12 @@ export default function Concierge() {
                 <div>• Follow-up support</div>
               </div>
             </div>
-            <Button className="w-full" variant="outline">
+            <Button className="w-full rounded-full h-9" variant="outline">
               <FileText className="h-4 w-4 mr-2" />
               Upload Claim Forms
             </Button>
           </CardContent>
         </Card>
-      </div>
     </div>
   );
 }

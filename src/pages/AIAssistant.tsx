@@ -91,21 +91,16 @@ export default function AIAssistant() {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Page Header */}
-      <div className="p-4 border-b border-border bg-card">
+      <div className="p-4 space-y-2 border-b border-border">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-              <User className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="font-semibold text-foreground">AI Medical Assistant</h1>
-              <p className="text-xs text-muted-foreground">
-                Ask questions about your health records
-              </p>
-            </div>
+          <div className="space-y-1">
+            <h1 className="medical-heading-sm">AI Medical Assistant</h1>
+            <p className="medical-annotation text-muted-foreground">
+              Ask questions about your health records
+            </p>
           </div>
           {currentConversation && (
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="medical-annotation">
               <Calendar className="h-3 w-3 mr-1" />
               {format(new Date(currentConversation.created_at), 'MMM d, yyyy')}
             </Badge>
@@ -121,10 +116,10 @@ export default function AIAssistant() {
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <User className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-lg font-medium text-foreground mb-2">
+              <h3 className="medical-subheading mb-2">
                 Welcome to your AI Medical Assistant
               </h3>
-              <p className="text-muted-foreground text-sm max-w-md mx-auto">
+              <p className="medical-annotation text-muted-foreground max-w-md mx-auto">
                 I can help you understand your medical reports, track your health trends, 
                 and answer questions about your uploaded documents.
               </p>
@@ -132,6 +127,7 @@ export default function AIAssistant() {
                 <Button 
                   variant="outline" 
                   size="sm" 
+                  className="rounded-full h-8 px-3 text-xs shadow-none"
                   onClick={() => setInput("What are my latest lab results?")}
                 >
                   What are my latest lab results?
@@ -139,6 +135,7 @@ export default function AIAssistant() {
                 <Button 
                   variant="outline" 
                   size="sm" 
+                  className="rounded-full h-8 px-3 text-xs shadow-none"
                   onClick={() => setInput("Summarize my recent medical visits")}
                 >
                   Summarize my recent visits
@@ -146,6 +143,7 @@ export default function AIAssistant() {
                 <Button 
                   variant="outline" 
                   size="sm" 
+                  className="rounded-full h-8 px-3 text-xs shadow-none"
                   onClick={() => setInput("Are there any concerning trends in my health data?")}
                 >
                   Any concerning trends?
@@ -170,14 +168,14 @@ export default function AIAssistant() {
               
               <Card 
                 className={cn(
-                  "max-w-[80%]",
+                  "max-w-[80%] medical-card-shadow",
                   message.role === "user" 
                     ? "bg-primary text-primary-foreground" 
                     : "bg-card"
                 )}
               >
                 <CardContent className="p-3">
-                  <div className="text-sm leading-relaxed">
+                  <div className="medical-annotation leading-relaxed">
                     {formatMessageContent(message.content)}
                   </div>
                   
@@ -185,7 +183,7 @@ export default function AIAssistant() {
                     renderCitations(message.citations)
                   )}
                   
-                  <div className="mt-2 text-xs opacity-70">
+                  <div className="mt-2 medical-annotation opacity-70">
                     {format(new Date(message.created_at), 'HH:mm')}
                   </div>
                 </CardContent>
@@ -204,11 +202,11 @@ export default function AIAssistant() {
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                 <User className="h-4 w-4 text-primary-foreground" />
               </div>
-              <Card className="bg-card">
+              <Card className="bg-card medical-card-shadow">
                 <CardContent className="p-3">
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm text-muted-foreground">Thinking...</span>
+                    <span className="medical-annotation text-muted-foreground">Thinking...</span>
                   </div>
                 </CardContent>
               </Card>

@@ -100,27 +100,27 @@ export default function Reports() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 pb-20">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Medical Reports</h1>
-          <p className="text-muted-foreground">Manage your uploaded medical documents</p>
+    <div className="p-4 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <h1 className="medical-heading-sm">Medical Reports</h1>
+          <p className="medical-annotation text-muted-foreground">Manage your uploaded medical documents</p>
         </div>
-        <Button onClick={() => navigate("/upload")}>
+        <Button onClick={() => navigate("/upload")} className="rounded-full h-9 px-3 text-sm shadow-none">
           <Plus className="h-4 w-4 mr-2" />
           Upload Report
         </Button>
       </div>
 
       {reports.length === 0 ? (
-        <Card className="text-center py-12">
+        <Card className="text-center py-12 medical-card-shadow">
           <CardContent>
             <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <CardTitle className="mb-2">No Reports Yet</CardTitle>
-            <CardDescription className="mb-6 max-w-md mx-auto">
+            <CardTitle className="medical-subheading mb-2">No Reports Yet</CardTitle>
+            <CardDescription className="medical-annotation mb-6 max-w-md mx-auto">
               Upload your first medical report to get started with AI-powered insights and analysis.
             </CardDescription>
-            <Button onClick={() => navigate("/upload")}>
+            <Button onClick={() => navigate("/upload")} className="rounded-full h-9">
               <Plus className="h-4 w-4 mr-2" />
               Upload Your First Report
             </Button>
@@ -151,6 +151,7 @@ export default function Reports() {
               <Button
                 variant={activeFilter === "all" ? "default" : "outline"}
                 size="sm"
+                className="rounded-full h-8 px-3 text-xs shadow-none"
                 onClick={() => setActiveFilter("all")}
               >
                 All ({reports.length})
@@ -158,6 +159,7 @@ export default function Reports() {
               <Button
                 variant={activeFilter === "completed" ? "default" : "outline"}
                 size="sm"
+                className="rounded-full h-8 px-3 text-xs shadow-none"
                 onClick={() => setActiveFilter("completed")}
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
@@ -166,6 +168,7 @@ export default function Reports() {
               <Button
                 variant={activeFilter === "processing" ? "default" : "outline"}
                 size="sm"
+                className="rounded-full h-8 px-3 text-xs shadow-none"
                 onClick={() => setActiveFilter("processing")}
               >
                 <Clock className="h-3 w-3 mr-1" />
@@ -174,6 +177,7 @@ export default function Reports() {
               <Button
                 variant={activeFilter === "failed" ? "default" : "outline"}
                 size="sm"
+                className="rounded-full h-8 px-3 text-xs shadow-none"
                 onClick={() => setActiveFilter("failed")}
               >
                 <AlertCircle className="h-3 w-3 mr-1" />
@@ -202,7 +206,7 @@ export default function Reports() {
             {filteredReports.map((report) => (
               <Card 
                 key={report.id} 
-                className="cursor-pointer transition-colors hover:bg-accent/5"
+                className="cursor-pointer transition-colors hover:bg-accent/5 medical-card-shadow"
                 onClick={() => navigate(`/reports/${report.id}`)}
               >
                 <CardContent className="p-6">
@@ -220,7 +224,7 @@ export default function Reports() {
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-lg">{report.title}</h3>
+                          <h3 className="medical-subheading">{report.title}</h3>
                           {report.is_critical && (
                             <Badge variant="destructive" className="text-xs">
                               Critical
@@ -229,7 +233,7 @@ export default function Reports() {
                           {getOCRStatusBadge(report.parsing_status, report.extraction_confidence)}
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-muted-foreground mb-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 medical-annotation text-muted-foreground mb-3">
                           <div className="flex items-center">
                             <Calendar className="h-3 w-3 mr-1" />
                             {format(new Date(report.report_date), 'MMM d, yyyy')}
@@ -246,14 +250,14 @@ export default function Reports() {
                         </div>
                         
                         {report.description && (
-                          <p className="text-sm text-muted-foreground mb-2">
+                          <p className="medical-annotation text-muted-foreground mb-2">
                             {report.description}
                           </p>
                         )}
                         
                         {report.processing_error && (
                           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3 mb-2">
-                            <p className="text-sm text-red-600 dark:text-red-400">
+                            <p className="medical-annotation text-red-600 dark:text-red-400">
                               {report.processing_error}
                             </p>
                           </div>
@@ -284,10 +288,10 @@ export default function Reports() {
           </div>
 
           {filteredReports.length === 0 && (
-            <Card className="text-center py-8">
+            <Card className="text-center py-8 medical-card-shadow">
               <CardContent>
                 <Filter className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">No reports found matching your search.</p>
+                <p className="medical-annotation text-muted-foreground">No reports found matching your search.</p>
               </CardContent>
             </Card>
           )}

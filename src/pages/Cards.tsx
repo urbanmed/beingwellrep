@@ -8,28 +8,26 @@ export default function Cards() {
   }, []);
 
   return (
-    <div className="p-4 space-y-4">
-      <header>
-        <h1 className="medical-title-sm">My Cards</h1>
-        <p className="text-sm text-muted-foreground">Store and access your insurance and ID cards.</p>
-      </header>
+    <div className="p-4 space-y-6">
+      <div className="space-y-2">
+        <h1 className="medical-heading-sm">My Cards</h1>
+        <p className="medical-annotation text-muted-foreground">Store and access your insurance and ID cards.</p>
+      </div>
 
-      <section>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-primary" />
-              Saved Cards
-            </CardTitle>
-            <CardDescription>
-              A secure place for your health insurance and ID cards.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">This feature is coming soon.</p>
-          </CardContent>
-        </Card>
-      </section>
+      <Card className="medical-card-shadow">
+        <CardHeader>
+          <CardTitle className="medical-subheading flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-primary" />
+            Saved Cards
+          </CardTitle>
+          <CardDescription className="medical-annotation">
+            A secure place for your health insurance and ID cards.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="medical-annotation text-muted-foreground">This feature is coming soon.</p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
