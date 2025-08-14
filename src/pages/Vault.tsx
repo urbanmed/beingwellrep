@@ -2,7 +2,6 @@
 import { useEffect } from "react";
 import { DocumentProcessing } from "@/components/vault/DocumentProcessing";
 import { FloatingUploadButton } from "@/components/vault/FloatingUploadButton";
-import { FileConsistencyPanel } from "@/components/vault/FileConsistencyPanel";
 
 export default function Vault() {
   useEffect(() => {
@@ -16,7 +15,6 @@ export default function Vault() {
   return (
     <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20 space-y-6">
       <DocumentProcessing />
-      <FileConsistencyPanel />
       <FloatingUploadButton />
     </main>
   );

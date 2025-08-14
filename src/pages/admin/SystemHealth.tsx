@@ -2,6 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Database, Server, Cpu, HardDrive } from 'lucide-react';
+import { ProcessingQueuePanel } from '@/components/admin/ProcessingQueuePanel';
+import { FileConsistencyPanel } from '@/components/vault/FileConsistencyPanel';
 
 export default function SystemHealth() {
   return (
@@ -142,6 +144,12 @@ export default function SystemHealth() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Advanced Admin Tools */}
+      <div className="space-y-6">
+        <ProcessingQueuePanel />
+        <FileConsistencyPanel />
       </div>
     </div>
   );
