@@ -640,7 +640,7 @@ export function SummaryViewer({
   );
 
   const renderPrioritySection = (priority: 'high' | 'medium' | 'low', data: any, icon: React.ReactNode, colorClass: string) => {
-    if (!data || (!data.findings?.length && !data.topics?.length && !data.trends?.length)) {
+    if (!data || (!data.findings?.length && !data.topics?.length && !data.trends?.length && !data.recommendations?.length && !data.questions?.length)) {
       return null;
     }
 
