@@ -5,7 +5,6 @@ import { FileText, Brain, TrendingUp, Plus, Loader2, FolderOpen, Shield, Zap, Al
 import { useNavigate } from "react-router-dom";
 import { useReports } from "@/hooks/useReports";
 import { useState, useEffect, useRef } from 'react';
-import { useFamilyMemberContext } from "@/contexts/FamilyMemberContext";
 import { useSosActivation } from '@/hooks/useSosActivation';
 import { useEmergencyContacts } from '@/hooks/useEmergencyContacts';
 import { SosCountdownModal } from '@/components/sos/SosCountdownModal';
@@ -22,8 +21,7 @@ import { getLocation } from '@/lib/utils/location';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { selectedMemberId } = useFamilyMemberContext();
-  const { reports, loading } = useReports(selectedMemberId);
+  const { reports, loading } = useReports();
   
   // SOS functionality
   const [showCountdown, setShowCountdown] = useState(false);

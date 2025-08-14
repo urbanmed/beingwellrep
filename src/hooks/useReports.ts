@@ -28,7 +28,7 @@ export interface Report {
   parsing_model: string | null;
 }
 
-export function useReports(familyMemberId?: string | null) {
+export function useReports() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -36,20 +36,10 @@ export function useReports(familyMemberId?: string | null) {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('reports')
-        .select('*');
-
-      // Filter by family member
-      if (familyMemberId === null || familyMemberId === undefined) {
-        // Self - reports with no family_member_id
-        query = query.is('family_member_id', null);
-      } else {
-        // Specific family member
-        query = query.eq('family_member_id', familyMemberId);
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setReports((data || []) as Report[]);
@@ -197,7 +187,7 @@ export function useReports(familyMemberId?: string | null) {
 
   useEffect(() => {
     fetchReports();
-  }, [familyMemberId]);
+  }, []);
 
   return {
     reports,

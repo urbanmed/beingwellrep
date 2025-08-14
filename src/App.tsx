@@ -1,11 +1,10 @@
-import { type FC, ReactNode } from "react";
+import { type FC } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { FamilyMemberProvider } from "@/contexts/FamilyMemberContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { MobileLayout } from "@/components/layout/MobileLayout";
@@ -68,44 +67,89 @@ const AuthRedirect: FC = () => {
   return user ? <Navigate to="/" replace /> : <Navigate to="/auth/login" replace />;
 };
 
-const ProtectedMobileLayout: FC<{children: ReactNode}> = ({ children }) => (
-  <ProtectedRoute>
-    <FamilyMemberProvider>
-      <MobileLayout>
-        {children}
-      </MobileLayout>
-    </FamilyMemberProvider>
-  </ProtectedRoute>
-);
-
 const AppRoutes: FC = () => (
   <Routes>
     {/* Protected Routes */}
-    <Route path="/" element={<ProtectedMobileLayout><Index /></ProtectedMobileLayout>} />
-    <Route path="/upload" element={<ProtectedMobileLayout><Upload /></ProtectedMobileLayout>} />
-    <Route path="/summaries" element={<ProtectedMobileLayout><Summaries /></ProtectedMobileLayout>} />
-    <Route path="/vault" element={<ProtectedMobileLayout><Vault /></ProtectedMobileLayout>} />
-    <Route path="/reports" element={<ProtectedMobileLayout><Reports /></ProtectedMobileLayout>} />
-    <Route path="/prescriptions" element={<ProtectedMobileLayout><Prescriptions /></ProtectedMobileLayout>} />
-    <Route path="/cards" element={<ProtectedMobileLayout><Cards /></ProtectedMobileLayout>} />
+    <Route path="/" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Index />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
+    <Route path="/upload" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Upload />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
+    <Route path="/summaries" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Summaries />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
+    <Route path="/vault" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Vault />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
+    <Route path="/reports" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Reports />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
+    <Route path="/prescriptions" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Prescriptions />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
+    <Route path="/cards" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Cards />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
     <Route path="/reports/:id" element={
       <ProtectedRoute>
-        <FamilyMemberProvider>
-          <ReportDetail />
-        </FamilyMemberProvider>
+        <ReportDetail />
       </ProtectedRoute>
     } />
-    <Route path="/profile" element={<ProtectedMobileLayout><Profile /></ProtectedMobileLayout>} />
+    <Route path="/profile" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Profile />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
     <Route path="/profile/edit" element={
       <ProtectedRoute>
-        <FamilyMemberProvider>
-          <ProfileEdit />
-        </FamilyMemberProvider>
+        <ProfileEdit />
       </ProtectedRoute>
     } />
-    <Route path="/ai-assistant" element={<ProtectedMobileLayout><AIAssistant /></ProtectedMobileLayout>} />
-    <Route path="/concierge" element={<ProtectedMobileLayout><Concierge /></ProtectedMobileLayout>} />
-    <Route path="/notifications" element={<ProtectedMobileLayout><NotificationsPage /></ProtectedMobileLayout>} />
+    <Route path="/ai-assistant" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <AIAssistant />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
+    <Route path="/concierge" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <Concierge />
+        </MobileLayout>
+      </ProtectedRoute>
+    } />
     
     {/* Admin Routes */}
     <Route path="/admin" element={
@@ -232,6 +276,13 @@ const AppRoutes: FC = () => (
             <ImportCenter />
           </AdminLayout>
         </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/notifications" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <NotificationsPage />
+        </MobileLayout>
       </ProtectedRoute>
     } />
     
