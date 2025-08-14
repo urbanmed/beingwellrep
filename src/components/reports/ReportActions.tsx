@@ -1,24 +1,27 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Eye, Download, MoreVertical, Trash2 } from 'lucide-react';
+import { Sparkles, Eye, Download, MoreVertical, Trash2, Pill } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { GenerateSummaryDialogWrapper } from '@/components/summaries/GenerateSummaryDialogWrapper';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import { AddPrescriptionDialog } from '@/components/prescriptions/AddPrescriptionDialog';
 import { useReports } from '@/hooks/useReports';
 
 interface ReportActionsProps {
   reportId: string;
   ocrStatus: string;
+  reportTitle?: string;
   onView?: () => void;
   onDownload?: () => void;
   onDelete?: () => void;
 }
 
-export function ReportActions({ reportId, ocrStatus, onView, onDownload, onDelete }: ReportActionsProps) {
+export function ReportActions({ reportId, ocrStatus, reportTitle, onView, onDownload, onDelete }: ReportActionsProps) {
   const navigate = useNavigate();
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPrescriptionDialog, setShowPrescriptionDialog] = useState(false);
   const { deleteReport } = useReports();
 
   const handleDelete = async () => {
@@ -51,6 +54,11 @@ export function ReportActions({ reportId, ocrStatus, onView, onDownload, onDelet
             </DropdownMenuItem>
           )}
           
+          <DropdownMenuItem onClick={() => setShowPrescriptionDialog(true)}>
+            <Pill className="h-4 w-4 mr-2" />
+            Add Prescription
+          </DropdownMenuItem>
+          
           {onDownload && (
             <DropdownMenuItem onClick={onDownload}>
               <Download className="h-4 w-4 mr-2" />
@@ -80,6 +88,13 @@ export function ReportActions({ reportId, ocrStatus, onView, onDownload, onDelet
         isOpen={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
         onConfirm={handleDelete}
+      />
+      
+      <AddPrescriptionDialog
+        isOpen={showPrescriptionDialog}
+        onClose={() => setShowPrescriptionDialog(false)}
+        sourceReportId={reportId}
+        sourceReportTitle={reportTitle}
       />
     </>
   );

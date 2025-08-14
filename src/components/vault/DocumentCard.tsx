@@ -322,17 +322,17 @@ return (
               </Button>
               {report.file_url && (
                 <Button
-                  variant="outline"
-                  size="sm"
+                  variant="ghost"
+                  size="icon"
                   onClick={(e) => {
                     e.stopPropagation();
                     downloadFile(report.id, report.file_name, report.file_url);
                   }}
                   disabled={isDownloading(report.id)}
-                  className="h-7 text-xs"
+                  className="h-7 w-7"
+                  title="Download"
                 >
-                  <Download className="h-3 w-3 mr-1" />
-                  {isDownloading(report.id) ? "Downloading..." : "Download"}
+                  <Download className="h-3.5 w-3.5" />
                 </Button>
               )}
             </div>
@@ -343,6 +343,7 @@ return (
           <ReportActions
             reportId={report.id}
             ocrStatus={report.parsing_status}
+            reportTitle={report.title}
           />
         </div>
       </div>
