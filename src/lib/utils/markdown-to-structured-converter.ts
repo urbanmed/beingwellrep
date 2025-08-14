@@ -329,10 +329,17 @@ function parseMarkdownTable(content: string): any[] {
         if (normalizedHeader.includes('test') || normalizedHeader.includes('name')) {
           testData.testName = value;
         } else if (normalizedHeader.includes('result') || normalizedHeader.includes('value')) {
-          // Extract numeric result and units
-          const resultMatch = value.match(/^([\d.,]+)\s*(.*)$/);
-          testData.result = resultMatch ? resultMatch[1] : value;
-          testData.units = resultMatch ? resultMatch[2] : '';
+          // Handle empty/pending results
+          if (!value || value === '' || value === '-' || value.toLowerCase().includes('pending') || value.toLowerCase().includes('awaiting')) {
+            testData.result = '';
+            testData.units = '';
+            testData.status = 'Pending';
+          } else {
+            // Extract numeric result and units
+            const resultMatch = value.match(/^([\d.,]+)\s*(.*)$/);
+            testData.result = resultMatch ? resultMatch[1] : value;
+            testData.units = resultMatch ? resultMatch[2] : '';
+          }
         } else if (normalizedHeader.includes('reference') || normalizedHeader.includes('range')) {
           testData.referenceRange = value;
         } else if (normalizedHeader.includes('status') || normalizedHeader.includes('flag')) {
@@ -340,7 +347,12 @@ function parseMarkdownTable(content: string): any[] {
         }
       });
       
+      // Include tests even if they have no results (requisition forms)
       if (testData.testName) {
+        // Set default status if not already set
+        if (!testData.status && (!testData.result || testData.result === '')) {
+          testData.status = 'Pending';
+        }
         results.push(testData);
       }
     }
@@ -350,9 +362,13 @@ function parseMarkdownTable(content: string): any[] {
 }
 
 function normalizeStatus(status: string): string {
+  if (!status) return 'Normal';
+  
   const normalized = status.toLowerCase().trim();
   
-  if (normalized.includes('high') || normalized.includes('elevated') || normalized.includes('↑')) {
+  if (normalized.includes('pending') || normalized.includes('awaiting') || normalized.includes('ordered')) {
+    return 'Pending';
+  } else if (normalized.includes('high') || normalized.includes('elevated') || normalized.includes('↑')) {
     return 'High';
   } else if (normalized.includes('low') || normalized.includes('decreased') || normalized.includes('↓')) {
     return 'Low';

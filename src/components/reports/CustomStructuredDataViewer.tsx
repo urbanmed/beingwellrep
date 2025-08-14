@@ -55,8 +55,23 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
 
   const { patient, facility, provider, reportDate, visitDate, sections } = displayData;
 
-  if (!patient && !facility && !provider && (!sections || sections.length === 0)) {
-    return null;
+  // Check if we have any meaningful data to display
+  const hasPatientInfo = patient && (patient.name || patient.id);
+  const hasFacilityInfo = facility || provider;
+  const hasSections = sections && sections.length > 0;
+  const hasAnyData = hasPatientInfo || hasFacilityInfo || hasSections;
+
+  if (!hasAnyData) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <div className="text-muted-foreground">
+            <p className="mb-2">No structured data could be extracted from this document.</p>
+            <p className="text-sm">This may be an image-only document or require manual review.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
 
@@ -73,6 +88,8 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
         return 'warning';
       case 'critical':
         return 'destructive';
+      case 'pending':
+        return 'secondary';
       default:
         return 'secondary';
     }
@@ -193,8 +210,54 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
         </Card>
       )}
 
+      {/* Document Status Section - Show if we have metadata but empty/pending results */}
+      {hasSections && sections.some(section => !section.content || (Array.isArray(section.content) && section.content.length === 0) || section.content === '') && (
+        <Card>
+          <CardHeader className={isMobile ? "pb-2" : "pb-3"}>
+            <CardTitle className={isMobile ? "text-base" : "text-lg"}>Document Status</CardTitle>
+          </CardHeader>
+          <CardContent className={isMobile ? "pt-0" : ""}>
+            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <Badge variant="secondary" className="bg-amber-100 text-amber-800">Pending Results</Badge>
+              <span className="text-sm text-amber-700">
+                This appears to be a test order or requisition. Results may not be available yet.
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Test Results Sections */}
-      {sections && sections.length > 0 && sections.map((section, sectionIndex) => (
+      {sections && sections.length > 0 && sections.map((section, sectionIndex) => {
+        // Check if section has meaningful content
+        const hasContent = section.content && 
+          (Array.isArray(section.content) ? section.content.length > 0 : 
+           typeof section.content === 'object' ? Object.keys(section.content).length > 0 :
+           section.content !== '');
+
+        if (!hasContent) {
+          // Show empty state for sections without content
+          return (
+            <Card key={sectionIndex}>
+              <CardHeader className={isMobile ? "pb-2" : "pb-3"}>
+                <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2 flex-wrap`}>
+                  {section.title}
+                  <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                    Pending
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className={isMobile ? "pt-0" : ""}>
+                <div className="text-center py-4 text-muted-foreground">
+                  <p className="text-sm">No results available for this section.</p>
+                  <p className="text-xs mt-1">This may be a test order awaiting completion.</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        }
+
+        return (
         <Card key={sectionIndex}>
           <CardHeader className={isMobile ? "pb-2" : "pb-3"}>
             <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2 flex-wrap`}>
@@ -237,9 +300,11 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
                           </Card>
                         ))}
                       </div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground p-2 border rounded-lg">
-                        {section.content}
+                 ) : (
+                      <div className="text-xs p-2 border rounded-lg">
+                        {section.content || (
+                          <span className="text-muted-foreground italic">No content available</span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -289,17 +354,20 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">
-                    {section.content}
-                  </div>
-                )}
+                 ) : (
+                   <div className="text-sm">
+                     {section.content || (
+                       <span className="text-muted-foreground italic">No content available</span>
+                     )}
+                   </div>
+                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
-      ))}
+           </CardContent>
+         </Card>
+        );
+       })}
 
-    </div>
+     </div>
   );
 }
