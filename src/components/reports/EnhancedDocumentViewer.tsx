@@ -20,8 +20,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSignedUrl } from "@/lib/storage";
 import { openInSystemBrowser } from "@/lib/utils/mobile";
 
-// Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// Set up PDF.js worker - use local worker file
+pdfjs.GlobalWorkerOptions.workerSrc = '/assets/pdf.worker.min.js';
 
 interface EnhancedDocumentViewerProps {
   report: {
