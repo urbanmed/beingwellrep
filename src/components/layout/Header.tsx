@@ -33,7 +33,7 @@ export function Header() {
           onClick={() => navigate("/")}
         >
           <img 
-            src="/lovable-uploads/482aa68a-efb1-4713-bc34-7515a2ccc106.png" 
+            src="/lovable-uploads/105ab469-a99c-4440-b9ba-d7eaad65a789.png" 
             alt="beingwell" 
             className="h-8 w-auto object-contain"
             style={{ imageRendering: 'crisp-edges' }}
