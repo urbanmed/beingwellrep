@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSignedUrl } from "@/lib/storage";
 import { validateMedicalDocument, getDocumentErrorMessage, logDocumentAccess, type DocumentError } from "@/lib/utils/document-security";
 import { openInSystemBrowser } from "@/lib/utils/mobile";
+import { FileRecoveryDialog } from "./FileRecoveryDialog";
 
 // Let react-pdf handle worker setup internally
 
@@ -45,6 +46,7 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
   const [viewMode, setViewMode] = useState<'inline' | 'external'>('inline');
   const [isRefreshingUrl, setIsRefreshingUrl] = useState(false);
   const [urlExpiredAt, setUrlExpiredAt] = useState<Date | null>(null);
+  const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
 
   // Generate or refresh signed URL
   const generateSignedUrl = async (retryCount = 0): Promise<string | null> => {
@@ -269,8 +271,18 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
         ) : !fileExists ? (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Document file not available. This medical document could not be accessed from secure storage.
+            <AlertDescription className="space-y-3">
+              <div>
+                Document file not available. This medical document could not be accessed from secure storage.
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowRecoveryDialog(true)}
+                className="mt-2"
+              >
+                Fix This Issue
+              </Button>
             </AlertDescription>
           </Alert>
         ) : documentUrl && viewMode === 'inline' ? (
@@ -454,6 +466,18 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
           </div>
         )}
       </CardContent>
+
+      {/* File Recovery Dialog */}
+      <FileRecoveryDialog
+        isOpen={showRecoveryDialog}
+        onClose={() => setShowRecoveryDialog(false)}
+        reportId={report.id}
+        reportTitle={report.title}
+        onReuploadNeeded={() => {
+          // Refresh the page to show the updated report state
+          window.location.reload();
+        }}
+      />
     </Card>
   );
 }

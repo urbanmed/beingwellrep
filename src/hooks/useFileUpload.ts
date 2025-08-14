@@ -138,16 +138,41 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
             throw new Error(`Upload failed: ${uploadError.message}`);
           }
 
-          // Verify file was actually uploaded by attempting to download it
-          const { error: verifyError } = await supabase.storage
+          // Enhanced verification - check both existence and downloadability
+          console.log(`Verifying upload: ${uploadData.path}`);
+          
+          // First check if file exists in storage
+          const { data: fileList, error: listError } = await supabase.storage
+            .from('medical-documents')
+            .list(uploadData.path.split('/').slice(0, -1).join('/'), {
+              search: uploadData.path.split('/').pop()
+            });
+
+          if (listError || !fileList || fileList.length === 0) {
+            console.error('File verification failed - file not found in storage:', listError);
+            await supabase.storage.from('medical-documents').remove([uploadData.path]);
+            throw new Error(`Upload verification failed: File was not found in storage after upload`);
+          }
+
+          // Then verify we can actually download the file
+          const { data: downloadData, error: verifyError } = await supabase.storage
             .from('medical-documents')
             .download(uploadData.path);
 
-          if (verifyError) {
-            // Clean up the failed upload record if it exists
+          if (verifyError || !downloadData) {
+            console.error('File verification failed - cannot download:', verifyError);
             await supabase.storage.from('medical-documents').remove([uploadData.path]);
-            throw new Error(`Upload verification failed: File was not properly stored`);
+            throw new Error(`Upload verification failed: File exists but cannot be accessed`);
           }
+
+          // Verify file size matches what we uploaded
+          if (downloadData.size !== file.size) {
+            console.error(`File size mismatch: uploaded ${file.size}, stored ${downloadData.size}`);
+            await supabase.storage.from('medical-documents').remove([uploadData.path]);
+            throw new Error(`Upload verification failed: File size mismatch (corrupted upload)`);
+          }
+
+          console.log(`Upload verification successful for: ${uploadData.path} (${downloadData.size} bytes)`);
 
           // Update file progress to 50% after upload
           setUploadFileStates(prev => prev.map((f, idx) => 
@@ -183,6 +208,9 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
             .single();
 
           if (reportError) {
+            // If database insert fails, clean up the uploaded file
+            console.error('Database insert failed, cleaning up uploaded file:', reportError);
+            await supabase.storage.from('medical-documents').remove([uploadData.path]);
             throw new Error(`Database error: ${reportError.message}`);
           }
 
@@ -253,12 +281,27 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 
         } catch (error) {
           console.error(`Error uploading file ${file.name}:`, error);
+          
+          // Provide more specific error messages based on error type
+          let errorMessage = 'Upload failed';
+          if (error instanceof Error) {
+            if (error.message.includes('verification failed')) {
+              errorMessage = 'File upload incomplete - please try again';
+            } else if (error.message.includes('Database error')) {
+              errorMessage = 'Database error - file uploaded but record not saved';
+            } else if (error.message.includes('Authentication')) {
+              errorMessage = 'Authentication expired - please refresh and try again';
+            } else {
+              errorMessage = error.message;
+            }
+          }
+          
           setUploadFileStates(prev => prev.map((f, idx) => 
             idx === i ? { 
               ...f, 
               status: 'failed', 
               progress: 0,
-              error: error instanceof Error ? error.message : 'Upload failed'
+              error: errorMessage
             } : f
           ));
         }
