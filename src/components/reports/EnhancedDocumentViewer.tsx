@@ -42,6 +42,73 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
   const [scale, setScale] = useState(1.0);
   const [rotation, setRotation] = useState(0);
   const [viewMode, setViewMode] = useState<'inline' | 'external'>('inline');
+  const [isRefreshingUrl, setIsRefreshingUrl] = useState(false);
+  const [urlExpiredAt, setUrlExpiredAt] = useState<Date | null>(null);
+
+  // Generate or refresh signed URL
+  const generateSignedUrl = async (retryCount = 0): Promise<string | null> => {
+    if (!report.file_url) return null;
+
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) {
+        throw new Error('User not authenticated');
+      }
+
+      const bucket = 'medical-documents';
+      const filePath = workingFileUrl || report.file_url;
+
+      console.log(`Generating signed URL: bucket=${bucket}, path=${filePath}`);
+
+      const signed = await getSignedUrl({ 
+        bucket, 
+        path: filePath, 
+        expiresIn: 3600 // 1 hour expiration
+      });
+
+      if (signed?.url) {
+        setUrlExpiredAt(new Date(Date.now() + 3600000)); // 1 hour from now
+        return signed.url;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error generating signed URL:', error);
+      if (retryCount < 2) {
+        console.log(`Retrying URL generation, attempt ${retryCount + 1}`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return generateSignedUrl(retryCount + 1);
+      }
+      throw error;
+    }
+  };
+
+  // Check if URL has expired
+  const isUrlExpired = () => {
+    if (!urlExpiredAt) return false;
+    return new Date() >= urlExpiredAt;
+  };
+
+  // Refresh URL if expired
+  const refreshUrlIfNeeded = async () => {
+    if (!documentUrl || !isUrlExpired()) return documentUrl;
+
+    try {
+      setIsRefreshingUrl(true);
+      const newUrl = await generateSignedUrl();
+      if (newUrl) {
+        setDocumentUrl(newUrl);
+        return newUrl;
+      }
+      return documentUrl;
+    } catch (error) {
+      console.error('Failed to refresh URL:', error);
+      setError('Failed to refresh document access. Please reload the page.');
+      return null;
+    } finally {
+      setIsRefreshingUrl(false);
+    }
+  };
 
   // Check if file exists and get proper URL
   useEffect(() => {
@@ -56,7 +123,6 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
         setIsChecking(true);
         setError(null);
 
-        // Try to download the file to check if it exists
         const { data: authData } = await supabase.auth.getUser();
         if (!authData.user) {
           setError('User not authenticated');
@@ -64,13 +130,10 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
           return;
         }
 
-        // Use medical-documents bucket and the entire file_url as the file path
         const bucket = 'medical-documents';
         const filePath = report.file_url;
 
-        console.log(`Checking file: bucket=${bucket}, path=${filePath}`);
-
-        // Try direct download first to confirm existence
+        // Try direct path first
         const { error: downloadError } = await supabase.storage
           .from(bucket)
           .download(filePath);
@@ -78,62 +141,32 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
         if (!downloadError) {
           console.log('File found at original path');
           setFileExists(true);
-          const signed = await getSignedUrl({ bucket, path: filePath });
-          setDocumentUrl(signed?.url || null);
+          const url = await generateSignedUrl();
+          setDocumentUrl(url);
         } else {
-          console.log('File not found at original path, searching for alternatives:', downloadError);
-
-          // If direct download fails, search for alternative files in the user's folder
+          console.log('File not found at original path, searching alternatives');
+          
+          // Search for alternative files
           const { data: files, error: listError } = await supabase.storage
             .from(bucket)
-            .list(authData.user.id, {
-              limit: 100,
-              search: ''
-            });
+            .list(authData.user.id, { limit: 100 });
 
-          if (!listError && files && files.length > 0) {
-            console.log(`Found ${files.length} files in user folder:`, files.map(f => f.name));
-            
-            // Sort files by last modified date (most recent first) and prioritize PDFs
-            const sortedFiles = files
-              .filter(file => {
-                const name = file.name.toLowerCase();
-                return name.includes('.pdf') || 
-                       name.includes('.jpg') ||
-                       name.includes('.jpeg') ||
-                       name.includes('.png') ||
-                       name.includes('.gif') ||
-                       name.includes('.webp');
-              })
-              .sort((a, b) => {
-                // Prioritize PDFs first, then by modification date
-                const aIsPdf = a.name.toLowerCase().includes('.pdf');
-                const bIsPdf = b.name.toLowerCase().includes('.pdf');
-                
-                if (aIsPdf && !bIsPdf) return -1;
-                if (!aIsPdf && bIsPdf) return 1;
-                
-                // Both are same type, sort by date
-                const aDate = new Date(a.updated_at || a.created_at || 0);
-                const bDate = new Date(b.updated_at || b.created_at || 0);
-                return bDate.getTime() - aDate.getTime();
-              });
+          if (!listError && files?.length > 0) {
+            const matchingFile = files
+              .filter(f => /\.(pdf|jpe?g|png|gif|webp)$/i.test(f.name))
+              .sort((a, b) => new Date(b.updated_at || b.created_at || 0).getTime() - 
+                              new Date(a.updated_at || a.created_at || 0).getTime())[0];
 
-            if (sortedFiles.length > 0) {
-              const alternativeFile = sortedFiles[0];
-              const alternativePath = `${authData.user.id}/${alternativeFile.name}`;
-              console.log(`Using alternative file: ${alternativePath}`);
-              
-              const signed = await getSignedUrl({ bucket, path: alternativePath });
-              setDocumentUrl(signed?.url || null);
+            if (matchingFile) {
+              const alternativePath = `${authData.user.id}/${matchingFile.name}`;
               setWorkingFileUrl(alternativePath);
               setFileExists(true);
+              const url = await generateSignedUrl();
+              setDocumentUrl(url);
             } else {
-              console.log('No suitable alternative files found');
               setFileExists(false);
             }
           } else {
-            console.log('Error listing files or no files found:', listError);
             setFileExists(false);
           }
         }
@@ -150,8 +183,9 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
   }, [report.file_url]);
 
   const handleViewOriginal = async () => {
-    if (documentUrl) {
-      await openInSystemBrowser(documentUrl);
+    const url = await refreshUrlIfNeeded();
+    if (url) {
+      await openInSystemBrowser(url);
     }
   };
 
@@ -225,11 +259,13 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
       </CardHeader>
       
       <CardContent>
-        {isChecking ? (
+        {isChecking || isRefreshingUrl ? (
           <div className="flex items-center justify-center p-8">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-              <p className="text-sm text-muted-foreground">Checking file availability...</p>
+              <p className="text-sm text-muted-foreground">
+                {isRefreshingUrl ? 'Refreshing document access...' : 'Checking file availability...'}
+              </p>
             </div>
           </div>
         ) : error ? (
@@ -375,14 +411,20 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
                 <div className="border rounded-lg overflow-auto max-h-[600px] bg-gray-50">
                   <div className="flex justify-center p-4">
                     <img
-                      src={documentUrl}
+                      src={documentUrl || undefined}
                       alt={`${report.title} - Original Document`}
                       style={{ 
                         transform: `scale(${scale}) rotate(${rotation}deg)`,
                         transformOrigin: 'center'
                       }}
                       className="max-w-full h-auto shadow-lg"
-                      onError={() => setError('Failed to load image')}
+                      onError={async () => {
+                        console.log('Image failed to load, attempting to refresh URL');
+                        const newUrl = await refreshUrlIfNeeded();
+                        if (!newUrl) {
+                          setError('Failed to load image. Please refresh the page.');
+                        }
+                      }}
                     />
                   </div>
                 </div>
