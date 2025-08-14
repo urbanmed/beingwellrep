@@ -54,10 +54,11 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
               />
             )}
           </div>
-          
-          <EnhancedDocumentViewer report={report} />
         </>
       )}
+      
+      {/* Always show document viewer if there's a file URL */}
+      {report.file_url && <EnhancedDocumentViewer report={report} />}
     </div>
   );
 }
