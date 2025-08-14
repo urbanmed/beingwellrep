@@ -20,8 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSignedUrl } from "@/lib/storage";
 import { openInSystemBrowser } from "@/lib/utils/mobile";
 
-// Set up PDF.js worker - use CDN with correct version
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// Let react-pdf handle worker setup internally
 
 interface EnhancedDocumentViewerProps {
   report: {
