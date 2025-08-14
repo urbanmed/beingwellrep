@@ -60,7 +60,7 @@ export function AddPrescriptionDialog({
       duration: "",
       prescribing_doctor: "",
       pharmacy: "",
-      family_member_id: "",
+      family_member_id: "none",
       notes: "",
       start_date: "",
       end_date: "",
@@ -89,7 +89,7 @@ export function AddPrescriptionDialog({
 
       // Upload the prescription file using uploadFiles (batch method)
       await uploadFiles([selectedFile], 'prescription', '', {
-        familyMemberId: data.family_member_id || undefined,
+        familyMemberId: data.family_member_id === "none" ? undefined : data.family_member_id,
       });
 
       // Wait for upload to complete and get the uploaded file data
@@ -111,7 +111,7 @@ export function AddPrescriptionDialog({
         duration: data.duration,
         prescribing_doctor: data.prescribing_doctor,
         pharmacy: data.pharmacy,
-        family_member_id: data.family_member_id,
+        family_member_id: data.family_member_id === "none" ? undefined : data.family_member_id,
         notes: data.notes,
         start_date: data.start_date,
         end_date: data.end_date,
@@ -333,7 +333,7 @@ export function AddPrescriptionDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">None (for you)</SelectItem>
+                        <SelectItem value="none">None (for you)</SelectItem>
                         {familyMembers.map((member) => (
                           <SelectItem key={member.id} value={member.id}>
                             {member.first_name} {member.last_name}
