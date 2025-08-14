@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Summary } from "@/types/summary";
 
-export function useSummaries() {
+export function useSummaries(familyMemberId?: string | null) {
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -11,10 +11,34 @@ export function useSummaries() {
   const fetchSummaries = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // First get reports for the selected family member to filter summaries
+      let reportsQuery = supabase.from('reports').select('id');
+      
+      if (familyMemberId === null || familyMemberId === undefined) {
+        reportsQuery = reportsQuery.is('family_member_id', null);
+      } else {
+        reportsQuery = reportsQuery.eq('family_member_id', familyMemberId);
+      }
+
+      const { data: reportsData, error: reportsError } = await reportsQuery;
+      if (reportsError) throw reportsError;
+
+      const reportIds = reportsData?.map(r => r.id) || [];
+
+      // Then get summaries that reference these reports
+      let summariesQuery = supabase
         .from('summaries')
-        .select('*')
-        .order('generated_at', { ascending: false });
+        .select('*');
+
+      if (reportIds.length > 0) {
+        // Filter summaries that have source_report_ids overlapping with our filtered reports
+        summariesQuery = summariesQuery.overlaps('source_report_ids', reportIds);
+      } else {
+        // No reports for this family member, so no summaries either
+        summariesQuery = summariesQuery.eq('id', '00000000-0000-0000-0000-000000000000'); // Non-existent ID
+      }
+
+      const { data, error } = await summariesQuery.order('generated_at', { ascending: false });
 
       if (error) throw error;
       setSummaries((data || []) as Summary[]);
@@ -171,7 +195,7 @@ export function useSummaries() {
 
   useEffect(() => {
     fetchSummaries();
-  }, []);
+  }, [familyMemberId]);
 
   return {
     summaries,
