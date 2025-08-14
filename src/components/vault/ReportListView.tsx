@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useFileDownload } from "@/hooks/useFileDownload";
 import { 
   FileText, 
@@ -16,11 +17,16 @@ import {
   Heart,
   Pill,
   Shield,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  Trash
 } from "lucide-react";
 import { format } from "date-fns";
-
-import { ReportNotesButton } from "@/components/notes/ReportNotesButton";
+import { useState } from "react";
+import { AddPrescriptionDialog } from "@/components/prescriptions/AddPrescriptionDialog";
+import { GenerateSummaryDialogWrapper } from "@/components/summaries/GenerateSummaryDialogWrapper";
+import { DeleteConfirmDialog } from "@/components/reports/DeleteConfirmDialog";
+import { useReports } from "@/hooks/useReports";
 
 interface Report {
   id: string;
@@ -106,18 +112,41 @@ const formatFileSize = (bytes: number) => {
 
 export function ReportListView({ reports, selectedReports, onSelectReport, onNavigateToReport }: ReportListViewProps) {
   const { downloadFile } = useFileDownload();
+  const { deleteReport } = useReports();
+  const [showPrescriptionDialog, setShowPrescriptionDialog] = useState(false);
+  const [showSummaryDialog, setShowSummaryDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
   const handleViewClick = (e: React.MouseEvent, reportId: string) => {
     e.stopPropagation();
     onNavigateToReport(reportId);
   };
 
-const handleDownloadClick = (e: React.MouseEvent, report: Report) => {
-  e.stopPropagation();
-  if (report.file_url) {
-    downloadFile(report.id, report.file_name, report.file_url);
-  }
-};
+  const handleDownloadClick = (e: React.MouseEvent, report: Report) => {
+    e.stopPropagation();
+    if (report.file_url) {
+      downloadFile(report.id, report.file_name, report.file_url);
+    }
+  };
+
+  const handleAddPrescription = (e: React.MouseEvent, report: Report) => {
+    e.stopPropagation();
+    setSelectedReport(report);
+    setShowPrescriptionDialog(true);
+  };
+
+  const handleGenerateSummary = (e: React.MouseEvent, report: Report) => {
+    e.stopPropagation();
+    setSelectedReport(report);
+    setShowSummaryDialog(true);
+  };
+
+  const handleDelete = (e: React.MouseEvent, report: Report) => {
+    e.stopPropagation();
+    setSelectedReport(report);
+    setShowDeleteDialog(true);
+  };
 
   return (
     <div className="space-y-1">
@@ -193,29 +222,114 @@ const handleDownloadClick = (e: React.MouseEvent, report: Report) => {
 
             {/* Actions */}
             <div className="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0"
-                onClick={(e) => handleViewClick(e, report.id)}
-              >
-                <Eye className="h-3.5 w-3.5" />
-              </Button>
-              <ReportNotesButton reportId={report.id} reportTitle={report.title} />
-              {report.file_url && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={(e) => handleDownloadClick(e, report)}
-                >
-                  <Download className="h-3.5 w-3.5" />
-                </Button>
-              )}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={(e) => handleViewClick(e, report.id)}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>View Report</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={(e) => handleAddPrescription(e, report)}
+                    >
+                      <Pill className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Add Prescription</TooltipContent>
+                </Tooltip>
+
+                {report.parsing_status === 'completed' && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={(e) => handleGenerateSummary(e, report)}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Generate AI Summary</TooltipContent>
+                  </Tooltip>
+                )}
+
+                {report.file_url && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={(e) => handleDownloadClick(e, report)}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Download</TooltipContent>
+                  </Tooltip>
+                )}
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={(e) => handleDelete(e, report)}
+                    >
+                      <Trash className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         );
       })}
+
+      {/* Dialogs */}
+      {selectedReport && (
+        <>
+          <AddPrescriptionDialog 
+            isOpen={showPrescriptionDialog} 
+            onClose={() => setShowPrescriptionDialog(false)}
+            sourceReportId={selectedReport.id}
+            sourceReportTitle={selectedReport.title}
+          />
+          
+          <GenerateSummaryDialogWrapper
+            isOpen={showSummaryDialog}
+            onClose={() => setShowSummaryDialog(false)}
+            preSelectedReportIds={[selectedReport.id]}
+          />
+          
+          <DeleteConfirmDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={() => {
+              deleteReport(selectedReport.id);
+              setShowDeleteDialog(false);
+            }}
+            title={`Delete ${selectedReport.title}?`}
+            description="Are you sure you want to delete this report? This action cannot be undone."
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -1,10 +1,14 @@
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, FileText } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Download, Eye, Pill, Sparkles, Trash } from "lucide-react";
 import { useFileDownload } from "@/hooks/useFileDownload";
-
-import { ReportNotesButton } from "@/components/notes/ReportNotesButton";
+import { useState } from "react";
+import { AddPrescriptionDialog } from "@/components/prescriptions/AddPrescriptionDialog";
+import { GenerateSummaryDialogWrapper } from "@/components/summaries/GenerateSummaryDialogWrapper";
+import { DeleteConfirmDialog } from "@/components/reports/DeleteConfirmDialog";
+import { useReports } from "@/hooks/useReports";
 
 interface Report {
   id: string;
@@ -71,7 +75,12 @@ const REPORT_TYPE_CONFIG = {
 
 export function TimelineItem({ report, isSelected, onSelect, onNavigate, showDate = true }: TimelineItemProps) {
   const { downloadFile } = useFileDownload();
+  const { deleteReport } = useReports();
   const config = REPORT_TYPE_CONFIG[report.report_type as keyof typeof REPORT_TYPE_CONFIG] || REPORT_TYPE_CONFIG.general;
+  
+  const [showPrescriptionDialog, setShowPrescriptionDialog] = useState(false);
+  const [showSummaryDialog, setShowSummaryDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -88,6 +97,21 @@ export function TimelineItem({ report, isSelected, onSelect, onNavigate, showDat
   const handleTitleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onNavigate(report.id);
+  };
+
+  const handleAddPrescription = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowPrescriptionDialog(true);
+  };
+
+  const handleGenerateSummary = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowSummaryDialog(true);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowDeleteDialog(true);
   };
 
   return (
@@ -153,29 +177,110 @@ export function TimelineItem({ report, isSelected, onSelect, onNavigate, showDat
           </div>
 
           {/* Actions */}
-          <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleView}
-              className="h-8 w-8 p-0"
-            >
-              <Eye className="h-3 w-3" />
-            </Button>
-            <ReportNotesButton reportId={report.id} reportTitle={report.title} />
-            {report.file_url && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDownload}
-                className="h-8 w-8 p-0"
-              >
-                <Download className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
+          <TooltipProvider>
+            <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleView}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Eye className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>View Report</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleAddPrescription}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Pill className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Add Prescription</TooltipContent>
+              </Tooltip>
+
+              {report.parsing_status === 'completed' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleGenerateSummary}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Generate AI Summary</TooltipContent>
+                </Tooltip>
+              )}
+
+              {report.file_url && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleDownload}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Download className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Download</TooltipContent>
+                </Tooltip>
+              )}
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDelete}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Trash className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Delete</TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         </div>
       </div>
+
+      {/* Dialogs */}
+      <AddPrescriptionDialog 
+        isOpen={showPrescriptionDialog} 
+        onClose={() => setShowPrescriptionDialog(false)}
+        sourceReportId={report.id}
+        sourceReportTitle={report.title}
+      />
+      
+      <GenerateSummaryDialogWrapper
+        isOpen={showSummaryDialog}
+        onClose={() => setShowSummaryDialog(false)}
+        preSelectedReportIds={[report.id]}
+      />
+      
+      <DeleteConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={() => {
+          deleteReport(report.id);
+          setShowDeleteDialog(false);
+        }}
+        title={`Delete ${report.title}?`}
+        description="Are you sure you want to delete this report? This action cannot be undone."
+      />
     </div>
   );
 }
