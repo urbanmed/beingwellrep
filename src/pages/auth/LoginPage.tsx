@@ -108,20 +108,15 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4 pt-safe">
-      {/* Logo Section */}
-      <div className="mb-6 animate-fade-in">
-        <Link to="/" className="block">
-          <img 
-            src="/lovable-uploads/6e18c5f3-d6d2-4a2b-865a-590ab23d865a.png" 
-            alt="BeingWell Logo" 
-            className="h-8 sm:h-12 w-auto mx-auto hover-scale transition-transform duration-200"
-          />
-        </Link>
-      </div>
-
       <Card className="w-full max-w-md animate-fade-in medical-card-shadow border-0 bg-card/95 backdrop-blur-sm">
         <CardHeader className="space-y-2 text-center pb-6">
-          <CardTitle className="text-3xl font-bold medical-heading text-foreground">Welcome back</CardTitle>
+          <div className="mb-4 animate-fade-in">
+            <img 
+              src="/lovable-uploads/6e18c5f3-d6d2-4a2b-865a-590ab23d865a.png" 
+              alt="BeingWell Logo" 
+              className="h-8 sm:h-12 w-auto mx-auto hover-scale transition-transform duration-200"
+            />
+          </div>
           <CardDescription className="medical-body text-muted-foreground">
             Sign in to your BeingWell account
           </CardDescription>
