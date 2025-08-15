@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Lightbulb, ExternalLink, X } from "lucide-react";
 import { useReports } from "@/hooks/useReports";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -199,42 +200,80 @@ export function PersonalizedTipsHealth() {
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
-      {/* Mobile Zoom Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-md mx-4">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Badge variant={selectedTip ? getCategoryColor(selectedTip.category) : 'secondary'} className="text-xs">
-                {selectedTip?.category}
-              </Badge>
-              {selectedTip?.priority === 'important' && (
-                <Badge variant="destructive" className="text-xs">
-                  Important
+      {/* Mobile-friendly Modal */}
+      {isMobile ? (
+        <Drawer open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DrawerContent className="max-h-[85vh]">
+            <DrawerHeader className="pb-4">
+              <DrawerTitle className="flex items-center gap-2 text-left">
+                <Badge variant={selectedTip ? getCategoryColor(selectedTip.category) : 'secondary'} className="text-xs">
+                  {selectedTip?.category}
                 </Badge>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedTip && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold leading-relaxed">
-                {selectedTip.title}
-              </h3>
-              
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                {selectedTip.content}
-              </p>
-              
-              {selectedTip.source && (
-                <Button variant="outline" size="sm" className="w-full">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Learn More
-                </Button>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+                {selectedTip?.priority === 'important' && (
+                  <Badge variant="destructive" className="text-xs">
+                    Important
+                  </Badge>
+                )}
+              </DrawerTitle>
+            </DrawerHeader>
+            
+            {selectedTip && (
+              <div className="px-4 pb-6 space-y-4">
+                <h3 className="text-lg font-semibold leading-relaxed">
+                  {selectedTip.title}
+                </h3>
+                
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {selectedTip.content}
+                </p>
+                
+                {selectedTip.source && (
+                  <Button variant="outline" size="sm" className="w-full">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Learn More
+                  </Button>
+                )}
+              </div>
+            )}
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="sm:max-w-md mx-4">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Badge variant={selectedTip ? getCategoryColor(selectedTip.category) : 'secondary'} className="text-xs">
+                  {selectedTip?.category}
+                </Badge>
+                {selectedTip?.priority === 'important' && (
+                  <Badge variant="destructive" className="text-xs">
+                    Important
+                  </Badge>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedTip && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold leading-relaxed">
+                  {selectedTip.title}
+                </h3>
+                
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {selectedTip.content}
+                </p>
+                
+                {selectedTip.source && (
+                  <Button variant="outline" size="sm" className="w-full">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Learn More
+                  </Button>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
