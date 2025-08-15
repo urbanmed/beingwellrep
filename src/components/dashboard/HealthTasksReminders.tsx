@@ -121,18 +121,18 @@ export function HealthTasksReminders() {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <CardTitle className="medical-heading-sm flex items-center justify-between">
           <div className="flex items-center">
             <CheckCircle2 className="h-4 w-4 mr-2 text-primary" />
             Health Tasks
           </div>
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-[10px] sm:text-xs">
             {tasks.filter(t => !t.completed).length} pending
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2.5 sm:space-y-3">
         {tasks.length === 0 ? (
           <div className="text-center py-4">
             <CheckCircle2 className="h-8 w-8 text-success mx-auto mb-2" />
@@ -143,7 +143,7 @@ export function HealthTasksReminders() {
             {tasks.map((task) => {
               const TypeIcon = getTypeIcon(task.type);
               return (
-                <div key={task.id} className="flex items-start space-x-3 p-2 rounded-lg hover:bg-accent/50 transition-colors">
+                <div key={task.id} className="flex items-start space-x-2 px-2 py-1.5 rounded-lg hover:bg-accent/50 transition-colors">
                   <div className="mt-0.5">
                     {task.completed ? (
                       <CheckCircle2 className="h-4 w-4 text-success" />
@@ -151,14 +151,14 @@ export function HealthTasksReminders() {
                       <TypeIcon className="h-4 w-4 text-muted-foreground" />
                     )}
                   </div>
-                  <div className="flex-1 space-y-1">
+                  <div className="flex-1 space-y-0.5">
                     <div className="flex items-center justify-between">
-                      <span className="medical-label-xs font-medium">{task.title}</span>
-                      <Badge variant={getPriorityColor(task.priority)} className="text-xs">
+                      <span className="text-xs sm:text-sm font-medium">{task.title}</span>
+                      <Badge variant={getPriorityColor(task.priority)} className="text-[10px] sm:text-xs">
                         {task.priority}
                       </Badge>
                     </div>
-                    <p className="medical-annotation">{task.description}</p>
+                    <p className="text-xs text-muted-foreground">{task.description}</p>
                   </div>
                 </div>
               );
