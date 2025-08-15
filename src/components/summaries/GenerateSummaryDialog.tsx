@@ -187,11 +187,11 @@ export function GenerateSummaryDialog({
           <DialogTitle>Generate AI Summary</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Summary Type Selection */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Choose Summary Type</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h3 className="text-sm font-medium mb-3">Choose Summary Type</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {summaryTypes.map((type) => {
                 const Icon = type.icon;
                 return (
@@ -204,19 +204,19 @@ export function GenerateSummaryDialog({
                     }`}
                     onClick={() => setSelectedType(type.type)}
                   >
-                    <CardHeader className="pb-3">
+                    <CardContent className="p-3">
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${type.color} bg-opacity-10`}>
-                          <Icon className="h-5 w-5" />
+                        <div className={`w-9 h-9 rounded-full ${type.color} bg-opacity-10 flex items-center justify-center`}>
+                          <Icon className="h-4 w-4" />
                         </div>
                         <div>
-                          <CardTitle className="text-base">{type.title}</CardTitle>
-                          <CardDescription className="text-sm">
+                          <div className="text-sm font-medium">{type.title}</div>
+                          <div className="text-xs text-muted-foreground">
                             {type.description}
-                          </CardDescription>
+                          </div>
                         </div>
                       </div>
-                    </CardHeader>
+                    </CardContent>
                   </Card>
                 );
               })}
@@ -225,7 +225,7 @@ export function GenerateSummaryDialog({
 
           {/* Report Selection */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">
+            <h3 className="text-sm font-medium mb-3">
               Select Reports ({selectedReports.length} selected)
             </h3>
             
@@ -258,34 +258,40 @@ export function GenerateSummaryDialog({
                 {/* Ready Reports */}
                 {readyReports.length > 0 && (
                   <div>
-                    <h4 className="font-medium text-sm text-green-600 mb-2 flex items-center">
-                      <FileText className="h-4 w-4 mr-1" />
+                    <h4 className="text-xs font-medium text-green-600 mb-2 flex items-center">
+                      <FileText className="h-3 w-3 mr-1" />
                       Ready for Summary ({readyReports.length})
                     </h4>
                     <div className="space-y-2 max-h-40 overflow-y-auto">
                       {readyReports.map((report) => (
-                        <Card key={report.id} className="p-3">
-                          <div className="flex items-center gap-3">
-                            <Checkbox
-                              checked={selectedReports.includes(report.id)}
-                              onCheckedChange={() => handleReportToggle(report.id)}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h5 className="font-medium text-sm truncate">{report.title}</h5>
-                                <Badge variant="outline" className="text-xs">
-                                  {report.report_type}
-                                </Badge>
-                                <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
-                                  Ready
-                                </Badge>
+                        <Card key={report.id}>
+                          <CardContent className="p-3">
+                            <div className="flex items-start gap-3">
+                              <Checkbox
+                                checked={selectedReports.includes(report.id)}
+                                onCheckedChange={() => handleReportToggle(report.id)}
+                                className="mt-1"
+                              />
+                              <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
+                                <FileText className="h-4 w-4 text-green-600" />
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(report.report_date).toLocaleDateString()}
-                                {report.physician_name && ` • Dr. ${report.physician_name}`}
-                              </p>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h5 className="text-sm font-medium truncate">{report.title}</h5>
+                                  <Badge variant="outline" className="text-xs h-5">
+                                    {report.report_type}
+                                  </Badge>
+                                  <Badge variant="secondary" className="text-xs h-5 bg-green-100 text-green-700">
+                                    Ready
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(report.report_date).toLocaleDateString()}
+                                  {report.physician_name && ` • Dr. ${report.physician_name}`}
+                                </p>
+                              </div>
                             </div>
-                          </div>
+                          </CardContent>
                         </Card>
                       ))}
                     </div>
@@ -295,30 +301,34 @@ export function GenerateSummaryDialog({
                 {/* Processing Reports */}
                 {processingReports.length > 0 && (
                   <div>
-                    <h4 className="font-medium text-sm text-blue-600 mb-2 flex items-center">
-                      <Clock className="h-4 w-4 mr-1" />
+                    <h4 className="text-xs font-medium text-blue-600 mb-2 flex items-center">
+                      <Clock className="h-3 w-3 mr-1" />
                       Processing ({processingReports.length})
                     </h4>
                     <div className="space-y-2">
                       {processingReports.map((report) => (
-                        <Card key={report.id} className="p-3 bg-blue-50">
-                          <div className="flex items-center gap-3">
-                            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h5 className="font-medium text-sm truncate">{report.title}</h5>
-                                <Badge variant="outline" className="text-xs">
-                                  {report.report_type}
-                                </Badge>
-                                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
-                                  Processing
-                                </Badge>
+                        <Card key={report.id} className="bg-blue-50">
+                          <CardContent className="p-3">
+                            <div className="flex items-start gap-3">
+                              <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
+                                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                Text extraction in progress...
-                              </p>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h5 className="text-sm font-medium truncate">{report.title}</h5>
+                                  <Badge variant="outline" className="text-xs h-5">
+                                    {report.report_type}
+                                  </Badge>
+                                  <Badge variant="secondary" className="text-xs h-5 bg-blue-100 text-blue-700">
+                                    Processing
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Text extraction in progress...
+                                </p>
+                              </div>
                             </div>
-                          </div>
+                          </CardContent>
                         </Card>
                       ))}
                     </div>
@@ -328,39 +338,43 @@ export function GenerateSummaryDialog({
                 {/* Failed Reports */}
                 {failedReports.length > 0 && (
                   <div>
-                    <h4 className="font-medium text-sm text-red-600 mb-2 flex items-center">
-                      <XCircle className="h-4 w-4 mr-1" />
+                    <h4 className="text-xs font-medium text-red-600 mb-2 flex items-center">
+                      <XCircle className="h-3 w-3 mr-1" />
                       Processing Failed ({failedReports.length})
                     </h4>
                     <div className="space-y-2">
                       {failedReports.map((report) => (
-                        <Card key={report.id} className="p-3 bg-red-50">
-                          <div className="flex items-center gap-3">
-                            <XCircle className="h-4 w-4 text-red-600" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h5 className="font-medium text-sm truncate">{report.title}</h5>
-                                <Badge variant="outline" className="text-xs">
-                                  {report.report_type}
-                                </Badge>
-                                <Badge variant="destructive" className="text-xs">
-                                  Failed
-                                </Badge>
+                        <Card key={report.id} className="bg-red-50">
+                          <CardContent className="p-3">
+                            <div className="flex items-start gap-3">
+                              <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center">
+                                <XCircle className="h-4 w-4 text-red-600" />
                               </div>
-                              <p className="text-xs text-red-600 mb-2">
-                                {report.processing_error || 'Processing failed'}
-                              </p>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-6 text-xs"
-                                onClick={() => handleRetryProcessing(report.id)}
-                              >
-                                <RefreshCw className="h-3 w-3 mr-1" />
-                                Retry
-                              </Button>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h5 className="text-sm font-medium truncate">{report.title}</h5>
+                                  <Badge variant="outline" className="text-xs h-5">
+                                    {report.report_type}
+                                  </Badge>
+                                  <Badge variant="destructive" className="text-xs h-5">
+                                    Failed
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-red-600 mb-2">
+                                  {report.processing_error || 'Processing failed'}
+                                </p>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="h-7 w-auto text-xs"
+                                  onClick={() => handleRetryProcessing(report.id)}
+                                >
+                                  <RefreshCw className="h-3 w-3 mr-1" />
+                                  Retry
+                                </Button>
+                              </div>
                             </div>
-                          </div>
+                          </CardContent>
                         </Card>
                       ))}
                     </div>
@@ -383,8 +397,8 @@ export function GenerateSummaryDialog({
 
           {/* Custom Prompt (Optional) */}
           <div>
-            <h3 className="text-lg font-semibold mb-2">Custom Instructions (Optional)</h3>
-            <p className="text-sm text-muted-foreground mb-3">
+            <h3 className="text-sm font-medium mb-2">Custom Instructions (Optional)</h3>
+            <p className="text-xs text-muted-foreground mb-3">
               Provide specific questions or areas you'd like the AI to focus on
             </p>
             <Textarea
