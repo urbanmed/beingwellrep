@@ -437,13 +437,29 @@ export function parsePatientMarkdownTable(markdownTable: string): PatientInfo {
         if (field.includes('name') || field.includes('patient')) {
           patientInfo.name = value;
         } else if (field.includes('age')) {
-          patientInfo.age = value;
+          // Handle combined age/gender like "45 Y(s) / Male"
+          const ageMatch = value.match(/(\d+)\s*(?:Y\(s\)|years?|y)/i);
+          if (ageMatch) {
+            patientInfo.age = ageMatch[1];
+            // Extract gender from the same field
+            const genderMatch = value.match(/(?:male|female|m|f)/i);
+            if (genderMatch && !patientInfo.gender) {
+              patientInfo.gender = genderMatch[0];
+            }
+          } else {
+            patientInfo.age = value;
+          }
         } else if (field.includes('gender') || field.includes('sex')) {
           patientInfo.gender = value;
         } else if (field.includes('collection') && field.includes('date')) {
           patientInfo.dob = value;
-        } else if (field.includes('referring') || field.includes('doctor')) {
+        } else if (field.includes('report') && field.includes('date')) {
+          // Store report date in contact field temporarily (will be moved later)
           patientInfo.contact = value;
+        } else if (field.includes('referring') || field.includes('doctor')) {
+          patientInfo.address = value; // Store doctor in address field temporarily
+        } else if (field.includes('id') || field.includes('number')) {
+          patientInfo.id = value;
         }
       }
     }
@@ -465,12 +481,16 @@ export function parseMedicalMarkdownTable(markdownTable: string): MedicalInfo {
         const field = parts[0].toLowerCase();
         const value = parts[1];
         
-        if (field.includes('lab') || field.includes('laboratory') || field.includes('hospital')) {
+        if (field.includes('lab') || field.includes('laboratory') || field.includes('hospital') || field.includes('facility')) {
           medicalInfo.facilityName = value;
         } else if (field.includes('address')) {
           medicalInfo.address = value;
         } else if (field.includes('phone') || field.includes('contact')) {
           medicalInfo.contact = value;
+        } else if (field.includes('report') && field.includes('date')) {
+          medicalInfo.reportDate = value;
+        } else if (field.includes('collection') && field.includes('date')) {
+          medicalInfo.collectionDate = value;
         }
       }
     }

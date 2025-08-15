@@ -13,6 +13,8 @@ interface StructuredData {
     name?: string;
     dateOfBirth?: string;
     id?: string;
+    age?: string;
+    gender?: string;
   };
   facility?: string;
   provider?: string;
@@ -47,10 +49,18 @@ export function convertMarkdownToStructured(extractedData: {
 
     const universalData = parseUniversalMedicalDocument(combinedContent);
     
-    // Map universal data to our structure
-    result.patientInformation = universalData.patientInfo;
-    result.facilityInformation = universalData.medicalInfo;
-    result.reportDate = universalData.medicalInfo.reportDate || '';
+    // Map universal data to display structure
+    result.patient = {
+      name: universalData.patientInfo.name,
+      dateOfBirth: universalData.patientInfo.dob,
+      id: universalData.patientInfo.id,
+      age: universalData.patientInfo.age,
+      gender: universalData.patientInfo.gender,
+    };
+    
+    result.facility = universalData.medicalInfo.facilityName || universalData.medicalInfo.labName;
+    result.provider = universalData.medicalInfo.physicianName || universalData.patientInfo.address; // Doctor from patient table
+    result.reportDate = universalData.medicalInfo.reportDate || universalData.patientInfo.contact; // Report date from patient table
     result.visitDate = universalData.medicalInfo.collectionDate || '';
     
     // Add sections from universal parser

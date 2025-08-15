@@ -27,14 +27,16 @@ interface EnhancedDocumentViewerProps {
 export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) {
   const [activeTab, setActiveTab] = useState("structured");
 
+  // Enhanced detection for structured data
   const hasStructuredData = report.parsed_data && (
-    // Check for extractedData structure (new format)
-    (report.parsed_data.extractedData?.labTestResults) ||
-    (report.parsed_data.extractedData?.patientInformation) ||
-    (report.parsed_data.extractedData?.hospitalLabInformation) ||
-    (report.parsed_data.extractedData?.medications?.length > 0) ||
-    (report.parsed_data.extractedData?.sections?.length > 0) ||
-    // Check for legacy direct structure
+    // Check for new extractedData format (markdown tables)
+    (report.parsed_data.extractedData?.labTestResults && 
+     report.parsed_data.extractedData.labTestResults.includes('|')) ||
+    (report.parsed_data.extractedData?.patientInformation && 
+     report.parsed_data.extractedData.patientInformation.includes('|')) ||
+    (report.parsed_data.extractedData?.hospitalLabInformation && 
+     report.parsed_data.extractedData.hospitalLabInformation.includes('|')) ||
+    // Check for legacy structured data
     (report.parsed_data.sections?.length > 0) || 
     (report.parsed_data.tests?.length > 0) ||
     (report.parsed_data.medications?.length > 0) ||
