@@ -12,10 +12,12 @@ The document name must be included in your JSON response under the "suggestedNam
 export const LAB_RESULTS_PROMPT = `Extract structured data from this lab results document with proper hierarchical organization.
 
 CRITICAL NAMING RULES:
-- For COMPREHENSIVE panels (CBC, CBP, CMP, BMP, Lipid Panel, etc.) with 5+ tests, name after the PANEL
-- For CBP/Complete Blood Picture: Always use "Complete Blood Picture" as primary name
+- For COMPREHENSIVE panels (CBC, CBP, CMP, BMP, Lipid Panel, etc.) with 4+ related tests, name after the PANEL
+- For CBP/Complete Blood Picture/Complete Blood Count: Always use "Complete Blood Picture" or "Complete Blood Count" as primary name
+- Look for blood test indicators: hemoglobin, hematocrit, WBC, RBC, platelets, MCV, MCH, MCHC
+- If 4+ blood-related tests are present, it's likely a CBP/CBC regardless of individual test names
 - For single/few tests: Use the specific test name
-- Prioritize test QUANTITY and comprehensiveness over individual mentions
+- Prioritize test QUANTITY, medical comprehensiveness, and clinical panel recognition over individual mentions
 
 Return JSON in this exact format:
 
@@ -360,14 +362,31 @@ export function generateIntelligentDocumentName(
     const testNames = parsedData.tests.map(t => t.name?.toLowerCase() || '');
     const testCount = parsedData.tests.length;
     
-    // Detect comprehensive blood panels (CBP/CBC)
-    const bloodTestKeywords = ['hemoglobin', 'hematocrit', 'wbc', 'rbc', 'platelet', 'mcv', 'mch', 'mchc'];
+    // Detect comprehensive blood panels (CBP/CBC) - Enhanced detection
+    const bloodTestKeywords = [
+      'hemoglobin', 'hematocrit', 'wbc', 'rbc', 'platelet', 'mcv', 'mch', 'mchc',
+      'white blood cell', 'red blood cell', 'hgb', 'hct', 'plt', 'neutrophil',
+      'lymphocyte', 'monocyte', 'eosinophil', 'basophil', 'rdw', 'mpv'
+    ];
+    
+    // Check for comprehensive blood work indicators
     const bloodTestCount = testNames.filter(name => 
-      bloodTestKeywords.some(keyword => name.includes(keyword))
+      bloodTestKeywords.some(keyword => name.includes(keyword)) ||
+      name.includes('blood') ||
+      /^(wbc|rbc|hgb|hct|plt|mcv|mch|mchc)$/i.test(name.trim())
     ).length;
     
-    // If 4+ blood tests, likely a CBP/CBC
-    if (bloodTestCount >= 4) {
+    // Check for explicit CBP/CBC mention in test names
+    const explicitCBP = testNames.some(name => 
+      name.includes('complete blood') || 
+      name.includes('cbc') || 
+      name.includes('cbp') ||
+      name.includes('full blood count') ||
+      name.includes('hemogram')
+    );
+    
+    // If 4+ blood tests OR explicit CBP mention, it's a comprehensive blood panel
+    if (bloodTestCount >= 4 || explicitCBP) {
       return `Lab Results - Complete Blood Picture - ${formattedDate}`;
     }
     

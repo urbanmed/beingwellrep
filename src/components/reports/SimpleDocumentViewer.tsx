@@ -19,15 +19,25 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { generateDocumentUrl, checkDocumentExists } from "@/lib/utils/simple-document-access";
 import { useFileDownload } from "@/hooks/useFileDownload";
 
-// Configure PDF.js worker for proper rendering
+// Configure PDF.js worker with proper version alignment
 if (typeof window !== 'undefined') {
   try {
-    // Use CDN worker to avoid version conflicts
-    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+    // Use exact version match with installed pdfjs-dist@5.4.54
+    const pdfjsVersion = '5.4.54';
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsVersion}/build/pdf.worker.min.js`;
+    console.log(`PDF.js worker configured for version ${pdfjsVersion}`);
   } catch (error) {
-    console.warn('PDF.js worker setup failed, using fallback:', error);
-    // Fallback to local worker
-    pdfjs.GlobalWorkerOptions.workerSrc = '/node_modules/pdfjs-dist/build/pdf.worker.js';
+    console.warn('PDF.js CDN worker setup failed, using local fallback:', error);
+    // Multiple fallback strategies
+    try {
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+        'pdfjs-dist/build/pdf.worker.min.js',
+        import.meta.url,
+      ).toString();
+    } catch (fallbackError) {
+      console.warn('Local worker fallback failed, using static path:', fallbackError);
+      pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+    }
   }
 }
 
@@ -137,7 +147,27 @@ export function SimpleDocumentViewer({ report }: SimpleDocumentViewerProps) {
   const onDocumentLoadError = (error: Error) => {
     console.error('PDF load error:', error);
     setPdfError(`Failed to load PDF: ${error.message}`);
-    setError("Failed to load PDF document");
+    // Don't set general error, keep PDF-specific error separate
+  };
+
+  // Fallback to native browser PDF viewer
+  const openInNativePDFViewer = () => {
+    if (documentUrl) {
+      // Create iframe for native PDF viewing
+      const iframe = document.createElement('iframe');
+      iframe.src = documentUrl;
+      iframe.style.width = '100%';
+      iframe.style.height = '600px';
+      iframe.style.border = 'none';
+      iframe.style.borderRadius = '8px';
+      
+      // Replace PDF viewer with native iframe
+      const container = document.getElementById('pdf-viewer-container');
+      if (container) {
+        container.innerHTML = '';
+        container.appendChild(iframe);
+      }
+    }
   };
 
   const fileInfo = getFileInfo(report.file_name);
@@ -235,17 +265,25 @@ export function SimpleDocumentViewer({ report }: SimpleDocumentViewerProps) {
                     <div className="text-center">
                       <p className="font-medium">PDF Loading Error</p>
                       <p className="text-sm mt-1">{pdfError}</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mt-4"
-                        onClick={() => {
-                          setPdfError(null);
-                          loadDocument();
-                        }}
-                      >
-                        Try Again
-                      </Button>
+                      <div className="flex gap-2 mt-4">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setPdfError(null);
+                            loadDocument();
+                          }}
+                        >
+                          Retry PDF Viewer
+                        </Button>
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          onClick={openInNativePDFViewer}
+                        >
+                          Use Browser PDF Viewer
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -276,7 +314,7 @@ export function SimpleDocumentViewer({ report }: SimpleDocumentViewerProps) {
                     )}
 
                     {/* PDF viewer with error boundary */}
-                    <div className="flex justify-center overflow-auto max-h-[800px] border rounded">
+                    <div id="pdf-viewer-container" className="flex justify-center overflow-auto max-h-[800px] border rounded">
                       <Document
                         file={documentUrl}
                         onLoadSuccess={onDocumentLoadSuccess}

@@ -31,20 +31,34 @@ export async function generateDocumentUrl(fileUrl: string | null): Promise<Docum
 
     console.log(`Generating signed URL for: ${bucket}/${filePath}`);
 
-    // Generate signed URL with 1 hour expiry
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .createSignedUrl(filePath, 3600);
-
-    if (error) {
-      console.error('Error generating signed URL:', error);
-      return { 
-        success: false, 
-        error: `Unable to access document: ${error.message}` 
-      };
+    // Generate signed URL with 2 hour expiry and retry mechanism
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(filePath, 7200); // 2 hours
+      
+      if (!error && data?.signedUrl) {
+        return { success: true, url: data.signedUrl };
+      }
+      
+      retryCount++;
+      if (retryCount < maxRetries) {
+        console.warn(`Retry ${retryCount} for signed URL generation:`, error);
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+      } else {
+        console.error('Final error generating signed URL:', error);
+        return { 
+          success: false, 
+          error: `Unable to access document after ${maxRetries} attempts: ${error?.message || 'Unknown error'}` 
+        };
+      }
     }
 
-    return { success: true, url: data.signedUrl };
+    // This should never be reached due to the while loop structure
+    return { success: false, error: "Unknown error occurred" };
   } catch (error) {
     console.error('Unexpected error in generateDocumentUrl:', error);
     return { 
