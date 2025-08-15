@@ -29,29 +29,29 @@ export function DoctorInfoCard({
   return (
     <Card>
       <CardContent className="p-3">
-        <h4 className="font-semibold mb-2 text-base">Medical Information</h4>
+        <h4 className="medical-subheading mb-2">Medical Information</h4>
         <div className="space-y-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {facility && (
               <div className="flex flex-col space-y-0.5">
-                <Label className="text-muted-foreground text-xs">Facility</Label>
-                <span className="font-medium text-sm">{facility}</span>
+                <Label className="medical-label-xs">Facility</Label>
+                <span className="text-sm">{facility}</span>
               </div>
             )}
             
             {orderingPhysician && (
               <div className="flex flex-col space-y-0.5">
-                <Label className="text-muted-foreground text-xs">Ordering Physician</Label>
-                <span className="font-medium text-sm">{orderingPhysician}</span>
+                <Label className="medical-label-xs">Ordering Physician</Label>
+                <span className="text-sm">{orderingPhysician}</span>
               </div>
             )}
           </div>
 
           {/* Contact Information Section */}
           {(address || phone || email) && (
-            <div className="mt-6">
-              <h5 className="font-medium mb-3 text-sm text-muted-foreground">Contact Information</h5>
-              <div className="space-y-3">
+            <div className="mt-4">
+              <h5 className="medical-label-xs mb-2">Contact Information</h5>
+              <div className="space-y-2">
                 {address && (
                   <div className="flex items-start space-x-2">
                     <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />

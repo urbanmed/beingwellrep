@@ -19,26 +19,26 @@ export function PatientInfoCard({ patient }: PatientInfoCardProps) {
   return (
     <Card>
       <CardContent className="p-3">
-        <h4 className="font-semibold mb-2 text-base">Patient Information</h4>
+        <h4 className="medical-subheading mb-2">Patient Information</h4>
         <div className="flex flex-wrap items-center gap-4">
           {patient.name && (
             <div className="flex items-center gap-1">
-              <Label className="text-muted-foreground text-xs">Name:</Label>
-              <span className="font-medium text-sm">{patient.name}</span>
+              <Label className="medical-label-xs">Name:</Label>
+              <span className="text-sm">{patient.name}</span>
             </div>
           )}
           
           {patient.age && (
             <div className="flex items-center gap-1">
-              <Label className="text-muted-foreground text-xs">Age:</Label>
-              <span className="font-medium text-sm">{patient.age}</span>
+              <Label className="medical-label-xs">Age:</Label>
+              <span className="text-sm">{patient.age}</span>
             </div>
           )}
           
           {patient.gender && (
             <div className="flex items-center gap-1">
-              <Label className="text-muted-foreground text-xs">Gender:</Label>
-              <span className="font-medium text-sm capitalize">{patient.gender}</span>
+              <Label className="medical-label-xs">Gender:</Label>
+              <span className="text-sm capitalize">{patient.gender}</span>
             </div>
           )}
         </div>

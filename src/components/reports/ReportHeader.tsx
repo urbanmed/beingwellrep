@@ -47,7 +47,7 @@ export function ReportHeader({ report }: ReportHeaderProps) {
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-xl mb-2">{report.title}</CardTitle>
+            <CardTitle className="medical-heading-sm mb-2">{report.title}</CardTitle>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="capitalize">
                 {report.report_type.replace('_', ' ')}
@@ -60,14 +60,14 @@ export function ReportHeader({ report }: ReportHeaderProps) {
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CardContent className="p-3 space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {report.facility_name && (
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Facility</p>
-                <p className="text-sm text-muted-foreground">{report.facility_name}</p>
+                <p className="medical-label-xs">Facility</p>
+                <p className="text-sm text-foreground">{report.facility_name}</p>
               </div>
             </div>
           )}
@@ -76,8 +76,8 @@ export function ReportHeader({ report }: ReportHeaderProps) {
             <div className="flex items-center gap-2">
               <Stethoscope className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Physician</p>
-                <p className="text-sm text-muted-foreground">{report.physician_name}</p>
+                <p className="medical-label-xs">Physician</p>
+                <p className="text-sm text-foreground">{report.physician_name}</p>
               </div>
             </div>
           )}
@@ -85,8 +85,8 @@ export function ReportHeader({ report }: ReportHeaderProps) {
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-sm font-medium">Report Date</p>
-              <p className="text-sm text-muted-foreground">{formatDate(report.report_date)}</p>
+              <p className="medical-label-xs">Report Date</p>
+              <p className="text-sm text-foreground">{formatDate(report.report_date)}</p>
             </div>
           </div>
           
@@ -94,8 +94,8 @@ export function ReportHeader({ report }: ReportHeaderProps) {
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Processing Confidence</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="medical-label-xs">Processing Confidence</p>
+                <p className="text-sm text-foreground">
                   {report.parsing_confidence ? `${Math.round(report.parsing_confidence * 100)}%` : 
                    report.extraction_confidence ? `${Math.round(report.extraction_confidence * 100)}%` : 'N/A'}
                 </p>
