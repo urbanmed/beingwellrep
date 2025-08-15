@@ -17,7 +17,7 @@ import {
   RotateCw
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getSignedUrl } from "@/lib/storage";
+import { getSignedUrl, parseStorageUrl } from "@/lib/storage";
 import { validateMedicalDocument, getDocumentErrorMessage, logDocumentAccess, type DocumentError } from "@/lib/utils/document-security";
 import { openInSystemBrowser } from "@/lib/utils/mobile";
 import { FileRecoveryDialog } from "./FileRecoveryDialog";
@@ -58,8 +58,15 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
         throw new Error('User not authenticated');
       }
 
-      const bucket = 'medical-documents';
-      const filePath = report.file_url;
+      // Parse the file URL to get proper bucket and path
+      let bucket = 'medical-documents';
+      let filePath = report.file_url;
+
+      const parsed = parseStorageUrl(report.file_url);
+      if (parsed) {
+        bucket = parsed.bucket;
+        filePath = parsed.path;
+      }
 
       console.log(`Generating signed URL: bucket=${bucket}, path=${filePath}`);
 

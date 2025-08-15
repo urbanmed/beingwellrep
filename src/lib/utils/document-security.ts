@@ -2,6 +2,7 @@
 // Ensures secure handling of medical documents with zero tolerance for file mix-ups
 
 import { supabase } from "@/integrations/supabase/client";
+import { parseStorageUrl } from "@/lib/storage";
 
 export interface DocumentError {
   type: 'NOT_FOUND' | 'ACCESS_DENIED' | 'INVALID_TYPE' | 'NETWORK_ERROR' | 'UNKNOWN';
@@ -37,43 +38,59 @@ export async function validateMedicalDocument(
   try {
     console.log('[SECURITY] Validating medical document:', fileUrl);
 
-    // Check if file exists in storage (exact path only)
-    const { data, error } = await supabase.storage
-      .from('medical-documents')
-      .download(fileUrl);
+    // Parse the file URL to get bucket and path
+    let bucket = 'medical-documents';
+    let filePath = fileUrl;
 
-    if (error) {
-      console.log('[SECURITY] File not found in storage:', error.message);
+    // If it's a full storage URL, parse it
+    const parsed = parseStorageUrl(fileUrl);
+    if (parsed) {
+      bucket = parsed.bucket;
+      filePath = parsed.path;
+    }
+
+    console.log('[SECURITY] Using bucket:', bucket, 'path:', filePath);
+
+    // Use list to check if file exists instead of download (more efficient)
+    const { data: listData, error: listError } = await supabase.storage
+      .from(bucket)
+      .list(filePath.split('/').slice(0, -1).join('/'), {
+        search: filePath.split('/').pop()
+      });
+
+    if (listError) {
+      console.log('[SECURITY] File list error:', listError.message);
       
       return {
         isValid: false,
         fileExists: false,
         error: {
-          type: error.message.includes('not found') ? 'NOT_FOUND' : 'ACCESS_DENIED',
-          message: 'Document file not found in storage',
-          details: error.message
+          type: listError.message.includes('not found') ? 'NOT_FOUND' : 'ACCESS_DENIED',
+          message: 'Unable to access document. Please check your permissions or try again later.',
+          details: listError.message
         }
       };
     }
 
-    if (!data) {
+    const fileName = filePath.split('/').pop();
+    const fileExists = listData && listData.some(file => file.name === fileName);
+
+    if (!fileExists) {
       return {
         isValid: false,
         fileExists: false,
         error: {
           type: 'NOT_FOUND',
-          message: 'Document file is empty or corrupted'
+          message: 'Document file not found in storage'
         }
       };
     }
 
-    // Validate file type if specified
+    // Validate file type if specified  
     if (expectedType) {
-      const actualType = data.type;
-      const fileExtension = fileUrl.toLowerCase().split('.').pop();
+      const fileExtension = filePath.toLowerCase().split('.').pop();
       
       const isValidType = 
-        actualType.includes(expectedType.toLowerCase()) ||
         (expectedType === 'pdf' && fileExtension === 'pdf') ||
         (expectedType === 'image' && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || ''));
 
@@ -83,7 +100,7 @@ export async function validateMedicalDocument(
           fileExists: true,
           error: {
             type: 'INVALID_TYPE',
-            message: `Expected ${expectedType} but found ${actualType}`,
+            message: `Expected ${expectedType} but found file extension: ${fileExtension}`,
             details: `File extension: ${fileExtension}`
           }
         };
