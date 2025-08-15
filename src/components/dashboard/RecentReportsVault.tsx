@@ -37,11 +37,11 @@ export function RecentReportsVault() {
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2.5 sm:space-y-3">
         {recentReports.length === 0 ? (
-          <div className="text-center py-4">
-            <p className="medical-annotation mb-3">No reports uploaded yet</p>
-            <Button size="sm" onClick={() => navigate('/upload')}>
+          <div className="text-center py-3 sm:py-4">
+            <p className="text-xs sm:text-sm text-muted-foreground mb-3">No reports uploaded yet</p>
+            <Button size="sm" onClick={() => navigate('/upload')} className="min-h-[44px] touch-target">
               Upload First Report
             </Button>
           </div>
@@ -50,31 +50,31 @@ export function RecentReportsVault() {
             {recentReports.map((report) => (
               <div 
                 key={report.id} 
-                className="border rounded-lg p-3 hover:bg-accent/50 cursor-pointer transition-colors"
+                className="border rounded-lg p-2.5 sm:p-3 hover:bg-accent/50 cursor-pointer transition-colors active:scale-[0.98] min-h-[44px] touch-target"
                 onClick={() => navigate(`/reports/${report.id}`)}
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="medical-label-xs font-medium truncate">
+                <div className="flex items-start justify-between mb-1.5 sm:mb-2">
+                  <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-1">
+                    <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">
                       {report.title || 'Untitled Report'}
                     </span>
                   </div>
-                  <Badge variant={getReportTypeColor(report.report_type)} className="text-xs">
+                  <Badge variant={getReportTypeColor(report.report_type)} className="text-[10px] sm:text-xs flex-shrink-0 ml-2">
                     {report.report_type}
                   </Badge>
                 </div>
                 
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center space-x-3">
+                <div className="flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
+                  <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
                     {report.physician_name && (
-                      <div className="flex items-center space-x-1">
-                        <User className="h-3 w-3" />
-                        <span>{report.physician_name}</span>
+                      <div className="flex items-center space-x-1 min-w-0">
+                        <User className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
+                        <span className="truncate">{report.physician_name}</span>
                       </div>
                     )}
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="h-3 w-3" />
+                    <div className="flex items-center space-x-1 flex-shrink-0">
+                      <Calendar className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                       <span>{format(new Date(report.report_date), 'MMM d, yyyy')}</span>
                     </div>
                   </div>
@@ -85,7 +85,7 @@ export function RecentReportsVault() {
             <Button 
               variant="outline" 
               size="sm" 
-              className="w-full" 
+              className="w-full min-h-[44px] touch-target" 
               onClick={() => navigate('/vault')}
             >
               View All Reports

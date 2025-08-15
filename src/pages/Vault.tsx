@@ -13,7 +13,7 @@ export default function Vault() {
   }, []);
 
   return (
-    <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20 space-y-6">
+    <main className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 pb-16 sm:pb-20 space-y-4 sm:space-y-6">
       <DocumentProcessing />
       <FloatingUploadButton />
     </main>

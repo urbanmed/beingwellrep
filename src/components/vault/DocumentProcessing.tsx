@@ -151,20 +151,20 @@ export function DocumentProcessing() {
   return (
     <section className="space-y-4">
       <header className="flex items-center justify-end">
-        <div className="flex items-center gap-2">
-          <Button variant={selectionMode ? "secondary" : "outline"} size="sm" onClick={toggleSelectionMode}>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Button variant={selectionMode ? "secondary" : "outline"} size="sm" onClick={toggleSelectionMode} className="text-xs sm:text-sm">
             {selectionMode ? "Cancel" : "Select"}
           </Button>
-          <div className="w-48">
+          <div className="w-36 sm:w-48">
             <ViewModeSelector viewMode={viewMode} onViewModeChange={setViewMode} />
           </div>
         </div>
       </header>
       {selectionMode && (
-        <div className="flex items-center justify-between rounded-md border p-2 bg-muted/30">
-          <div className="text-sm">{selectedIds.size} selected</div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleSelectAll}>
+        <div className="flex items-center justify-between rounded-md border p-2 sm:p-3 bg-muted/30">
+          <div className="text-xs sm:text-sm">{selectedIds.size} selected</div>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Button variant="outline" size="sm" onClick={handleSelectAll} className="text-xs sm:text-sm">
               {selectedIds.size === items.length ? "Clear all" : "Select all"}
             </Button>
             <Button
@@ -172,6 +172,7 @@ export function DocumentProcessing() {
               size="sm"
               onClick={() => setOpenBulkDelete(true)}
               disabled={selectedIds.size === 0}
+              className="text-xs sm:text-sm"
             >
               Delete selected
             </Button>
@@ -182,27 +183,27 @@ export function DocumentProcessing() {
       {viewMode === 'timeline' ? (
         <>
           {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
             <Card>
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{stats.totalReports}</div>
+                  <div className="text-lg sm:text-2xl font-bold text-primary">{stats.totalReports}</div>
                   <div className="text-xs text-muted-foreground">Reports</div>
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-success">{stats.processedReports}</div>
+                  <div className="text-lg sm:text-2xl font-bold text-success">{stats.processedReports}</div>
                   <div className="text-xs text-muted-foreground">Processed</div>
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-accent-foreground">{stats.totalSummaries}</div>
+                  <div className="text-lg sm:text-2xl font-bold text-accent-foreground">{stats.totalSummaries}</div>
                   <div className="text-xs text-muted-foreground">Summaries</div>
                 </div>
               </CardContent>

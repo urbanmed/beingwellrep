@@ -145,7 +145,7 @@ export function RecommendationsSummary() {
           Recommendations
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2.5 sm:space-y-3">
         {items.map((it, idx) => {
           const completed = isCompleted(it.id);
           const showSeparator = idx === firstNonHighIdx && firstNonHighIdx > 0;
@@ -153,18 +153,23 @@ export function RecommendationsSummary() {
           return (
             <Fragment key={it.id}>
               {showSeparator && <Separator className="my-2 bg-accent" />}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <Checkbox id={it.id} checked={completed} onCheckedChange={() => toggleCompleted(it.id)} />
+              <div className="flex items-center justify-between gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                  <Checkbox 
+                    id={it.id} 
+                    checked={completed} 
+                    onCheckedChange={() => toggleCompleted(it.id)}
+                    className="flex-shrink-0"
+                  />
                   <label
                     htmlFor={it.id}
-                    className={`medical-label-xs truncate ${completed ? 'line-through text-muted-foreground' : ''}`}
+                    className={`text-xs sm:text-sm font-medium truncate cursor-pointer ${completed ? 'line-through text-muted-foreground' : ''}`}
                     title={it.text}
                   >
                     {it.text}
                   </label>
                 </div>
-                <Badge variant={badgeVariant(it.priority)} className={`text-xs ${isNonHigh ? 'bg-muted text-foreground border-transparent' : ''}`}>
+                <Badge variant={badgeVariant(it.priority)} className={`text-[10px] sm:text-xs flex-shrink-0 ${isNonHigh ? 'bg-muted text-foreground border-transparent' : ''}`}>
                   {it.priority}
                 </Badge>
               </div>

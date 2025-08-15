@@ -300,20 +300,20 @@ export function VitalsStatusSummary() {
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2.5 sm:space-y-3">
         {latestVitals.map((vital, index) => {
           const Icon = vital.icon;
           return (
-            <div key={index} className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Icon className="h-4 w-4 text-muted-foreground" />
-                <span className="medical-label-xs capitalize">
+            <div key={index} className="flex items-center justify-between gap-2">
+              <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-1">
+                <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium capitalize truncate">
                   {vital.type.replace(/_/g, ' ')}
                 </span>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="medical-annotation font-medium">{vital.value}</span>
-                <Badge variant={getStatusColor(vital.status)} className="text-xs">
+              <div className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
+                <span className="text-xs sm:text-sm font-medium">{vital.value}</span>
+                <Badge variant={getStatusColor(vital.status)} className="text-[10px] sm:text-xs">
                   {vital.status}
                 </Badge>
               </div>

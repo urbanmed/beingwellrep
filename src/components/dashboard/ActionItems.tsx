@@ -299,26 +299,26 @@ export function ActionItems() {
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-1.5">
+      <CardContent className="space-y-1.5 sm:space-y-2">
         {groupedResults.map((group) => (
           <div key={group.dateKey} className="space-y-1">
-            <div className="medical-annotation text-xs text-muted-foreground">
+            <div className="text-[10px] sm:text-xs text-muted-foreground">
               {group.dateLabel}
             </div>
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const StatusIcon = getStatusIcon(item.status);
                 return (
-                  <div key={item.id} className="flex items-center justify-between border-l border-l-destructive pl-2 py-0.5">
-                    <div className="flex items-center min-w-0 gap-1">
+                  <div key={item.id} className="flex items-center justify-between border-l border-l-destructive pl-2 py-0.5 gap-1">
+                    <div className="flex items-center min-w-0 gap-1 flex-1">
                       <StatusIcon className="h-3 w-3 text-destructive flex-shrink-0" />
-                      <span className="medical-label-xs font-medium capitalize truncate">
+                      <span className="text-xs sm:text-sm font-medium capitalize truncate">
                         {item.testName}
                       </span>
-                      <span className="medical-annotation text-xs truncate">
+                      <span className="text-[10px] sm:text-xs truncate">
                         <span className="font-medium ml-1">{item.value}</span>
                         {item.referenceRange && (
-                          <span className="text-muted-foreground ml-2">Ref: {item.referenceRange}</span>
+                          <span className="text-muted-foreground ml-1 sm:ml-2 hidden sm:inline">Ref: {item.referenceRange}</span>
                         )}
                       </span>
                     </div>
@@ -326,10 +326,10 @@ export function ActionItems() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="ml-0.5 h-7 w-7"
+                        className="h-6 w-6 sm:h-7 sm:w-7 touch-target"
                         onClick={() => handleViewSummary(item.reportId)}
                       >
-                        <Eye className="h-3 w-3" />
+                        <Eye className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                       </Button>
                     </div>
                   </div>

@@ -22,12 +22,12 @@ export function FloatingUploadButton({ onUploadComplete }: FloatingUploadButtonP
     return (
       <>
         {/* Mobile: Fixed bottom button with lab integration hint */}
-        <div className="fixed bottom-24 left-4 right-4 z-50">
+        <div className="fixed bottom-16 sm:bottom-20 left-3 right-3 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="flex flex-col items-center space-y-2">
             {/* Lab integration hint */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200/50 dark:border-blue-800/50 rounded-lg px-3 py-2 shadow-sm">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200/50 dark:border-blue-800/50 rounded-lg px-3 py-1.5 shadow-sm">
               <div className="flex items-center space-x-2">
-                <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <Lightbulb className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                 <span className="text-xs text-blue-700 dark:text-blue-300 font-medium">
                   Lab integrations coming soon
                 </span>
@@ -38,7 +38,7 @@ export function FloatingUploadButton({ onUploadComplete }: FloatingUploadButtonP
             <Button
               onClick={() => setShowModal(true)}
               size="lg"
-              className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 shadow-lg hover:shadow-xl transition-all duration-200 text-white border-0"
+              className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 shadow-lg hover:shadow-xl transition-all duration-200 text-white border-0 min-h-[44px] touch-target active:scale-95"
             >
               <Plus className="h-5 w-5 mr-2" />
               Add Report

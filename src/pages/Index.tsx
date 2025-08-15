@@ -110,20 +110,20 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 pb-safe">
       {/* Quick Actions */}
-      <div className="grid grid-cols-3 grid-rows-2 gap-3 sm:gap-4">
+      <div className="grid grid-cols-3 grid-rows-2 gap-2 sm:gap-3 lg:gap-4">
           {/* Reports */}
         <Card
           aria-label="Open Reports"
-          className="cursor-pointer hover:shadow-md transition-shadow col-start-1 row-start-1 medical-card-shadow"
+          className="cursor-pointer hover:shadow-md transition-shadow col-start-1 row-start-1 medical-card-shadow min-h-[44px] active:scale-95 transition-transform"
           onClick={() => navigate('/reports')}
         >
-          <CardContent className="p-3">
+          <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center justify-between">
-              <span className="medical-subheading">Reports</span>
-              <div className="rounded-lg bg-primary/10 p-2">
-                <FileText className="h-5 w-5 text-primary" />
+              <span className="text-xs sm:text-sm font-medium">Reports</span>
+              <div className="rounded-lg bg-primary/10 p-1.5 sm:p-2">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -132,14 +132,14 @@ const Index = () => {
         {/* Insights */}
         <Card
           aria-label="Open Insights"
-          className="cursor-pointer hover:shadow-md transition-shadow col-start-2 row-start-1 medical-card-shadow"
+          className="cursor-pointer hover:shadow-md transition-shadow col-start-2 row-start-1 medical-card-shadow min-h-[44px] active:scale-95 transition-transform"
           onClick={() => navigate('/summaries')}
         >
-          <CardContent className="p-3">
+          <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center justify-between">
-              <span className="medical-subheading">Insights</span>
-              <div className="rounded-lg bg-primary/10 p-2">
-                <Brain className="h-5 w-5 text-primary" />
+              <span className="text-xs sm:text-sm font-medium">Insights</span>
+              <div className="rounded-lg bg-primary/10 p-1.5 sm:p-2">
+                <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -148,14 +148,14 @@ const Index = () => {
         {/* SOS - standout spanning 2 rows */}
         <Card
           aria-label="Trigger SOS"
-          className="bg-destructive/90 border-destructive cursor-pointer hover:bg-destructive transition-colors col-start-3 row-span-2 medical-card-shadow"
+          className="bg-destructive/90 border-destructive cursor-pointer hover:bg-destructive transition-colors col-start-3 row-span-2 medical-card-shadow min-h-[44px] active:scale-95 transition-transform"
           onClick={handleSosClick}
         >
-          <CardContent className="p-3 h-full flex flex-col justify-center">
+          <CardContent className="p-2.5 sm:p-3 h-full flex flex-col justify-center">
             <div className="flex items-center justify-between">
-              <span className="medical-subheading text-destructive-foreground">SOS</span>
-              <div className="rounded-lg bg-destructive-foreground/20 p-2">
-                <AlertTriangle className="h-5 w-5 text-destructive-foreground" />
+              <span className="text-xs sm:text-sm font-medium text-destructive-foreground">SOS</span>
+              <div className="rounded-lg bg-destructive-foreground/20 p-1.5 sm:p-2">
+                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive-foreground" />
               </div>
             </div>
           </CardContent>
@@ -164,14 +164,14 @@ const Index = () => {
         {/* Prescriptions */}
         <Card
           aria-label="Open Prescriptions"
-          className="cursor-pointer hover:shadow-md transition-shadow col-start-1 row-start-2 medical-card-shadow"
+          className="cursor-pointer hover:shadow-md transition-shadow col-start-1 row-start-2 medical-card-shadow min-h-[44px] active:scale-95 transition-transform"
           onClick={() => navigate('/prescriptions')}
         >
-          <CardContent className="p-3">
+          <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center justify-between">
-              <span className="medical-subheading">Prescriptions</span>
-              <div className="rounded-lg bg-primary/10 p-2">
-                <Pill className="h-5 w-5 text-primary" />
+              <span className="text-xs sm:text-sm font-medium">Prescriptions</span>
+              <div className="rounded-lg bg-primary/10 p-1.5 sm:p-2">
+                <Pill className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -180,14 +180,14 @@ const Index = () => {
         {/* My Cards */}
         <Card
           aria-label="Open My Cards"
-          className="cursor-pointer hover:shadow-md transition-shadow col-start-2 row-start-2 medical-card-shadow"
+          className="cursor-pointer hover:shadow-md transition-shadow col-start-2 row-start-2 medical-card-shadow min-h-[44px] active:scale-95 transition-transform"
           onClick={() => navigate('/cards')}
         >
-          <CardContent className="p-3">
+          <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center justify-between">
-              <span className="medical-subheading">My Cards</span>
-              <div className="rounded-lg bg-primary/10 p-2">
-                <CreditCard className="h-5 w-5 text-primary" />
+              <span className="text-xs sm:text-sm font-medium">My Cards</span>
+              <div className="rounded-lg bg-primary/10 p-1.5 sm:p-2">
+                <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -195,7 +195,7 @@ const Index = () => {
       </div>
 
       {/* Health Overview Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         <RecommendationsSummary />
         <ActionItems />
       </div>
@@ -205,13 +205,13 @@ const Index = () => {
       <RecentReportsVault />
 
       {/* Insights and Trends */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         <AIInsightsCarousel />
         <TrendsTimelineMini />
       </div>
 
       {/* Tasks and Tips */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         <HealthTasksReminders />
         <PersonalizedTipsHealth />
       </div>
@@ -220,7 +220,7 @@ const Index = () => {
       <div className="space-y-4">
         <h2 className="medical-heading-sm">Quick Access</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
           <Card className="medical-card-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="medical-subheading flex items-center">

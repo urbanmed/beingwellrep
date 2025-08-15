@@ -27,26 +27,26 @@ export function Header() {
 
   return (
     <header className="bg-background border-b border-border sticky top-0 z-50" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      <div className="flex items-center justify-center px-4 py-3">
+      <div className="flex items-center justify-center px-3 sm:px-4 py-2.5 sm:py-3">
         <div 
-          className="cursor-pointer"
+          className="cursor-pointer touch-target active:scale-95 transition-transform"
           onClick={() => navigate("/")}
         >
           <img 
             src="/lovable-uploads/6e18c5f3-d6d2-4a2b-865a-590ab23d865a.png" 
             alt="beingwell" 
-            className="h-8 w-auto object-contain"
+            className="h-7 sm:h-8 w-auto object-contain"
             style={{ imageRendering: 'crisp-edges' }}
           />
         </div>
       </div>
       {!loading && (
-        <div className="flex items-center justify-between px-4 pb-2">
-          <h2 className="text-sm font-medium text-foreground">{greetingText}</h2>
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between px-3 sm:px-4 pb-2">
+          <h2 className="text-xs sm:text-sm font-medium text-foreground truncate mr-2">{greetingText}</h2>
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <NotificationCenter />
-            <Link to="/profile" aria-label="Go to profile" className="shrink-0">
-              <Avatar className="h-8 w-8 border border-border">
+            <Link to="/profile" aria-label="Go to profile" className="shrink-0 touch-target">
+              <Avatar className="h-7 w-7 sm:h-8 sm:w-8 border border-border">
                 <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
               </Avatar>
             </Link>
