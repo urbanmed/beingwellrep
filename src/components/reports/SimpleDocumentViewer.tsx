@@ -19,10 +19,6 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { generateDocumentUrl, checkDocumentExists } from "@/lib/utils/simple-document-access";
 import { useFileDownload } from "@/hooks/useFileDownload";
 
-// Import the CSS to fix PDF rendering
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
-
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
