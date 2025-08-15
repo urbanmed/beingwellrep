@@ -31,10 +31,13 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
   const hasStructuredData = report.parsed_data && (
     // Check for new extractedData format (markdown tables)
     (report.parsed_data.extractedData?.labTestResults && 
+     typeof report.parsed_data.extractedData.labTestResults === 'string' &&
      report.parsed_data.extractedData.labTestResults.includes('|')) ||
     (report.parsed_data.extractedData?.patientInformation && 
+     typeof report.parsed_data.extractedData.patientInformation === 'string' &&
      report.parsed_data.extractedData.patientInformation.includes('|')) ||
     (report.parsed_data.extractedData?.hospitalLabInformation && 
+     typeof report.parsed_data.extractedData.hospitalLabInformation === 'string' &&
      report.parsed_data.extractedData.hospitalLabInformation.includes('|')) ||
     // Check for legacy structured data
     (report.parsed_data.sections?.length > 0) || 
