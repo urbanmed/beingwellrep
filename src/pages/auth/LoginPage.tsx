@@ -107,136 +107,149 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
-          <CardDescription className="text-center">
-            Sign in to your Health Buddy account
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+      {/* Logo Section */}
+      <div className="mb-8 animate-fade-in">
+        <Link to="/" className="block">
+          <img 
+            src="/lovable-uploads/6e18c5f3-d6d2-4a2b-865a-590ab23d865a.png" 
+            alt="BeingWell Logo" 
+            className="h-16 w-auto mx-auto hover-scale transition-transform duration-200"
+          />
+        </Link>
+      </div>
+
+      <Card className="w-full max-w-md animate-fade-in medical-card-shadow border-0 bg-card/95 backdrop-blur-sm">
+        <CardHeader className="space-y-2 text-center pb-6">
+          <CardTitle className="text-3xl font-bold medical-heading text-foreground">Welcome back</CardTitle>
+          <CardDescription className="medical-body text-muted-foreground">
+            Sign in to your BeingWell account
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-8 pb-8">
           <Tabs value={loginMethod} onValueChange={(value) => setLoginMethod(value as 'email' | 'phone')} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="email" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50">
+              <TabsTrigger value="email" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Mail className="h-4 w-4" />
                 Email
               </TabsTrigger>
-              <TabsTrigger value="phone" className="flex items-center gap-2">
+              <TabsTrigger value="phone" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Phone className="h-4 w-4" />
                 Phone
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="email" className="space-y-4 mt-4">
-              <form onSubmit={handleEmailSubmit} className="space-y-4">
+            <TabsContent value="email" className="space-y-6 mt-0">
+              <form onSubmit={handleEmailSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="medical-label font-medium">Email</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
                     <Input
                       id="email"
                       type="email"
                       placeholder="Enter your email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 h-12 bg-background border-border/50 focus:border-primary/50 focus:ring-primary/20"
                       required
                     />
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="medical-label font-medium">Password</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10"
+                      className="pl-10 pr-10 h-12 bg-background border-border/50 focus:border-primary/50 focus:ring-primary/20"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                      className="absolute right-3 top-3 text-muted-foreground/70 hover:text-foreground transition-colors"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-end">
                   <Link
                     to="/auth/forgot-password"
-                    className="text-sm text-primary hover:underline"
+                    className="text-sm text-primary hover:underline story-link font-medium"
                   >
                     Forgot password?
                   </Link>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full h-12 medical-heading font-semibold" disabled={isLoading}>
                   {isLoading ? "Signing in..." : "Sign in"}
                 </Button>
               </form>
             </TabsContent>
             
-            <TabsContent value="phone" className="space-y-4 mt-4">
-              <form onSubmit={handlePhoneSubmit} className="space-y-4">
+            <TabsContent value="phone" className="space-y-6 mt-0">
+              <form onSubmit={handlePhoneSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="phoneLogin">Phone Number</Label>
+                  <Label htmlFor="phoneLogin" className="medical-label font-medium">Phone Number</Label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
                     <Input
                       id="phoneLogin"
                       type="tel"
                       placeholder="Enter your phone number"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 h-12 bg-background border-border/50 focus:border-primary/50 focus:ring-primary/20"
                       required
                     />
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="phonePassword">Password</Label>
+                  <Label htmlFor="phonePassword" className="medical-label font-medium">Password</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
                     <Input
                       id="phonePassword"
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10"
+                      className="pl-10 pr-10 h-12 bg-background border-border/50 focus:border-primary/50 focus:ring-primary/20"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                      className="absolute right-3 top-3 text-muted-foreground/70 hover:text-foreground transition-colors"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full h-12 medical-heading font-semibold" disabled={isLoading}>
                   {isLoading ? "Signing in..." : "Sign in"}
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
 
-          <div className="mt-6 text-center text-sm">
-            Don't have an account?{' '}
-            <Link to="/auth/signup" className="text-primary hover:underline font-medium">
-              Sign up
-            </Link>
+          <div className="mt-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              Don't have an account?{' '}
+              <Link to="/auth/signup" className="text-primary hover:underline story-link font-semibold">
+                Sign up
+              </Link>
+            </p>
           </div>
         </CardContent>
       </Card>
