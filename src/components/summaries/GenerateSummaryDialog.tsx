@@ -262,31 +262,31 @@ export function GenerateSummaryDialog({
                       <FileText className="h-3 w-3 mr-1" />
                       Ready for Summary ({readyReports.length})
                     </h4>
-                     <div className="space-y-2 max-h-[25vh] overflow-y-auto">
+                     <div className="space-y-1.5 max-h-[25vh] overflow-y-auto">
                        {readyReports.map((report) => (
                          <Card key={report.id}>
-                           <CardContent className="p-2 sm:p-3">
-                             <div className="flex items-start gap-3">
+                           <CardContent className="p-1.5 sm:p-3">
+                             <div className="flex items-start gap-2">
                                <Checkbox
                                  checked={selectedReports.includes(report.id)}
                                  onCheckedChange={() => handleReportToggle(report.id)}
-                                 className="mt-1 h-4 w-4 flex-shrink-0"
+                                 className="mt-0.5 h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0"
                                />
-                               <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                                 <FileText className="h-4 w-4 text-green-600" />
+                               <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                                 <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
                                </div>
                                <div className="flex-1 min-w-0">
-                                 <div className="space-y-1">
-                                   <h5 className="text-sm font-medium truncate">{report.title}</h5>
+                                 <div className="space-y-0.5">
+                                   <h5 className="text-xs sm:text-sm font-medium truncate leading-tight">{report.title}</h5>
                                     <div className="flex flex-wrap gap-1">
-                                      <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 sm:px-1.5 flex-shrink-0">
+                                      <Badge variant="outline" className="text-[9px] sm:text-[10px] h-3.5 sm:h-4 px-1 py-0 flex-shrink-0 leading-none">
                                         {report.report_type}
                                       </Badge>
-                                      <Badge variant="secondary" className="text-[10px] sm:text-xs h-4 sm:h-5 bg-green-100 text-green-700 px-1 sm:px-1.5 flex-shrink-0">
+                                      <Badge variant="secondary" className="text-[9px] sm:text-[10px] h-3.5 sm:h-4 bg-green-100 text-green-700 px-1 py-0 flex-shrink-0 leading-none">
                                         Ready
                                       </Badge>
                                     </div>
-                                   <p className="text-xs text-muted-foreground truncate">
+                                   <p className="text-[10px] sm:text-xs text-muted-foreground truncate leading-tight">
                                      {new Date(report.report_date).toLocaleDateString()}
                                      {report.physician_name && ` • Dr. ${report.physician_name}`}
                                    </p>
