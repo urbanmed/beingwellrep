@@ -13,7 +13,7 @@ import { RecommendationsSummary } from '@/components/dashboard/RecommendationsSu
 import { ActionItems } from '@/components/dashboard/ActionItems';
 import { RecentReportsVault } from '@/components/dashboard/RecentReportsVault';
 import { AIInsightsCarousel } from '@/components/dashboard/AIInsightsCarousel';
-import { TrendsTimelineMini } from '@/components/dashboard/TrendsTimelineMini';
+
 import { HealthTasksReminders } from '@/components/dashboard/HealthTasksReminders';
 import { PersonalizedTipsHealth } from '@/components/dashboard/PersonalizedTipsHealth';
 
@@ -204,11 +204,8 @@ const Index = () => {
       {/* Recent Reports */}
       <RecentReportsVault />
 
-      {/* Insights and Trends */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-        <AIInsightsCarousel />
-        <TrendsTimelineMini />
-      </div>
+      {/* AI Insights */}
+      <AIInsightsCarousel />
 
       {/* Tasks and Tips */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
