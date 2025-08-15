@@ -1,5 +1,5 @@
 import { ReportHeader } from "./ReportHeader";
-import { EnhancedDocumentViewer } from "./EnhancedDocumentViewer";
+import { SimpleDocumentViewer } from "./SimpleDocumentViewer";
 import { PatientInfoCard } from "./PatientInfoCard";
 import { DoctorInfoCard } from "./DoctorInfoCard";
 import { CustomStructuredDataViewer } from "./CustomStructuredDataViewer";
@@ -58,7 +58,7 @@ export function DocumentViewer({ report }: DocumentViewerProps) {
       )}
       
       {/* Always show document viewer if there's a file URL */}
-      {report.file_url && <EnhancedDocumentViewer report={report} />}
+      {report.file_url && <SimpleDocumentViewer report={report} />}
     </div>
   );
 }
