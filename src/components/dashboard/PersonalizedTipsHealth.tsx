@@ -166,24 +166,24 @@ export function PersonalizedTipsHealth() {
           {personalizedTips.map((tip) => (
             <Card 
               key={tip.id} 
-              className={`flex-none w-[calc((100vw-3rem)/2.2)] min-w-[140px] max-w-[180px] border-l-2 ${getPriorityBorder(tip.priority)} ${isMobile ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
+              className={`flex-none w-[calc((100vw-3rem)/2.2)] min-w-[160px] max-w-[200px] border-l-2 ${getPriorityBorder(tip.priority)} ${isMobile ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
               onClick={() => handleTipClick(tip)}
             >
-              <CardHeader className="pb-1 px-2 pt-2">
+              <CardHeader className="pb-2 px-3 pt-3">
                 <div className="flex items-center justify-between gap-1">
-                  <Badge variant={getCategoryColor(tip.category)} className="text-[10px] px-1 py-0 h-4">
+                  <Badge variant={getCategoryColor(tip.category)} className="text-xs px-1 py-0 h-5">
                     {tip.category}
                   </Badge>
                   {tip.priority === 'important' && (
-                    <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">
+                    <Badge variant="destructive" className="text-xs px-1 py-0 h-5">
                       !
                     </Badge>
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="px-2 pb-2 space-y-1">
-                <h4 className="text-[10px] sm:text-xs font-medium leading-tight line-clamp-2">{tip.title}</h4>
-                <p className="text-[10px] leading-snug text-muted-foreground line-clamp-3 whitespace-normal">
+              <CardContent className="px-3 pb-3 space-y-2">
+                <h4 className="text-xs sm:text-sm font-medium leading-relaxed line-clamp-2">{tip.title}</h4>
+                <p className="text-xs leading-relaxed text-muted-foreground line-clamp-3 whitespace-normal">
                   {tip.content}
                 </p>
                 {tip.source && (
