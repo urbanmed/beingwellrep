@@ -120,7 +120,7 @@ export default function Upload() {
       <Card className="border-primary/20 bg-primary/5 medical-card-shadow">
         <CardHeader className="text-center">
           <Sparkles className="h-8 w-8 text-primary mx-auto mb-2" />
-          <CardTitle className="medical-heading">Smart Document Processing</CardTitle>
+          <CardTitle className="text-base font-medium">Smart Document Processing</CardTitle>
           <CardDescription>
             Our AI automatically extracts document titles, types, physician names, facility information, and more from your uploads. No manual entry required!
           </CardDescription>
@@ -132,7 +132,7 @@ export default function Upload() {
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors medical-card-shadow min-h-[44px] touch-target active:scale-[0.98] transition-transform">
           <CardHeader className="text-center">
             <FileText className="h-8 w-8 text-primary mx-auto mb-2" />
-            <CardTitle className="medical-heading">Drag & Drop Files</CardTitle>
+            <CardTitle className="text-sm font-medium">Drag & Drop Files</CardTitle>
             <CardDescription>
               Drag files directly to the upload area above
             </CardDescription>
@@ -142,7 +142,7 @@ export default function Upload() {
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors medical-card-shadow min-h-[44px] touch-target active:scale-[0.98] transition-transform">
           <CardHeader className="text-center">
             <Camera className="h-8 w-8 text-primary mx-auto mb-2" />
-            <CardTitle className="medical-heading">Mobile Camera</CardTitle>
+            <CardTitle className="text-sm font-medium">Mobile Camera</CardTitle>
             <CardDescription>
               Use your phone's camera to capture documents
             </CardDescription>

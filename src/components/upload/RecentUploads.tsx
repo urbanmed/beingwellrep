@@ -152,7 +152,7 @@ export function RecentUploads() {
     return (
       <Card className="medical-card-shadow">
         <CardHeader>
-          <CardTitle className="medical-heading">Recent Uploads</CardTitle>
+          <CardTitle className="text-base font-medium">Recent Uploads</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
@@ -168,7 +168,7 @@ export function RecentUploads() {
     return (
       <Card className="medical-card-shadow">
         <CardHeader>
-          <CardTitle className="medical-heading">Recent Uploads</CardTitle>
+          <CardTitle className="text-base font-medium">Recent Uploads</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="medical-label text-center py-8">
@@ -186,7 +186,7 @@ export function RecentUploads() {
     <Card className="medical-card-shadow">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="medical-heading">Recent Uploads</CardTitle>
+          <CardTitle className="text-base font-medium">Recent Uploads</CardTitle>
           {reports.length > 0 && (
             <div className="flex items-center gap-2">
               {failedCount > 0 && (
@@ -242,23 +242,23 @@ export function RecentUploads() {
       </CardHeader>
       <CardContent className="space-y-4">
         {reports.map((report) => (
-          <div key={report.id} className="border rounded-lg p-4 space-y-3">
+          <div key={report.id} className="border rounded-lg p-3 space-y-2">
             <div className="flex items-start justify-between">
               <div className="flex items-start space-x-3">
                 <Checkbox
                   checked={selectedForDeletion.includes(report.id)}
                   onCheckedChange={(checked) => handleSelectReport(report.id, checked as boolean)}
                 />
-                <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div className="flex-1">
-                  <h3 className="medical-heading">{report.title}</h3>
-                  <p className="medical-label">{report.file_name}</p>
+                  <h3 className="text-sm font-medium">{report.title}</h3>
+                  <p className="text-xs text-muted-foreground">{report.file_name}</p>
                 </div>
               </div>
               {getProcessingStatusBadge(report.parsing_status, report.extraction_confidence)}
             </div>
 
-            <div className="flex items-center space-x-4 text-xs medical-label">
+            <div className="flex items-center space-x-4 text-xs text-muted-foreground">
               <div className="flex items-center space-x-1">
                 <Calendar className="h-3 w-3" />
                 <span>{format(new Date(report.created_at), 'MMM d, yyyy')}</span>
@@ -277,7 +277,7 @@ export function RecentUploads() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 {getProcessingStatusIcon(report.parsing_status)}
-                <span className="medical-label capitalize">
+                <span className="text-xs text-muted-foreground capitalize">
                   {report.report_type.replace('_', ' ')}
                 </span>
               </div>
@@ -288,7 +288,7 @@ export function RecentUploads() {
                   variant="outline"
                   size="sm"
                   onClick={() => retryProcessing(report.id)}
-                  className="rounded-full shadow-none min-h-[36px] touch-target"
+                  className="rounded-full shadow-none h-8"
                 >
                   Retry Processing
                 </Button>
@@ -302,7 +302,7 @@ export function RecentUploads() {
                     setSelectedReportIds([report.id]);
                     setShowGenerateDialog(true);
                   }}
-                  className="text-primary hover:text-primary rounded-full shadow-none min-h-[36px] touch-target"
+                  className="text-primary hover:text-primary rounded-full shadow-none h-8"
                 >
                   <Sparkles className="h-3 w-3 mr-1" />
                   Generate Summary
