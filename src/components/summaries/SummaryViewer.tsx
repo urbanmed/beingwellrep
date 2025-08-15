@@ -40,10 +40,11 @@ export function SummaryViewer({
   onPin, 
   onRate 
 }: SummaryViewerProps) {
-  const isMobile = useIsMobile();
-  
+  // Check for null summary BEFORE calling any hooks
   if (!summary) return null;
 
+  const isMobile = useIsMobile();
+  
   // Parse the content using the utility function
   const content: any = parseSummaryContent(summary.content);
 
