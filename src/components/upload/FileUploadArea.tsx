@@ -212,11 +212,11 @@ export function FileUploadArea({
             dragActive ? 'text-primary' : 'text-muted-foreground'
           }`} />
           
-          <h3 className="text-lg font-semibold mb-2">
+          <h3 className="medical-heading mb-2">
             {dragActive ? 'Drop files here' : 'Upload Medical Documents'}
           </h3>
           
-          <p className="text-muted-foreground mb-4">
+          <p className="medical-label mb-4">
             {dragActive 
               ? 'Release to upload files' 
               : `Drag & drop files here, or click to select (max ${maxFiles} files)`
@@ -252,12 +252,12 @@ export function FileUploadArea({
           <Button 
             onClick={() => document.getElementById('file-upload')?.click()}
             disabled={isUploading}
-            className="mb-2"
+            className="mb-2 rounded-full shadow-none min-h-[44px] touch-target"
           >
             Choose Files
           </Button>
           
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs medical-label">
             Supported: PDF, JPEG, PNG, WebP (max 50MB each)
           </p>
         </CardContent>
@@ -265,14 +265,14 @@ export function FileUploadArea({
 
       {/* Upload Progress */}
       {isUploading && (
-        <Card>
+        <Card className="medical-card-shadow">
           <CardContent className="p-4">
             <div className="flex items-center space-x-4">
               <div className="flex-1">
-                <p className="text-sm font-medium mb-2">Uploading files...</p>
+                <p className="medical-label font-medium mb-2">Uploading files...</p>
                 <Progress value={uploadProgress} className="h-2" />
               </div>
-              <span className="text-sm text-muted-foreground">{uploadProgress}%</span>
+              <span className="medical-label">{uploadProgress}%</span>
             </div>
           </CardContent>
         </Card>
@@ -280,17 +280,17 @@ export function FileUploadArea({
 
       {/* Selected Files List */}
       {selectedFiles.length > 0 && !isUploading && (
-        <Card>
+        <Card className="medical-card-shadow">
           <CardContent className="p-4">
-            <h4 className="font-medium mb-3">Selected Files ({selectedFiles.length})</h4>
+            <h4 className="medical-heading mb-3">Selected Files ({selectedFiles.length})</h4>
             <div className="space-y-2">
               {selectedFiles.map((file, index) => (
                 <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
                   <div className="flex items-center space-x-3">
                     <FileText className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-medium truncate max-w-[200px]">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
+                      <p className="medical-label font-medium truncate max-w-[200px]">{file.name}</p>
+                      <p className="text-xs medical-label">{formatFileSize(file.size)}</p>
                     </div>
                   </div>
                   <Button

@@ -150,14 +150,14 @@ export function RecentUploads() {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="medical-card-shadow">
         <CardHeader>
-          <CardTitle>Recent Uploads</CardTitle>
+          <CardTitle className="medical-heading">Recent Uploads</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
             <Clock className="h-6 w-6 animate-spin text-muted-foreground" />
-            <span className="ml-2 text-muted-foreground">Loading...</span>
+            <span className="ml-2 medical-label">Loading...</span>
           </div>
         </CardContent>
       </Card>
@@ -166,12 +166,12 @@ export function RecentUploads() {
 
   if (reports.length === 0) {
     return (
-      <Card>
+      <Card className="medical-card-shadow">
         <CardHeader>
-          <CardTitle>Recent Uploads</CardTitle>
+          <CardTitle className="medical-heading">Recent Uploads</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-center py-8">
+          <p className="medical-label text-center py-8">
             No uploads yet. Start by uploading your first document above.
           </p>
         </CardContent>
@@ -183,10 +183,10 @@ export function RecentUploads() {
   const processingCount = reports.filter(r => r.parsing_status === 'processing').length;
 
   return (
-    <Card>
+    <Card className="medical-card-shadow">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Recent Uploads</CardTitle>
+          <CardTitle className="medical-heading">Recent Uploads</CardTitle>
           {reports.length > 0 && (
             <div className="flex items-center gap-2">
               {failedCount > 0 && (
@@ -195,7 +195,7 @@ export function RecentUploads() {
                     variant="outline"
                     size="sm"
                     onClick={retryAllFailed}
-                    className="text-blue-600 hover:text-blue-700"
+                    className="text-blue-600 hover:text-blue-700 rounded-full shadow-none min-h-[36px] touch-target"
                   >
                     <RotateCcw className="h-3 w-3 mr-1" />
                     Retry All Failed
@@ -204,7 +204,7 @@ export function RecentUploads() {
                     variant="outline"
                     size="sm"
                     onClick={clearFailedReports}
-                    className="text-destructive hover:text-destructive"
+                    className="text-destructive hover:text-destructive rounded-full shadow-none min-h-[36px] touch-target"
                   >
                     <Trash2 className="h-3 w-3 mr-1" />
                     Clear Failed
@@ -216,6 +216,7 @@ export function RecentUploads() {
                   variant="destructive"
                   size="sm"
                   onClick={() => setShowDeleteDialog(true)}
+                  className="rounded-full shadow-none min-h-[36px] touch-target"
                 >
                   <Trash2 className="h-3 w-3 mr-1" />
                   Delete Selected ({selectedForDeletion.length})
@@ -225,7 +226,7 @@ export function RecentUploads() {
           )}
         </div>
         {reports.length > 0 && (
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-4 medical-label">
             <label className="flex items-center gap-2 cursor-pointer">
               <Checkbox
                 checked={selectedForDeletion.length === reports.length && reports.length > 0}
@@ -250,14 +251,14 @@ export function RecentUploads() {
                 />
                 <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div className="flex-1">
-                  <h3 className="font-medium">{report.title}</h3>
-                  <p className="text-sm text-muted-foreground">{report.file_name}</p>
+                  <h3 className="medical-heading">{report.title}</h3>
+                  <p className="medical-label">{report.file_name}</p>
                 </div>
               </div>
               {getProcessingStatusBadge(report.parsing_status, report.extraction_confidence)}
             </div>
 
-            <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+            <div className="flex items-center space-x-4 text-xs medical-label">
               <div className="flex items-center space-x-1">
                 <Calendar className="h-3 w-3" />
                 <span>{format(new Date(report.created_at), 'MMM d, yyyy')}</span>
@@ -276,7 +277,7 @@ export function RecentUploads() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 {getProcessingStatusIcon(report.parsing_status)}
-                <span className="text-sm capitalize">
+                <span className="medical-label capitalize">
                   {report.report_type.replace('_', ' ')}
                 </span>
               </div>
@@ -287,6 +288,7 @@ export function RecentUploads() {
                   variant="outline"
                   size="sm"
                   onClick={() => retryProcessing(report.id)}
+                  className="rounded-full shadow-none min-h-[36px] touch-target"
                 >
                   Retry Processing
                 </Button>
@@ -300,7 +302,7 @@ export function RecentUploads() {
                     setSelectedReportIds([report.id]);
                     setShowGenerateDialog(true);
                   }}
-                  className="text-primary hover:text-primary"
+                  className="text-primary hover:text-primary rounded-full shadow-none min-h-[36px] touch-target"
                 >
                   <Sparkles className="h-3 w-3 mr-1" />
                   Generate Summary

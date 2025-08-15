@@ -56,7 +56,7 @@ export default function Upload() {
   };
 
   return (
-    <div className="p-3 sm:p-4 space-y-4 sm:space-y-6 pb-safe">
+    <main className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 pb-16 sm:pb-20 space-y-4 sm:space-y-6">
       <div className="text-center space-y-2">
         <h1 className="medical-title">Upload Medical Documents</h1>
         <p className="medical-label">
@@ -152,6 +152,6 @@ export default function Upload() {
 
       {/* Recent Uploads */}
       <RecentUploads />
-    </div>
+    </main>
   );
 }
