@@ -2,8 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Lightbulb, ExternalLink } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Lightbulb, ExternalLink, X } from "lucide-react";
 import { useReports } from "@/hooks/useReports";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useMemo, useState } from "react";
 
 interface HealthTip {
@@ -17,6 +19,16 @@ interface HealthTip {
 
 export function PersonalizedTipsHealth() {
   const { reports } = useReports();
+  const isMobile = useIsMobile();
+  const [selectedTip, setSelectedTip] = useState<HealthTip | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleTipClick = (tip: HealthTip) => {
+    if (isMobile) {
+      setSelectedTip(tip);
+      setIsModalOpen(true);
+    }
+  };
 
   const personalizedTips = useMemo(() => {
     const tips: HealthTip[] = [];
@@ -154,7 +166,8 @@ export function PersonalizedTipsHealth() {
           {personalizedTips.map((tip) => (
             <Card 
               key={tip.id} 
-              className={`flex-none w-[calc((100vw-3rem)/2.5)] min-w-[120px] max-w-[160px] border-l-2 ${getPriorityBorder(tip.priority)}`}
+              className={`flex-none w-[calc((100vw-3rem)/2.2)] min-w-[140px] max-w-[180px] border-l-2 ${getPriorityBorder(tip.priority)} ${isMobile ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
+              onClick={() => handleTipClick(tip)}
             >
               <CardHeader className="pb-1 px-2 pt-2">
                 <div className="flex items-center justify-between gap-1">
@@ -185,6 +198,43 @@ export function PersonalizedTipsHealth() {
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
+
+      {/* Mobile Zoom Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-md mx-4">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Badge variant={selectedTip ? getCategoryColor(selectedTip.category) : 'secondary'} className="text-xs">
+                {selectedTip?.category}
+              </Badge>
+              {selectedTip?.priority === 'important' && (
+                <Badge variant="destructive" className="text-xs">
+                  Important
+                </Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedTip && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold leading-relaxed">
+                {selectedTip.title}
+              </h3>
+              
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {selectedTip.content}
+              </p>
+              
+              {selectedTip.source && (
+                <Button variant="outline" size="sm" className="w-full">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Learn More
+                </Button>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
