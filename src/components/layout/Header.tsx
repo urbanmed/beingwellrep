@@ -26,7 +26,7 @@ export function Header() {
       : (user?.email ? user.email.slice(0, 2).toUpperCase() : "U");
 
   return (
-    <header className="bg-background border-b border-border sticky top-0 z-50" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <header className="bg-background border-b border-border sticky top-0 z-50 pt-safe">
       <div className="flex items-center justify-center px-3 sm:px-4 py-2.5 sm:py-3">
         <div 
           className="cursor-pointer touch-target active:scale-95 transition-transform"

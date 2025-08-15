@@ -71,33 +71,24 @@ export default function ReportDetail() {
 
   if (loading) {
     return (
-      <MobileLayout>
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </MobileLayout>
+      <div className="min-h-screen bg-background pt-safe flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
 
   if (!report) {
     return (
-      <MobileLayout>
+      <div className="min-h-screen bg-background pt-safe">
         <div className="text-center py-8">
           <p className="text-muted-foreground">Report not found</p>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/vault')}
-            className="mt-4"
-          >
-            Back to Reports
-          </Button>
         </div>
-      </MobileLayout>
+      </div>
     );
   }
 
   return (
-    <MobileLayout>
+    <div className="min-h-screen bg-background pt-safe">
       <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 space-y-4 sm:space-y-6">
         <div className="flex items-center gap-4">
           <Button
@@ -112,6 +103,6 @@ export default function ReportDetail() {
         
         <DocumentViewer report={report} />
       </div>
-    </MobileLayout>
+    </div>
   );
 }
