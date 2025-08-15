@@ -56,10 +56,10 @@ export default function Upload() {
   };
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-3 sm:p-4 space-y-4 sm:space-y-6 pb-safe">
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-foreground">Upload Medical Documents</h1>
-        <p className="text-muted-foreground">
+        <h1 className="medical-title">Upload Medical Documents</h1>
+        <p className="medical-label">
           Simply upload your documents - our AI will automatically extract titles, types, and details
         </p>
       </div>
@@ -73,9 +73,9 @@ export default function Upload() {
 
       {/* Family Member Selection */}
       {showFamilySelector && (
-        <Card className="border-primary/20 bg-primary/5">
+        <Card className="border-primary/20 bg-primary/5 medical-card-shadow">
           <CardHeader>
-            <CardTitle className="text-lg">Upload for Family Member</CardTitle>
+            <CardTitle className="medical-heading">Upload for Family Member</CardTitle>
             <CardDescription>
               Select who this document belongs to
             </CardDescription>
@@ -93,7 +93,7 @@ export default function Upload() {
               <Button 
                 onClick={handleUploadWithMember}
                 disabled={isUploading}
-                className="flex-1"
+                className="flex-1 rounded-full shadow-none min-h-[44px] touch-target"
               >
                 {isUploading ? "Uploading..." : "Upload Documents"}
               </Button>
@@ -104,6 +104,7 @@ export default function Upload() {
                   setPendingFiles([]);
                 }}
                 disabled={isUploading}
+                className="rounded-full shadow-none min-h-[44px] touch-target"
               >
                 Cancel
               </Button>
@@ -116,10 +117,10 @@ export default function Upload() {
       <UploadProgress files={uploadFileStates} />
 
       {/* AI Features Information */}
-      <Card className="border-primary/20 bg-primary/5">
+      <Card className="border-primary/20 bg-primary/5 medical-card-shadow">
         <CardHeader className="text-center">
           <Sparkles className="h-8 w-8 text-primary mx-auto mb-2" />
-          <CardTitle className="text-lg">Smart Document Processing</CardTitle>
+          <CardTitle className="medical-heading">Smart Document Processing</CardTitle>
           <CardDescription>
             Our AI automatically extracts document titles, types, physician names, facility information, and more from your uploads. No manual entry required!
           </CardDescription>
@@ -127,21 +128,21 @@ export default function Upload() {
       </Card>
 
       {/* Upload Options */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors medical-card-shadow min-h-[44px] touch-target active:scale-[0.98] transition-transform">
           <CardHeader className="text-center">
             <FileText className="h-8 w-8 text-primary mx-auto mb-2" />
-            <CardTitle className="text-lg">Drag & Drop Files</CardTitle>
+            <CardTitle className="medical-heading">Drag & Drop Files</CardTitle>
             <CardDescription>
               Drag files directly to the upload area above
             </CardDescription>
           </CardHeader>
         </Card>
 
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors medical-card-shadow min-h-[44px] touch-target active:scale-[0.98] transition-transform">
           <CardHeader className="text-center">
             <Camera className="h-8 w-8 text-primary mx-auto mb-2" />
-            <CardTitle className="text-lg">Mobile Camera</CardTitle>
+            <CardTitle className="medical-heading">Mobile Camera</CardTitle>
             <CardDescription>
               Use your phone's camera to capture documents
             </CardDescription>
