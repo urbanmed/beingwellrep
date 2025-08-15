@@ -310,7 +310,7 @@ export function SummaryViewer({
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <p className="text-sm leading-relaxed">{content.summary}</p>
+            <p className="text-xs leading-relaxed">{content.summary}</p>
           </CardContent>
         </Card>
       )}
@@ -326,9 +326,9 @@ export function SummaryViewer({
           <CardContent className="p-3 pt-0">
             <ul className="space-y-1">
               {content.abnormal_findings.map((finding, idx) => (
-                <li key={idx} className="text-sm">
-                  • {typeof finding === 'string' ? finding : finding.finding}
-                </li>
+                 <li key={idx} className="text-xs">
+                   • {typeof finding === 'string' ? finding : finding.finding}
+                 </li>
               ))}
             </ul>
           </CardContent>
@@ -346,7 +346,7 @@ export function SummaryViewer({
           <CardContent className="p-3 pt-0">
             <ul className="space-y-1">
               {content.normal_findings.map((finding, idx) => (
-                <li key={idx} className="text-sm">• {finding}</li>
+                <li key={idx} className="text-xs">• {finding}</li>
               ))}
             </ul>
           </CardContent>
@@ -361,7 +361,7 @@ export function SummaryViewer({
           <CardContent className="p-3 pt-0">
             <ul className="space-y-1">
               {content.recommended_actions.map((action, idx) => (
-                <li key={idx} className="text-sm">• {action}</li>
+                <li key={idx} className="text-xs">• {action}</li>
               ))}
             </ul>
           </CardContent>
@@ -379,7 +379,7 @@ export function SummaryViewer({
           <CardContent className="p-3 pt-0">
             <ul className="space-y-1">
               {content.doctor_questions.map((question, idx) => (
-                <li key={idx} className="text-sm">• {question}</li>
+                 <li key={idx} className="text-xs">• {question}</li>
               ))}
             </ul>
           </CardContent>
@@ -498,7 +498,7 @@ export function SummaryViewer({
                         {trend.trend}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">{trend.details}</p>
+                    <p className="text-xs text-muted-foreground">{trend.details}</p>
                   </div>
                 ))}
               </div>
@@ -514,7 +514,7 @@ export function SummaryViewer({
             <CardContent className="p-3 pt-0">
               <ul className="space-y-1">
                 {content.key_insights.map((insight, idx) => (
-                  <li key={idx} className="text-sm">• {insight}</li>
+                  <li key={idx} className="text-xs">• {insight}</li>
                 ))}
               </ul>
             </CardContent>
@@ -552,7 +552,7 @@ export function SummaryViewer({
           <CardContent className="p-3 pt-0">
             <ul className="space-y-1">
               {content.specific_questions.map((question, idx) => (
-                <li key={idx} className="text-sm">• {question}</li>
+                <li key={idx} className="text-xs">• {question}</li>
               ))}
             </ul>
           </CardContent>
@@ -567,7 +567,7 @@ export function SummaryViewer({
           <CardContent className="p-3 pt-0">
             <ul className="space-y-1">
               {content.symptoms_to_mention.map((symptom, idx) => (
-                <li key={idx} className="text-sm">• {symptom}</li>
+                <li key={idx} className="text-xs">• {symptom}</li>
               ))}
             </ul>
           </CardContent>
@@ -582,7 +582,7 @@ export function SummaryViewer({
           <CardContent className="p-3 pt-0">
             <ul className="space-y-1">
               {content.preparation_tips.map((tip, idx) => (
-                <li key={idx} className="text-sm">• {tip}</li>
+                <li key={idx} className="text-xs">• {tip}</li>
               ))}
             </ul>
           </CardContent>
@@ -615,7 +615,7 @@ export function SummaryViewer({
             <Card key={idx} className="border-warning/30">
               <CardContent className="p-3">
                 {typeof finding === 'string' ? (
-                  <p className="text-sm">{finding}</p>
+                  <p className="text-xs">{finding}</p>
                 ) : (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
@@ -636,8 +636,8 @@ export function SummaryViewer({
                         )}
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{finding.explanation}</p>
-                    <p className="text-sm"><strong>Significance:</strong> {finding.significance}</p>
+                     <p className="text-xs text-muted-foreground">{finding.explanation}</p>
+                     <p className="text-xs"><strong>Significance:</strong> {finding.significance}</p>
                   </div>
                 )}
               </CardContent>
@@ -676,7 +676,7 @@ export function SummaryViewer({
                 const score: number | undefined = typeof item === 'string' ? undefined : item.risk_score;
                 const level = riskLevelFromScore(score);
                 return (
-                  <li key={index} className="text-sm text-foreground flex items-center gap-2">
+                  <li key={index} className="text-xs text-foreground flex items-center gap-2">
                     <span className="mr-2 text-primary">•</span>
                     <span className="flex-1">{text}</span>
                     {typeof score === 'number' && (
@@ -698,7 +698,7 @@ export function SummaryViewer({
             </h5>
             <ul className="space-y-1">
               {recommendations.map((item: string, index: number) => (
-                <li key={index} className="text-sm text-foreground flex items-start">
+                <li key={index} className="text-xs text-foreground flex items-start">
                   <span className="mr-2 text-primary">→</span>
                   {item}
                 </li>
@@ -720,7 +720,7 @@ export function SummaryViewer({
           {summary.summary_type === 'trend_analysis' && renderTrendAnalysis()}
           {content.summary && (
             <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-sm text-foreground leading-relaxed">{content.summary}</p>
+              <p className="text-xs text-foreground leading-relaxed">{content.summary}</p>
             </div>
           )}
           
@@ -761,7 +761,7 @@ export function SummaryViewer({
       case 'abnormal_findings':
         return renderAbnormalFindings();
       default:
-        return <p className="text-sm">{content.summary || JSON.stringify(content, null, 2)}</p>;
+        return <p className="text-xs">{content.summary || JSON.stringify(content, null, 2)}</p>;
     }
   };
 
