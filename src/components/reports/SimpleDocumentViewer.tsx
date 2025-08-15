@@ -19,8 +19,13 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { generateDocumentUrl, checkDocumentExists } from "@/lib/utils/simple-document-access";
 import { useFileDownload } from "@/hooks/useFileDownload";
 
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Configure PDF.js worker with better error handling
+if (typeof window !== 'undefined') {
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url,
+  ).toString();
+}
 
 interface SimpleDocumentViewerProps {
   report: {
@@ -40,6 +45,7 @@ export function SimpleDocumentViewer({ report }: SimpleDocumentViewerProps) {
   const [rotation, setRotation] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState<number | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   
   const { toast } = useToast();
   const { downloadFile } = useFileDownload();
@@ -121,10 +127,12 @@ export function SimpleDocumentViewer({ report }: SimpleDocumentViewerProps) {
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
     setPageNumber(1);
+    setPdfError(null);
   };
 
   const onDocumentLoadError = (error: Error) => {
     console.error('PDF load error:', error);
+    setPdfError(`Failed to load PDF: ${error.message}`);
     setError("Failed to load PDF document");
   };
 
@@ -217,56 +225,95 @@ export function SimpleDocumentViewer({ report }: SimpleDocumentViewerProps) {
           <div className="relative">
             {fileInfo.type === 'pdf' && documentUrl ? (
               <div className="space-y-4">
-                {/* PDF pagination controls */}
-                {numPages && numPages > 1 && (
-                  <div className="flex items-center justify-center space-x-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPageNumber(Math.max(1, pageNumber - 1))}
-                      disabled={pageNumber <= 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="text-sm">
-                      Page {pageNumber} of {numPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPageNumber(Math.min(numPages, pageNumber + 1))}
-                      disabled={pageNumber >= numPages}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                {pdfError ? (
+                  <div className="flex items-center justify-center py-8 text-muted-foreground">
+                    <AlertCircle className="h-8 w-8 mr-2" />
+                    <div className="text-center">
+                      <p className="font-medium">PDF Loading Error</p>
+                      <p className="text-sm mt-1">{pdfError}</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-4"
+                        onClick={() => {
+                          setPdfError(null);
+                          loadDocument();
+                        }}
+                      >
+                        Try Again
+                      </Button>
+                    </div>
                   </div>
-                )}
-
-                {/* PDF viewer */}
-                <div className="flex justify-center overflow-auto max-h-[800px] border rounded">
-                  <Document
-                    file={documentUrl}
-                    onLoadSuccess={onDocumentLoadSuccess}
-                    onLoadError={onDocumentLoadError}
-                    loading={
-                      <div className="flex items-center justify-center p-8">
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                        <span className="ml-2">Loading PDF...</span>
+                ) : (
+                  <>
+                    {/* PDF pagination controls */}
+                    {numPages && numPages > 1 && (
+                      <div className="flex items-center justify-center space-x-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPageNumber(Math.max(1, pageNumber - 1))}
+                          disabled={pageNumber <= 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm">
+                          Page {pageNumber} of {numPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPageNumber(Math.min(numPages, pageNumber + 1))}
+                          disabled={pageNumber >= numPages}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
                       </div>
-                    }
-                  >
-                    <Page
-                      pageNumber={pageNumber}
-                      scale={scale}
-                      rotate={rotation}
-                      loading={
-                        <div className="flex items-center justify-center p-8">
-                          <Loader2 className="h-6 w-6 animate-spin" />
-                        </div>
-                      }
-                    />
-                  </Document>
-                </div>
+                    )}
+
+                    {/* PDF viewer with error boundary */}
+                    <div className="flex justify-center overflow-auto max-h-[800px] border rounded">
+                      <Document
+                        file={documentUrl}
+                        onLoadSuccess={onDocumentLoadSuccess}
+                        onLoadError={onDocumentLoadError}
+                        loading={
+                          <div className="flex items-center justify-center p-8">
+                            <Loader2 className="h-6 w-6 animate-spin" />
+                            <span className="ml-2">Loading PDF...</span>
+                          </div>
+                        }
+                        error={
+                          <div className="flex items-center justify-center p-8 text-muted-foreground">
+                            <AlertCircle className="h-6 w-6 mr-2" />
+                            <span>Failed to load PDF</span>
+                          </div>
+                        }
+                        options={{
+                          cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
+                          cMapPacked: true,
+                        }}
+                      >
+                        <Page
+                          pageNumber={pageNumber}
+                          scale={scale}
+                          rotate={rotation}
+                          loading={
+                            <div className="flex items-center justify-center p-8">
+                              <Loader2 className="h-6 w-6 animate-spin" />
+                            </div>
+                          }
+                          error={
+                            <div className="flex items-center justify-center p-8 text-muted-foreground">
+                              <AlertCircle className="h-6 w-6 mr-2" />
+                              <span>Error loading page</span>
+                            </div>
+                          }
+                        />
+                      </Document>
+                    </div>
+                  </>
+                )}
               </div>
             ) : fileInfo.type === 'image' && documentUrl ? (
               <div className="flex justify-center">
