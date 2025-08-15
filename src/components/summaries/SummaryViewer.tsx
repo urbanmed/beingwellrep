@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,7 @@ import {
   MessageSquare,
   Info
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Summary } from "@/types/summary";
 import { formatDistanceToNow, format } from "date-fns";
 import { parseSummaryContent } from "@/lib/utils/summary-parser";
@@ -38,6 +40,8 @@ export function SummaryViewer({
   onPin, 
   onRate 
 }: SummaryViewerProps) {
+  const isMobile = useIsMobile();
+  
   if (!summary) return null;
 
   // Parse the content using the utility function
@@ -765,62 +769,88 @@ export function SummaryViewer({
     }
   };
 
+  const headerContent = (
+    <div className="flex items-start justify-between">
+      <div className="space-y-1">
+        <h2 className="medical-heading-sm">{summary.title}</h2>
+        <div className="flex items-center gap-3 medical-label-xs">
+          <span>Generated {formatDistanceToNow(new Date(summary.generated_at), { addSuffix: true })}</span>
+          {summary.confidence_score && (
+            <div className="flex items-center gap-1">
+              <span>Confidence:</span>
+              <Badge variant="outline" className="text-xs">{summary.confidence_score}%</Badge>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-1">
+        {onPin && (
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => onPin(summary.id)}
+            className="h-8"
+          >
+            <Star className={`h-3 w-3 ${summary.is_pinned ? 'fill-current text-yellow-500' : ''}`} />
+          </Button>
+        )}
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="h-8"
+        >
+          <Share2 className="h-3 w-3" />
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="h-8"
+        >
+          <Download className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
+  );
+
+  const contentElement = (
+    <>
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
+        {renderContent()}
+      </div>
+
+      {summary.user_feedback && (
+        <div className="border-t p-3 flex-shrink-0">
+          <h4 className="medical-label-xs font-medium mb-1">Your Feedback</h4>
+          <p className="text-sm text-muted-foreground">"{summary.user_feedback}"</p>
+        </div>
+      )}
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={isOpen} onOpenChange={onClose}>
+        <DrawerContent className="max-h-[95vh]">
+          <DrawerHeader className="border-b p-4 space-y-3">
+            <DrawerTitle asChild>
+              <div>{headerContent}</div>
+            </DrawerTitle>
+          </DrawerHeader>
+          {contentElement}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
         <DialogHeader className="border-b p-3 space-y-3 flex-shrink-0">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <DialogTitle className="medical-heading-sm">{summary.title}</DialogTitle>
-              <div className="flex items-center gap-3 medical-label-xs">
-                <span>Generated {formatDistanceToNow(new Date(summary.generated_at), { addSuffix: true })}</span>
-                {summary.confidence_score && (
-                  <div className="flex items-center gap-1">
-                    <span>Confidence:</span>
-                    <Badge variant="outline" className="text-xs">{summary.confidence_score}%</Badge>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              {onPin && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => onPin(summary.id)}
-                  className="h-8"
-                >
-                  <Star className={`h-3 w-3 ${summary.is_pinned ? 'fill-current text-yellow-500' : ''}`} />
-                </Button>
-              )}
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="h-8"
-              >
-                <Share2 className="h-3 w-3" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="h-8"
-              >
-                <Download className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
+          <DialogTitle asChild>
+            <div>{headerContent}</div>
+          </DialogTitle>
         </DialogHeader>
-
-        <div className="flex-1 min-h-0 overflow-y-auto p-3">
-          {renderContent()}
-        </div>
-
-        {summary.user_feedback && (
-          <div className="border-t p-3 flex-shrink-0">
-            <h4 className="medical-label-xs font-medium mb-1">Your Feedback</h4>
-            <p className="text-sm text-muted-foreground">"{summary.user_feedback}"</p>
-          </div>
-        )}
+        {contentElement}
       </DialogContent>
     </Dialog>
   );
