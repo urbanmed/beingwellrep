@@ -42,7 +42,7 @@ export function ReportActions({ reportId, ocrStatus, reportTitle, onView, onDown
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => navigate(`/reports/${reportId}`)}>
+          <DropdownMenuItem onClick={() => navigate(`/vault/${reportId}`)}>
             <Eye className="h-4 w-4 mr-2" />
             View Report
           </DropdownMenuItem>

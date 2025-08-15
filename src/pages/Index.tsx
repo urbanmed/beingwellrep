@@ -117,7 +117,7 @@ const Index = () => {
         <Card
           aria-label="Open Reports"
           className="cursor-pointer hover:shadow-md transition-shadow col-start-1 row-start-1 medical-card-shadow min-h-[44px] active:scale-95 transition-transform"
-          onClick={() => navigate('/reports')}
+          onClick={() => navigate('/vault')}
         >
           <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center justify-between">

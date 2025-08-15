@@ -33,7 +33,7 @@ export default function ReportDetail() {
     const fetchReport = async () => {
       if (!id) {
         console.error('No report ID provided');
-        navigate('/reports');
+        navigate('/vault');
         return;
       }
 
@@ -60,7 +60,7 @@ export default function ReportDetail() {
           description: "Failed to load report details. Please check if the report exists.",
           variant: "destructive",
         });
-        navigate('/reports');
+        navigate('/vault');
       } finally {
         setLoading(false);
       }
@@ -86,7 +86,7 @@ export default function ReportDetail() {
           <p className="text-muted-foreground">Report not found</p>
           <Button 
             variant="outline" 
-            onClick={() => navigate('/reports')}
+            onClick={() => navigate('/vault')}
             className="mt-4"
           >
             Back to Reports

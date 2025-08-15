@@ -12,7 +12,6 @@ import { AdminLayout } from "@/components/admin/layout/AdminLayout";
 import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import Summaries from "./pages/Summaries";
-import Reports from "./pages/Reports";
 import Vault from "./pages/Vault";
 import ReportDetail from "./pages/ReportDetail";
 import AIAssistant from "./pages/AIAssistant";
@@ -98,13 +97,6 @@ const AppRoutes: FC = () => (
         </MobileLayout>
       </ProtectedRoute>
     } />
-    <Route path="/reports" element={
-      <ProtectedRoute>
-        <MobileLayout>
-          <Reports />
-        </MobileLayout>
-      </ProtectedRoute>
-    } />
     <Route path="/prescriptions" element={
       <ProtectedRoute>
         <MobileLayout>
@@ -119,7 +111,7 @@ const AppRoutes: FC = () => (
         </MobileLayout>
       </ProtectedRoute>
     } />
-    <Route path="/reports/:id" element={
+    <Route path="/vault/:id" element={
       <ProtectedRoute>
         <ReportDetail />
       </ProtectedRoute>

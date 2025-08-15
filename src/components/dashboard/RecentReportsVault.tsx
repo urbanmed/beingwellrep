@@ -51,7 +51,7 @@ export function RecentReportsVault() {
               <div 
                 key={report.id} 
                 className="border rounded-lg p-2.5 sm:p-3 hover:bg-accent/50 cursor-pointer transition-colors active:scale-[0.98] min-h-[44px] touch-target"
-                onClick={() => navigate(`/reports/${report.id}`)}
+                onClick={() => navigate(`/vault/${report.id}`)}
               >
                 <div className="flex items-start justify-between mb-1.5 sm:mb-2">
                   <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-1">

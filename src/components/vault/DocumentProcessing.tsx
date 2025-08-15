@@ -44,7 +44,7 @@ export function DocumentProcessing() {
     if (item.type === 'summary') {
       navigate(`/summaries?id=${item.id}`);
     } else {
-      navigate(`/reports/${item.id}`);
+      navigate(`/vault/${item.id}`);
     }
   };
 

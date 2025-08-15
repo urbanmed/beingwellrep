@@ -33,12 +33,12 @@ export function PrescriptionCard({ prescription }: PrescriptionCardProps) {
   };
 
   const handleViewReport = () => {
-    navigate(`/reports/${prescription.report_id}`);
+    navigate(`/vault/${prescription.report_id}`);
   };
 
   const handleViewSourceReport = () => {
     if (prescription.source_report_id) {
-      navigate(`/reports/${prescription.source_report_id}`);
+      navigate(`/vault/${prescription.source_report_id}`);
     }
   };
 

@@ -58,7 +58,7 @@ export default function AIAssistant() {
               onClick={() => {
                 // Navigate to document detail if possible
                 if (citation.report_id) {
-                  window.open(`/reports/${citation.report_id}`, '_blank');
+                  window.open(`/vault/${citation.report_id}`, '_blank');
                 }
               }}
             >
