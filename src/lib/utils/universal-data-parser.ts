@@ -317,6 +317,12 @@ function extractTestResults(text: string): TestResult[] {
 function extractSections(text: string): Array<{ title: string; category: string; content: string }> {
   const sections = [];
   
+  // Check if content is primarily markdown tables - if so, skip section extraction
+  // and let structured parsers handle it
+  if (isContentPrimarilyMarkdownTables(text)) {
+    return sections; // Return empty array to avoid raw markdown display
+  }
+  
   // Look for section headers (lines that might be titles)
   const lines = text.split('\n');
   let currentSection = { title: 'General Information', category: 'general', content: '' };
@@ -326,8 +332,8 @@ function extractSections(text: string): Array<{ title: string; category: string;
     
     // Check if line looks like a section header
     if (isLikelySectionHeader(trimmedLine)) {
-      // Save previous section if it has content
-      if (currentSection.content.trim()) {
+      // Save previous section if it has content and it's not just markdown tables
+      if (currentSection.content.trim() && !isContentPrimarilyMarkdownTables(currentSection.content)) {
         sections.push({ ...currentSection });
       }
       
@@ -342,12 +348,39 @@ function extractSections(text: string): Array<{ title: string; category: string;
     }
   }
   
-  // Add final section
-  if (currentSection.content.trim()) {
+  // Add final section only if it has meaningful content (not just markdown tables)
+  if (currentSection.content.trim() && !isContentPrimarilyMarkdownTables(currentSection.content)) {
     sections.push(currentSection);
   }
   
   return sections;
+}
+
+function isContentPrimarilyMarkdownTables(content: string): boolean {
+  const lines = content.split('\n').filter(line => line.trim());
+  if (lines.length === 0) return false;
+  
+  // Count lines that are part of markdown tables
+  let tableLines = 0;
+  let headerSeparatorLines = 0;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Table rows (contain |)
+    if (trimmed.includes('|')) {
+      tableLines++;
+    }
+    // Table header separators (contain | and -)
+    if (trimmed.includes('|') && trimmed.includes('-')) {
+      headerSeparatorLines++;
+    }
+  }
+  
+  // Consider content to be primarily tables if:
+  // 1. More than 70% of lines are table lines, OR
+  // 2. There are header separator lines (strong indicator of markdown tables)
+  const tableLineRatio = tableLines / lines.length;
+  return tableLineRatio > 0.7 || headerSeparatorLines > 0;
 }
 
 function isLikelySectionHeader(line: string): boolean {
