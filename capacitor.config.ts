@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.19c2bff55cc9411bb7e236bbe14692c6',
+  appId: 'app.lovable.beingwell',
   appName: 'doc-summarizer-pro',
   webDir: 'dist',
   server: {
