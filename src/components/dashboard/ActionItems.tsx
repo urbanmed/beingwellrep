@@ -319,14 +319,14 @@ export function ActionItems() {
   if (flaggedResults.length === 0) {
     return (
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <CardTitle className="medical-heading-sm flex items-center">
             <AlertTriangle className="h-4 w-4 mr-2 text-primary" />
             Latest Health Results
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="medical-annotation text-center py-4">
+        <CardContent className="px-4 py-3">
+          <p className="medical-annotation text-center py-2">
             No flagged results found in your recent reports
           </p>
         </CardContent>
@@ -336,7 +336,7 @@ export function ActionItems() {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <CardTitle className="medical-heading-sm flex items-center">
           <AlertTriangle className="h-4 w-4 mr-2 text-primary" />
           Latest Health Results
@@ -348,7 +348,7 @@ export function ActionItems() {
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-1 sm:space-y-1.5">
+      <CardContent className="px-4 py-3 space-y-0.5 sm:space-y-1">
         {groupedResults.map((group) => (
           <div key={group.dateKey} className="space-y-0.5">
             <div className="text-[10px] sm:text-xs text-muted-foreground">
@@ -358,20 +358,20 @@ export function ActionItems() {
               {group.items.map((item) => {
                 const StatusIcon = getStatusIcon(item.status);
                 return (
-                  <div key={item.id} className="flex items-center justify-between border-l border-l-destructive pl-2 py-px gap-0.5">
-                    <div className="flex items-center min-w-0 gap-1 flex-1">
+                  <div key={item.id} className="flex items-center justify-between border-l border-l-destructive pl-1.5 py-px gap-0.5">
+                    <div className="flex items-center min-w-0 gap-0.5 flex-1">
                       <StatusIcon className="h-3 w-3 text-destructive flex-shrink-0" />
                       <span className="text-xs sm:text-sm font-medium capitalize truncate">
                         {item.testName}
                       </span>
                       <span className="text-[10px] sm:text-xs truncate">
-                        <span className="font-medium ml-1">{item.value}</span>
+                        <span className="font-medium">{item.value}</span>
                         {item.referenceRange && (
-                          <span className="text-muted-foreground ml-1 sm:ml-2 hidden sm:inline">Ref: {item.referenceRange}</span>
+                          <span className="text-muted-foreground ml-0.5 sm:ml-1 hidden sm:inline">Ref: {item.referenceRange}</span>
                         )}
                       </span>
                     </div>
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <div className="flex items-center gap-0 flex-shrink-0">
                       <Button
                         size="icon"
                         variant="ghost"
