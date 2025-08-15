@@ -127,11 +127,11 @@ export default function Summaries() {
                 className="pl-10 h-10"
               />
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
               <Button
                 variant={activeFilter === 'all' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-full h-8 px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
+                className="rounded-full h-7 sm:h-8 px-2 sm:px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
                 onClick={() => setActiveFilter('all')}
               >
                 All ({summaries.length})
@@ -139,23 +139,25 @@ export default function Summaries() {
               <Button
                 variant={activeFilter === 'comprehensive' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-full h-8 px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
+                className="rounded-full h-7 sm:h-8 px-2 sm:px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
                 onClick={() => setActiveFilter('comprehensive')}
               >
-                Comprehensive ({summaryTypeCounts.comprehensive})
+                <span className="sm:hidden">Comp. ({summaryTypeCounts.comprehensive})</span>
+                <span className="hidden sm:inline">Comprehensive ({summaryTypeCounts.comprehensive})</span>
               </Button>
               <Button
                 variant={activeFilter === 'abnormal_findings' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-full h-8 px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
+                className="rounded-full h-7 sm:h-8 px-2 sm:px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
                 onClick={() => setActiveFilter('abnormal_findings')}
               >
-                Abnormal ({summaryTypeCounts.abnormal_findings})
+                <span className="sm:hidden">Abn. ({summaryTypeCounts.abnormal_findings})</span>
+                <span className="hidden sm:inline">Abnormal ({summaryTypeCounts.abnormal_findings})</span>
               </Button>
               <Button
                 variant={activeFilter === 'trend_analysis' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-full h-8 px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
+                className="rounded-full h-7 sm:h-8 px-2 sm:px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
                 onClick={() => setActiveFilter('trend_analysis')}
               >
                 Trends ({summaryTypeCounts.trend_analysis})
@@ -163,10 +165,11 @@ export default function Summaries() {
               <Button
                 variant={activeFilter === 'doctor_prep' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-full h-8 px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
+                className="rounded-full h-7 sm:h-8 px-2 sm:px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
                 onClick={() => setActiveFilter('doctor_prep')}
               >
-                Doctor Prep ({summaryTypeCounts.doctor_prep})
+                <span className="sm:hidden">Prep ({summaryTypeCounts.doctor_prep})</span>
+                <span className="hidden sm:inline">Doctor Prep ({summaryTypeCounts.doctor_prep})</span>
               </Button>
             </div>
           </div>
