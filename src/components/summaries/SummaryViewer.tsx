@@ -239,7 +239,7 @@ export function SummaryViewer({
   }
 
   useEffect(() => {
-    if (!isOpen || summary.summary_type !== 'trend_analysis' || !Array.isArray(summary.source_report_ids) || summary.source_report_ids.length === 0) {
+    if (!isOpen || !summary || summary.summary_type !== 'trend_analysis' || !Array.isArray(summary.source_report_ids) || summary.source_report_ids.length === 0) {
       return;
     }
     let active = true;
@@ -262,15 +262,15 @@ export function SummaryViewer({
     return () => {
       active = false;
     };
-  }, [isOpen, summary.id]);
+  }, [isOpen, summary?.id]);
 
   useEffect(() => {
-    if (summary.summary_type !== 'trend_analysis') return;
+    if (!summary || summary.summary_type !== 'trend_analysis') return;
     const keys = extractMetricKeysFromContent(content);
     const s = buildSeries(sourceReports, keys);
     const top = [...s].sort((a, b) => b.points.length - a.points.length).slice(0, 3);
     setMetricSeries(top);
-  }, [content, sourceReports, summary.summary_type]);
+  }, [content, sourceReports, summary?.summary_type]);
 
   const renderHighRiskTrends = () => {
     if (!metricSeries.length) return null;
