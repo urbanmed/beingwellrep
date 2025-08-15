@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, FileText, Sparkles, CheckCircle, X } from "lucide-react";
+import { Upload, FileText, Sparkles, CheckCircle, X, Camera } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,8 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 import { useToast } from "@/hooks/use-toast";
 import { useReports } from "@/hooks/useReports";
+import { useCameraCapture } from "@/hooks/useCameraCapture";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface QuickUploadModalProps {
   isOpen: boolean;
@@ -36,6 +38,8 @@ export function QuickUploadModal({ isOpen, onClose, onUploadComplete }: QuickUpl
   const { familyMembers } = useFamilyMembers();
   const { toast } = useToast();
   const { refetch } = useReports();
+  const { capturePhoto, isCapturing } = useCameraCapture();
+  const isMobile = useIsMobile();
 
   const acceptedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
   const maxFileSize = 50 * 1024 * 1024; // 50MB
@@ -89,6 +93,13 @@ export function QuickUploadModal({ isOpen, onClose, onUploadComplete }: QuickUpl
     // If user has family members, show selector
     if (familyMembers.length > 0 && !showFamilySelector) {
       setShowFamilySelector(true);
+    }
+  };
+
+  const handleCameraCapture = async () => {
+    const file = await capturePhoto();
+    if (file) {
+      handleFiles([file]);
     }
   };
 
@@ -217,14 +228,38 @@ export function QuickUploadModal({ isOpen, onClose, onUploadComplete }: QuickUpl
               disabled={isUploading}
             />
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => document.getElementById('quick-upload')?.click()}
-              disabled={isUploading}
-            >
-              Choose Files
-            </Button>
+            <div className="flex gap-2 justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => document.getElementById('quick-upload')?.click()}
+                disabled={isUploading || isCapturing}
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Choose Files
+              </Button>
+              
+              {isMobile && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCameraCapture}
+                  disabled={isUploading || isCapturing}
+                >
+                  {isCapturing ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-1" />
+                      Capturing...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-4 w-4 mr-1" />
+                      Take Photo
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Selected Files */}
