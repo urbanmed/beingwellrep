@@ -27,7 +27,7 @@ export function Header() {
 
   return (
     <header className="bg-background border-b border-border sticky top-0 z-50 pt-safe">
-      <div className="flex items-center justify-center px-3 sm:px-4 py-6 sm:py-4 mt-4 sm:mt-2">
+      <div className="flex items-center justify-center px-3 sm:px-4 py-6 sm:py-4 mt-10 sm:mt-8">
         <div 
           className="cursor-pointer touch-target active:scale-95 transition-transform"
           onClick={() => navigate("/")}
@@ -42,7 +42,7 @@ export function Header() {
       </div>
       {!loading && (
         <div className="flex items-center justify-between px-3 sm:px-4 pb-2">
-          <h2 className="text-xs sm:text-sm font-medium text-foreground truncate mr-2">{greetingText}</h2>
+          <h2 className="text-base sm:text-lg font-medium text-foreground truncate mr-2">{greetingText}</h2>
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <NotificationCenter />
             <Link to="/profile" aria-label="Go to profile" className="shrink-0 touch-target">
