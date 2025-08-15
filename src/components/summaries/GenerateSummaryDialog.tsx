@@ -182,12 +182,13 @@ export function GenerateSummaryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] max-h-[95vh] w-[calc(100vw-2rem)] sm:max-w-4xl sm:max-h-[90vh] sm:w-auto overflow-y-auto p-3 sm:p-6">
-        <DialogHeader className="pb-2">
-          <DialogTitle className="text-lg sm:text-xl">Generate AI Summary</DialogTitle>
+      <DialogContent className="w-full max-w-[100vw] sm:max-w-4xl mx-2 sm:mx-auto max-h-[100vh] sm:max-h-[90vh] h-full sm:h-[90vh] flex flex-col p-2 sm:p-6">
+        <DialogHeader className="pb-1 sm:pb-2 flex-shrink-0">
+          <DialogTitle className="text-base sm:text-xl">Generate AI Summary</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3 sm:space-y-6">
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full overflow-y-auto space-y-2 sm:space-y-4 pr-1">
           {/* Summary Type Selection */}
           <div>
             <h3 className="text-sm font-medium mb-3">Choose Summary Type</h3>
@@ -262,7 +263,7 @@ export function GenerateSummaryDialog({
                       <FileText className="h-3 w-3 mr-1" />
                       Ready for Summary ({readyReports.length})
                     </h4>
-                     <div className="space-y-1.5 max-h-[25vh] overflow-y-auto">
+                     <div className="space-y-1.5 max-h-[20vh] overflow-y-auto">
                        {readyReports.map((report) => (
                          <Card key={report.id}>
                            <CardContent className="p-1.5 sm:p-3">
@@ -417,14 +418,14 @@ export function GenerateSummaryDialog({
             <Button 
               variant="outline" 
               onClick={handleClose}
-              className="h-10 text-sm"
+              className="h-9 sm:h-10 text-sm w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
               onClick={handleGenerate}
               disabled={selectedReports.length === 0 || loading || !onGenerate || readyReports.length === 0}
-              className="h-10 text-sm"
+              className="h-9 sm:h-10 text-sm w-full sm:w-auto"
             >
               {loading ? (
                 <>
@@ -438,6 +439,7 @@ export function GenerateSummaryDialog({
                 </>
               )}
             </Button>
+          </div>
           </div>
         </div>
       </DialogContent>
