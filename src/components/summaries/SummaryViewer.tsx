@@ -300,16 +300,16 @@ export function SummaryViewer({
     }
   };
   const renderComprehensiveSummary = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {content.summary && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5" />
+          <CardHeader className="p-3">
+            <CardTitle className="medical-subheading flex items-center gap-2">
+              <Brain className="h-4 w-4" />
               Summary
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 pt-0">
             <p className="text-sm leading-relaxed">{content.summary}</p>
           </CardContent>
         </Card>
@@ -317,14 +317,14 @@ export function SummaryViewer({
 
       {content.abnormal_findings && content.abnormal_findings.length > 0 && (
         <Card className={getSeverityColor(content.severity_level)}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-inherit">
-              <AlertTriangle className="h-5 w-5" />
+          <CardHeader className="p-3">
+            <CardTitle className="medical-subheading flex items-center gap-2 text-inherit">
+              <AlertTriangle className="h-4 w-4" />
               Abnormal Findings
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
+          <CardContent className="p-3 pt-0">
+            <ul className="space-y-1">
               {content.abnormal_findings.map((finding, idx) => (
                 <li key={idx} className="text-sm">
                   • {typeof finding === 'string' ? finding : finding.finding}
@@ -337,14 +337,14 @@ export function SummaryViewer({
 
       {content.normal_findings && content.normal_findings.length > 0 && (
         <Card className="bg-success/10 border-success/20 text-success">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-inherit">
-              <CheckCircle className="h-5 w-5" />
+          <CardHeader className="p-3">
+            <CardTitle className="medical-subheading flex items-center gap-2 text-inherit">
+              <CheckCircle className="h-4 w-4" />
               Normal Findings
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
+          <CardContent className="p-3 pt-0">
+            <ul className="space-y-1">
               {content.normal_findings.map((finding, idx) => (
                 <li key={idx} className="text-sm">• {finding}</li>
               ))}
@@ -355,11 +355,11 @@ export function SummaryViewer({
 
       {content.recommended_actions && content.recommended_actions.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle>Recommended Actions</CardTitle>
+          <CardHeader className="p-3">
+            <CardTitle className="medical-subheading">Recommended Actions</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
+          <CardContent className="p-3 pt-0">
+            <ul className="space-y-1">
               {content.recommended_actions.map((action, idx) => (
                 <li key={idx} className="text-sm">• {action}</li>
               ))}
@@ -370,14 +370,14 @@ export function SummaryViewer({
 
       {content.doctor_questions && content.doctor_questions.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
+          <CardHeader className="p-3">
+            <CardTitle className="medical-subheading flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
               Questions for Your Doctor
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
+          <CardContent className="p-3 pt-0">
+            <ul className="space-y-1">
               {content.doctor_questions.map((question, idx) => (
                 <li key={idx} className="text-sm">• {question}</li>
               ))}
@@ -411,13 +411,13 @@ export function SummaryViewer({
     }
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         {(metricHighlights.length > 0 || textHighlights.length > 0) && (
           <Card>
-            <CardHeader>
-              <CardTitle>Highlights</CardTitle>
+            <CardHeader className="p-3">
+              <CardTitle className="medical-subheading">Highlights</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 pt-0">
               <div className="space-y-2">
                 {metricHighlights.length > 0 && (
                   <ul className="list-disc pl-5 text-sm text-foreground">
@@ -440,10 +440,10 @@ export function SummaryViewer({
 
         {loadingTrends ? (
           <Card>
-            <CardHeader>
-              <CardTitle>High-risk trends</CardTitle>
+            <CardHeader className="p-3">
+              <CardTitle className="medical-subheading">High-risk trends</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 pt-0">
               <p className="text-sm text-muted-foreground">Loading trends…</p>
             </CardContent>
           </Card>
@@ -451,10 +451,10 @@ export function SummaryViewer({
           renderHighRiskTrends()
         ) : (
           <Card>
-            <CardHeader>
-              <CardTitle>High-risk trends</CardTitle>
+            <CardHeader className="p-3">
+              <CardTitle className="medical-subheading">High-risk trends</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 pt-0">
               <p className="text-sm text-muted-foreground">No trendable data found from the selected reports.</p>
             </CardContent>
           </Card>
@@ -462,17 +462,17 @@ export function SummaryViewer({
 
         {content.overall_health_trajectory && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
+            <CardHeader className="p-3">
+              <CardTitle className="medical-subheading flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
                 Overall Health Trajectory
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 pt-0">
               <Badge variant={
                 content.overall_health_trajectory === 'improving' ? 'default' :
                 content.overall_health_trajectory === 'stable' ? 'secondary' : 'destructive'
-              }>
+              } className="text-xs">
                 {content.overall_health_trajectory.charAt(0).toUpperCase() + 
                  content.overall_health_trajectory.slice(1)}
               </Badge>
@@ -482,19 +482,19 @@ export function SummaryViewer({
 
         {content.trends && content.trends.length > 0 && (
           <Card>
-            <CardHeader>
-              <CardTitle>Health Trends</CardTitle>
+            <CardHeader className="p-3">
+              <CardTitle className="medical-subheading">Health Trends</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+            <CardContent className="p-3 pt-0">
+              <div className="space-y-3">
                 {content.trends.map((trend, idx) => (
-                  <div key={idx} className="border-l-4 border-primary pl-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-medium text-sm">{trend.parameter}</span>
+                  <div key={idx} className="border-l-4 border-primary pl-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="medical-label-xs font-medium">{trend.parameter}</span>
                       <Badge variant={
                         trend.trend === 'improving' ? 'default' :
                         trend.trend === 'stable' ? 'secondary' : 'destructive'
-                      }>
+                      } className="text-xs">
                         {trend.trend}
                       </Badge>
                     </div>
@@ -508,11 +508,11 @@ export function SummaryViewer({
 
         {content.key_insights && content.key_insights.length > 0 && (
           <Card>
-            <CardHeader>
-              <CardTitle>Key Insights</CardTitle>
+            <CardHeader className="p-3">
+              <CardTitle className="medical-subheading">Key Insights</CardTitle>
             </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
+            <CardContent className="p-3 pt-0">
+              <ul className="space-y-1">
                 {content.key_insights.map((insight, idx) => (
                   <li key={idx} className="text-sm">• {insight}</li>
                 ))}
@@ -525,19 +525,19 @@ export function SummaryViewer({
   };
 
   const renderDoctorPrep = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {content.key_topics && content.key_topics.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Stethoscope className="h-5 w-5" />
+          <CardHeader className="p-3">
+            <CardTitle className="medical-subheading flex items-center gap-2">
+              <Stethoscope className="h-4 w-4" />
               Key Topics to Discuss
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 pt-0">
             <div className="flex flex-wrap gap-2">
               {content.key_topics.map((topic, idx) => (
-                <Badge key={idx} variant="outline">{topic}</Badge>
+                <Badge key={idx} variant="outline" className="text-xs">{topic}</Badge>
               ))}
             </div>
           </CardContent>
@@ -546,11 +546,11 @@ export function SummaryViewer({
 
       {content.specific_questions && content.specific_questions.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle>Specific Questions</CardTitle>
+          <CardHeader className="p-3">
+            <CardTitle className="medical-subheading">Specific Questions</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
+          <CardContent className="p-3 pt-0">
+            <ul className="space-y-1">
               {content.specific_questions.map((question, idx) => (
                 <li key={idx} className="text-sm">• {question}</li>
               ))}
@@ -561,11 +561,11 @@ export function SummaryViewer({
 
       {content.symptoms_to_mention && content.symptoms_to_mention.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle>Symptoms to Mention</CardTitle>
+          <CardHeader className="p-3">
+            <CardTitle className="medical-subheading">Symptoms to Mention</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
+          <CardContent className="p-3 pt-0">
+            <ul className="space-y-1">
               {content.symptoms_to_mention.map((symptom, idx) => (
                 <li key={idx} className="text-sm">• {symptom}</li>
               ))}
@@ -576,11 +576,11 @@ export function SummaryViewer({
 
       {content.preparation_tips && content.preparation_tips.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle>Preparation Tips</CardTitle>
+          <CardHeader className="p-3">
+            <CardTitle className="medical-subheading">Preparation Tips</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
+          <CardContent className="p-3 pt-0">
+            <ul className="space-y-1">
               {content.preparation_tips.map((tip, idx) => (
                 <li key={idx} className="text-sm">• {tip}</li>
               ))}
@@ -592,17 +592,17 @@ export function SummaryViewer({
   );
 
   const renderAbnormalFindings = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {content.overall_concern_level && (
         <Card className={getSeverityColor(content.overall_concern_level)}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-inherit">
-              <AlertTriangle className="h-5 w-5" />
+          <CardHeader className="p-3">
+            <CardTitle className="medical-subheading flex items-center gap-2 text-inherit">
+              <AlertTriangle className="h-4 w-4" />
               Overall Concern Level: {content.overall_concern_level.toUpperCase()}
             </CardTitle>
           </CardHeader>
           {content.immediate_action_needed && (
-            <CardContent>
+            <CardContent className="p-3 pt-0">
               <p className="text-sm font-medium">⚠️ Immediate medical attention may be needed</p>
             </CardContent>
           )}
@@ -610,22 +610,31 @@ export function SummaryViewer({
       )}
 
       {content.abnormal_findings && content.abnormal_findings.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {content.abnormal_findings.map((finding, idx) => (
             <Card key={idx} className="border-warning/30">
-              <CardContent className="pt-6">
+              <CardContent className="p-3">
                 {typeof finding === 'string' ? (
                   <p className="text-sm">{finding}</p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-medium text-sm">{finding.finding}</h4>
-                      <Badge variant={
-                        finding.urgency === 'high' ? 'destructive' :
-                        finding.urgency === 'moderate' ? 'default' : 'secondary'
-                      }>
-                        {finding.urgency} urgency
-                      </Badge>
+                      <h4 className="medical-label-xs font-medium">{finding.finding}</h4>
+                      <div className="flex gap-1">
+                        {finding.urgency && (
+                          <Badge variant={
+                            finding.urgency === 'high' ? 'destructive' :
+                            finding.urgency === 'moderate' ? 'default' : 'secondary'
+                          } className="text-xs">
+                            {finding.urgency} urgency
+                          </Badge>
+                        )}
+                        {finding.significance && (
+                          <Badge variant="secondary" className="text-xs">
+                            {finding.significance}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <p className="text-sm text-muted-foreground">{finding.explanation}</p>
                     <p className="text-sm"><strong>Significance:</strong> {finding.significance}</p>
@@ -648,17 +657,17 @@ export function SummaryViewer({
     const recommendations = data.recommendations || data.questions || [];
 
     return (
-      <div className={`border rounded-lg p-4 ${colorClass}`}>
-        <div className="flex items-center gap-2 mb-3">
+      <div className={`border rounded-lg p-3 ${colorClass}`}>
+        <div className="flex items-center gap-2 mb-2">
           {icon}
-          <h4 className="font-semibold capitalize text-foreground">
+          <h4 className="medical-subheading capitalize text-foreground">
             {priority} Priority
           </h4>
         </div>
         
         {findings.length > 0 && (
-          <div className="space-y-2 mb-3">
-            <h5 className="text-sm font-medium text-muted-foreground">
+          <div className="space-y-2 mb-2">
+            <h5 className="medical-label-xs font-medium text-muted-foreground">
               {data.topics ? 'Topics:' : data.trends ? 'Trends:' : 'Findings:'}
             </h5>
             <ul className="space-y-1">
@@ -671,21 +680,20 @@ export function SummaryViewer({
                     <span className="mr-2 text-primary">•</span>
                     <span className="flex-1">{text}</span>
                     {typeof score === 'number' && (
-                      <Badge variant={riskBadgeVariant(level)} className="ml-2">
+                      <Badge variant={riskBadgeVariant(level)} className="ml-2 text-xs">
                         {item.category ? `${item.category}: ` : ''}{Math.round(score)}
                       </Badge>
                     )}
                   </li>
                 );
               })}
-
             </ul>
           </div>
         )}
         
         {recommendations.length > 0 && (
           <div className="space-y-2">
-            <h5 className="text-sm font-medium text-muted-foreground">
+            <h5 className="medical-label-xs font-medium text-muted-foreground">
               {data.questions ? 'Questions:' : 'Recommendations:'}
             </h5>
             <ul className="space-y-1">
@@ -708,15 +716,15 @@ export function SummaryViewer({
     
     if (hasPriorityStructure) {
       return (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {summary.summary_type === 'trend_analysis' && renderTrendAnalysis()}
           {content.summary && (
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <p className="text-foreground leading-relaxed">{content.summary}</p>
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm text-foreground leading-relaxed">{content.summary}</p>
             </div>
           )}
           
-          <div className="space-y-4">
+          <div className="space-y-3">
             {renderPrioritySection(
               'high', 
               content.high_priority, 
@@ -759,75 +767,59 @@ export function SummaryViewer({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-xl">{summary.title}</DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Generated {formatDistanceToNow(new Date(summary.generated_at), { addSuffix: true })}
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0">
+        <DialogHeader className="border-b p-3 space-y-3">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <DialogTitle className="medical-heading-sm">{summary.title}</DialogTitle>
+              <div className="flex items-center gap-3 medical-label-xs">
+                <span>Generated {formatDistanceToNow(new Date(summary.generated_at), { addSuffix: true })}</span>
                 {summary.confidence_score && (
-                  <span> • {Math.round(summary.confidence_score * 100)}% confidence</span>
-                )}
-              </p>
-              {content?.risk?.overall_score && (
-                <div className="mt-2 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={riskBadgeVariant(content.risk.level || riskLevelFromScore(content.risk.overall_score))}>
-                      Overall risk: {(content.risk.level || riskLevelFromScore(content.risk.overall_score))?.toString()} • {Math.round(content.risk.overall_score)} / 100
-                    </Badge>
+                  <div className="flex items-center gap-1">
+                    <span>Confidence:</span>
+                    <Badge variant="outline" className="text-xs">{summary.confidence_score}%</Badge>
                   </div>
-                  <Progress value={content.risk.overall_score} />
-                  {Array.isArray(content.risk.category_breakdown) && content.risk.category_breakdown.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {content.risk.category_breakdown.slice(0,6).map((cat: any) => (
-                        <Badge key={cat.category} variant="outline">
-                          {cat.category}: {Math.round(cat.score)}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              {onPin && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => onPin(summary.id)}
+                  className="h-8"
+                >
+                  <Star className={`h-3 w-3 ${summary.is_pinned ? 'fill-current text-yellow-500' : ''}`} />
+                </Button>
               )}
-
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
+              <Button 
+                variant="outline" 
                 size="sm"
-                onClick={() => onPin?.(summary.id)}
+                className="h-8"
               >
-                <Star className={`h-4 w-4 ${summary.is_pinned ? 'fill-current text-yellow-500' : ''}`} />
+                <Share2 className="h-3 w-3" />
               </Button>
-              <Button variant="ghost" size="sm">
-                <Share2 className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Download className="h-4 w-4" />
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="h-8"
+              >
+                <Download className="h-3 w-3" />
               </Button>
             </div>
-            </div>
-            <DialogDescription className="sr-only">AI-generated medical summary details dialog</DialogDescription>
-          </DialogHeader>
+          </div>
+        </DialogHeader>
 
-        <Separator />
-
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto p-3">
           {renderContent()}
         </div>
 
         {summary.user_feedback && (
-          <>
-            <Separator />
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Your Feedback</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{summary.user_feedback}</p>
-              </CardContent>
-            </Card>
-          </>
+          <div className="border-t p-3">
+            <h4 className="medical-label-xs font-medium mb-1">Your Feedback</h4>
+            <p className="text-sm text-muted-foreground">"{summary.user_feedback}"</p>
+          </div>
         )}
       </DialogContent>
     </Dialog>
