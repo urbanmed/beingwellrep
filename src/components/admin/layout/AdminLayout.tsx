@@ -12,7 +12,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <AdminSidebar />
         
         <main className="flex-1 overflow-auto">
-          <header className="h-12 flex items-center border-b bg-background px-4">
+          <header className="h-12 flex items-center border-b bg-background px-4 pt-safe">
             <SidebarTrigger className="mr-4" />
             <h1 className="text-lg font-semibold text-foreground">
               Admin Panel
