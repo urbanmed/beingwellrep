@@ -299,17 +299,17 @@ export function ActionItems() {
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-1.5 sm:space-y-2">
+      <CardContent className="space-y-1 sm:space-y-1.5">
         {groupedResults.map((group) => (
-          <div key={group.dateKey} className="space-y-1">
+          <div key={group.dateKey} className="space-y-0.5">
             <div className="text-[10px] sm:text-xs text-muted-foreground">
               {group.dateLabel}
             </div>
-            <div className="space-y-0.5">
+            <div className="space-y-0">
               {group.items.map((item) => {
                 const StatusIcon = getStatusIcon(item.status);
                 return (
-                  <div key={item.id} className="flex items-center justify-between border-l border-l-destructive pl-2 py-0.5 gap-1">
+                  <div key={item.id} className="flex items-center justify-between border-l border-l-destructive pl-2 py-px gap-0.5">
                     <div className="flex items-center min-w-0 gap-1 flex-1">
                       <StatusIcon className="h-3 w-3 text-destructive flex-shrink-0" />
                       <span className="text-xs sm:text-sm font-medium capitalize truncate">
