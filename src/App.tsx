@@ -23,8 +23,8 @@ import ProfileEdit from "./pages/ProfileEdit";
 import Concierge from "./pages/Concierge";
 
 import NotFound from "./pages/NotFound";
-import { LoginPage } from "./pages/auth/LoginPage";
-import { SignupPage } from "./pages/auth/SignupPage";
+import LoginPage from "./pages/auth/LoginPage";
+import SignupPage from "./pages/auth/SignupPage";
 import OnboardingPage from "./pages/auth/OnboardingPage";
 import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";

@@ -6,14 +6,9 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
-  signUpWithPhone: (phone: string, firstName: string, lastName: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signInWithPhone: (phone: string, password: string) => Promise<{ error: any }>;
+  signUp: (phone: string, firstName: string, lastName: string) => Promise<{ error: any }>;
+  signIn: (phone: string) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
-  resetPassword: (email: string) => Promise<{ error: any }>;
-  updatePassword: (password: string) => Promise<{ error: any }>;
-  resendConfirmation: (email: string) => Promise<{ error: any }>;
   verifyPhoneOTP: (phone: string, token: string) => Promise<{ error: any }>;
   resendPhoneOTP: (phone: string) => Promise<{ error: any }>;
 }
@@ -53,66 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
-    const redirectUrl = `${window.location.origin}/auth/verify`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-        }
-      }
-    });
-    return { error };
-  };
-
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
-  };
-
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
-  };
-
-  const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/auth/reset-password`;
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    });
-    return { error };
-  };
-
-  const updatePassword = async (password: string) => {
-    const { error } = await supabase.auth.updateUser({
-      password: password
-    });
-    return { error };
-  };
-
-  const resendConfirmation = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/auth/verify`;
-    
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: email,
-      options: {
-        emailRedirectTo: redirectUrl,
-      }
-    });
-    return { error };
-  };
-
-  const signUpWithPhone = async (phone: string, firstName: string, lastName: string) => {
+  const signUp = async (phone: string, firstName: string, lastName: string) => {
     const { error } = await supabase.auth.signUp({
       phone,
       password: '', // Phone signup doesn't use password initially
@@ -126,11 +62,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error };
   };
 
-  const signInWithPhone = async (phone: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+  const signIn = async (phone: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
       phone,
-      password,
     });
+    return { error };
+  };
+
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
     return { error };
   };
 
@@ -156,13 +96,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     session,
     loading,
     signUp,
-    signUpWithPhone,
     signIn,
-    signInWithPhone,
     signOut,
-    resetPassword,
-    updatePassword,
-    resendConfirmation,
     verifyPhoneOTP,
     resendPhoneOTP,
   };

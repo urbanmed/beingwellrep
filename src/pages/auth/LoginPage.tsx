@@ -1,77 +1,43 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Mail, Lock, Phone } from 'lucide-react';
+import { Phone } from 'lucide-react';
 
-export const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
+const LoginPage: React.FC = () => {
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
   
-  const { signIn, signInWithPhone } = useAuth();
+  const { signIn } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  const from = location.state?.from?.pathname || '/';
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      const { error } = await signIn(email, password);
-      
-      if (error) {
-        toast({
-          title: "Login Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Welcome back!",
-          description: "You have successfully signed in.",
-        });
-        navigate(from, { replace: true });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const validatePhone = (phone: string) => {
+    // Basic phone validation - adjust as needed
+    const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
+    return phoneRegex.test(phone);
   };
 
-  const handlePhoneSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!phone || !password) {
+    if (!phone) {
       toast({
-        title: "Error",
-        description: "Please fill in all fields",
+        title: "Missing phone number",
+        description: "Please enter your phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validatePhone(phone)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid phone number",
         variant: "destructive",
       });
       return;
@@ -80,20 +46,22 @@ export const LoginPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await signInWithPhone(phone, password);
+      const { error } = await signIn(phone);
       
       if (error) {
         toast({
-          title: "Login Failed",
+          title: "Failed to send OTP",
           description: error.message,
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Welcome back!",
-          description: "You have successfully signed in.",
+          title: "OTP sent",
+          description: "Check your phone for the verification code",
         });
-        navigate(from, { replace: true });
+        navigate('/auth/phone-verify', { 
+          state: { phone, type: 'signin' }
+        });
       }
     } catch (error) {
       toast({
@@ -121,127 +89,37 @@ export const LoginPage: React.FC = () => {
             Sign in to your BeingWell account
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-8 pb-8">
-          <Tabs value={loginMethod} onValueChange={(value) => setLoginMethod(value as 'email' | 'phone')} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50">
-              <TabsTrigger value="email" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <Mail className="h-4 w-4" />
-                Email
-              </TabsTrigger>
-              <TabsTrigger value="phone" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <Phone className="h-4 w-4" />
-                Phone
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="email" className="space-y-6 mt-0">
-              <form onSubmit={handleEmailSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="medical-label font-medium">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 h-12 bg-background border-border/50 focus:border-primary/50 focus:ring-primary/20"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="medical-label font-medium">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10 h-12 bg-background border-border/50 focus:border-primary/50 focus:ring-primary/20"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-muted-foreground/70 hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
+        <CardContent className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="pl-10 medical-input"
+                  required
+                />
+              </div>
+            </div>
 
-                <div className="flex items-center justify-end">
-                  <Link
-                    to="/auth/forgot-password"
-                    className="text-sm text-primary hover:underline story-link font-medium"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
+            <Button 
+              type="submit" 
+              className="w-full medical-button-primary" 
+              disabled={isLoading}
+            >
+              {isLoading ? "Sending OTP..." : "Send Verification Code"}
+            </Button>
+          </form>
 
-                <Button type="submit" className="w-full h-12 medical-heading font-semibold" disabled={isLoading}>
-                  {isLoading ? "Signing in..." : "Sign in"}
-                </Button>
-              </form>
-            </TabsContent>
-            
-            <TabsContent value="phone" className="space-y-6 mt-0">
-              <form onSubmit={handlePhoneSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="phoneLogin" className="medical-label font-medium">Phone Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
-                    <Input
-                      id="phoneLogin"
-                      type="tel"
-                      placeholder="Enter your phone number"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="pl-10 h-12 bg-background border-border/50 focus:border-primary/50 focus:ring-primary/20"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="phonePassword" className="medical-label font-medium">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
-                    <Input
-                      id="phonePassword"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10 h-12 bg-background border-border/50 focus:border-primary/50 focus:ring-primary/20"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-muted-foreground/70 hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full h-12 medical-heading font-semibold" disabled={isLoading}>
-                  {isLoading ? "Signing in..." : "Sign in"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-
-          <div className="mt-8 text-center">
+          <div className="text-center">
             <p className="text-sm text-muted-foreground">
               Don't have an account?{' '}
-              <Link to="/auth/signup" className="text-primary hover:underline story-link font-semibold">
+              <Link to="/auth/signup" className="text-primary hover:underline medical-body font-semibold">
                 Sign up
               </Link>
             </p>
@@ -251,3 +129,5 @@ export const LoginPage: React.FC = () => {
     </div>
   );
 };
+
+export default LoginPage;

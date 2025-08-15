@@ -46,9 +46,19 @@ export const PhoneVerifyPage: React.FC = () => {
       } else {
         toast({
           title: "Phone verified!",
-          description: "Your account has been created successfully.",
+          description: "Your phone number has been successfully verified",
         });
-        navigate('/');
+        
+        // Check if this is a signup or signin
+        const isSignup = location.state?.type === 'signup';
+        
+        if (isSignup) {
+          // For new users, redirect to onboarding
+          navigate('/auth/onboarding');
+        } else {
+          // For existing users, redirect to home
+          navigate('/');
+        }
       }
     } catch (error) {
       toast({
