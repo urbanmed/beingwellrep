@@ -326,7 +326,7 @@ function parseMarkdownTable(content: string): any[] {
         const normalizedHeader = header.toLowerCase();
         const value = cells[index] || '';
         
-        if (normalizedHeader.includes('test') || normalizedHeader.includes('name')) {
+        if (normalizedHeader.includes('test') || normalizedHeader.includes('name') || normalizedHeader.includes('parameter')) {
           testData.testName = value;
         } else if (normalizedHeader.includes('result') || normalizedHeader.includes('value')) {
           // Handle empty/pending results
@@ -339,19 +339,33 @@ function parseMarkdownTable(content: string): any[] {
             const resultMatch = value.match(/^([\d.,]+)\s*(.*)$/);
             testData.result = resultMatch ? resultMatch[1] : value;
             testData.units = resultMatch ? resultMatch[2] : '';
+            
+            // Calculate status based on result and reference range if not explicitly provided
+            if (!testData.status && testData.referenceRange) {
+              testData.status = calculateStatus(testData.result, testData.referenceRange);
+            }
           }
-        } else if (normalizedHeader.includes('reference') || normalizedHeader.includes('range')) {
+        } else if (normalizedHeader.includes('reference') || normalizedHeader.includes('range') || normalizedHeader.includes('normal')) {
           testData.referenceRange = value;
         } else if (normalizedHeader.includes('status') || normalizedHeader.includes('flag')) {
           testData.status = normalizeStatus(value);
         }
       });
       
+      // Calculate status after all data is parsed if not already set
+      if (testData.testName && testData.result && !testData.status && testData.referenceRange) {
+        testData.status = calculateStatus(testData.result, testData.referenceRange);
+      }
+      
       // Include tests even if they have no results (requisition forms)
       if (testData.testName) {
         // Set default status if not already set
-        if (!testData.status && (!testData.result || testData.result === '')) {
-          testData.status = 'Pending';
+        if (!testData.status) {
+          if (!testData.result || testData.result === '') {
+            testData.status = 'Pending';
+          } else {
+            testData.status = 'Normal';
+          }
         }
         results.push(testData);
       }
@@ -359,6 +373,52 @@ function parseMarkdownTable(content: string): any[] {
   }
   
   return results;
+}
+
+function calculateStatus(result: string, referenceRange: string): string {
+  if (!result || !referenceRange || result === '' || referenceRange === '') {
+    return 'Normal';
+  }
+  
+  // Extract numeric value from result
+  const resultMatch = result.match(/([\d.,]+)/);
+  if (!resultMatch) return 'Normal';
+  
+  const numericResult = parseFloat(resultMatch[1].replace(',', ''));
+  if (isNaN(numericResult)) return 'Normal';
+  
+  // Parse reference range (e.g., "2.5-5.0", "< 10", "> 5", "2.5 - 5.0")
+  const rangeMatch = referenceRange.match(/([\d.,]+)\s*[-–—]\s*([\d.,]+)/);
+  if (rangeMatch) {
+    const lowerBound = parseFloat(rangeMatch[1].replace(',', ''));
+    const upperBound = parseFloat(rangeMatch[2].replace(',', ''));
+    
+    if (!isNaN(lowerBound) && !isNaN(upperBound)) {
+      if (numericResult < lowerBound) return 'Low';
+      if (numericResult > upperBound) return 'High';
+      return 'Normal';
+    }
+  }
+  
+  // Handle "< value" format
+  const lessThanMatch = referenceRange.match(/[<≤]\s*([\d.,]+)/);
+  if (lessThanMatch) {
+    const threshold = parseFloat(lessThanMatch[1].replace(',', ''));
+    if (!isNaN(threshold)) {
+      return numericResult >= threshold ? 'High' : 'Normal';
+    }
+  }
+  
+  // Handle "> value" format
+  const greaterThanMatch = referenceRange.match(/[>≥]\s*([\d.,]+)/);
+  if (greaterThanMatch) {
+    const threshold = parseFloat(greaterThanMatch[1].replace(',', ''));
+    if (!isNaN(threshold)) {
+      return numericResult <= threshold ? 'Low' : 'Normal';
+    }
+  }
+  
+  return 'Normal';
 }
 
 function normalizeStatus(status: string): string {

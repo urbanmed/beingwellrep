@@ -121,7 +121,7 @@ export function TimelineItem({ report, isSelected, onSelect, onNavigate, showDat
         <div className="w-3 h-3 bg-primary rounded-full border-2 border-background shadow-sm" />
         {showDate && (
           <div className="absolute -left-8 top-6 text-xs text-muted-foreground whitespace-nowrap">
-            {format(new Date(report.report_date), 'MMM d')}
+            {format(new Date(report.created_at), 'MMM d, h:mm a')}
           </div>
         )}
       </div>
