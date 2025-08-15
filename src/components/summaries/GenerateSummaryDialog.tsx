@@ -182,12 +182,12 @@ export function GenerateSummaryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] max-h-[95vh] w-[calc(100vw-1rem)] sm:max-w-4xl sm:max-h-[90vh] sm:w-auto overflow-y-auto">
+      <DialogContent className="max-w-[calc(100vw-2rem)] max-h-[95vh] w-[calc(100vw-2rem)] sm:max-w-4xl sm:max-h-[90vh] sm:w-auto overflow-y-auto p-3 sm:p-6">
         <DialogHeader className="pb-2">
           <DialogTitle className="text-lg sm:text-xl">Generate AI Summary</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-3 sm:space-y-6">
           {/* Summary Type Selection */}
           <div>
             <h3 className="text-sm font-medium mb-3">Choose Summary Type</h3>
@@ -265,7 +265,7 @@ export function GenerateSummaryDialog({
                      <div className="space-y-2 max-h-[25vh] overflow-y-auto">
                        {readyReports.map((report) => (
                          <Card key={report.id}>
-                           <CardContent className="p-3">
+                           <CardContent className="p-2 sm:p-3">
                              <div className="flex items-start gap-3">
                                <Checkbox
                                  checked={selectedReports.includes(report.id)}
@@ -278,14 +278,14 @@ export function GenerateSummaryDialog({
                                <div className="flex-1 min-w-0">
                                  <div className="space-y-1">
                                    <h5 className="text-sm font-medium truncate">{report.title}</h5>
-                                   <div className="flex flex-wrap gap-1">
-                                     <Badge variant="outline" className="text-xs h-5 px-1.5 flex-shrink-0">
-                                       {report.report_type}
-                                     </Badge>
-                                     <Badge variant="secondary" className="text-xs h-5 bg-green-100 text-green-700 px-1.5 flex-shrink-0">
-                                       Ready
-                                     </Badge>
-                                   </div>
+                                    <div className="flex flex-wrap gap-1">
+                                      <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 sm:px-1.5 flex-shrink-0">
+                                        {report.report_type}
+                                      </Badge>
+                                      <Badge variant="secondary" className="text-[10px] sm:text-xs h-4 sm:h-5 bg-green-100 text-green-700 px-1 sm:px-1.5 flex-shrink-0">
+                                        Ready
+                                      </Badge>
+                                    </div>
                                    <p className="text-xs text-muted-foreground truncate">
                                      {new Date(report.report_date).toLocaleDateString()}
                                      {report.physician_name && ` • Dr. ${report.physician_name}`}
@@ -307,27 +307,27 @@ export function GenerateSummaryDialog({
                       <Clock className="h-3 w-3 mr-1" />
                       Processing ({processingReports.length})
                     </h4>
-                    <div className="space-y-2">
-                      {processingReports.map((report) => (
-                        <Card key={report.id} className="bg-blue-50">
-                          <CardContent className="p-4 sm:p-3">
+                     <div className="space-y-2">
+                       {processingReports.map((report) => (
+                         <Card key={report.id} className="bg-blue-50">
+                           <CardContent className="p-2 sm:p-3">
                             <div className="flex items-start gap-3">
-                              <div className="w-12 h-12 sm:w-9 sm:h-9 rounded-full bg-blue-100 flex items-center justify-center">
-                                <Loader2 className="h-5 w-5 sm:h-4 sm:w-4 animate-spin text-blue-600" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                  <h5 className="text-base sm:text-sm font-medium truncate">{report.title}</h5>
-                                  <Badge variant="outline" className="text-xs h-6 sm:h-5 px-2">
-                                    {report.report_type}
-                                  </Badge>
-                                  <Badge variant="secondary" className="text-xs h-6 sm:h-5 bg-blue-100 text-blue-700 px-2">
-                                    Processing
-                                  </Badge>
-                                </div>
-                                <p className="text-sm sm:text-xs text-muted-foreground">
-                                  Text extraction in progress...
-                                </p>
+                               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                 <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                               </div>
+                               <div className="flex-1 min-w-0">
+                                 <div className="flex items-center gap-1 mb-1 flex-wrap">
+                                   <h5 className="text-sm font-medium truncate">{report.title}</h5>
+                                   <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 sm:px-2">
+                                     {report.report_type}
+                                   </Badge>
+                                   <Badge variant="secondary" className="text-[10px] sm:text-xs h-4 sm:h-5 bg-blue-100 text-blue-700 px-1 sm:px-2">
+                                     Processing
+                                   </Badge>
+                                 </div>
+                                 <p className="text-xs text-muted-foreground">
+                                   Text extraction in progress...
+                                 </p>
                               </div>
                             </div>
                           </CardContent>
@@ -344,36 +344,36 @@ export function GenerateSummaryDialog({
                       <XCircle className="h-3 w-3 mr-1" />
                       Processing Failed ({failedReports.length})
                     </h4>
-                    <div className="space-y-2">
-                      {failedReports.map((report) => (
-                        <Card key={report.id} className="bg-red-50">
-                          <CardContent className="p-4 sm:p-3">
+                     <div className="space-y-2">
+                       {failedReports.map((report) => (
+                         <Card key={report.id} className="bg-red-50">
+                           <CardContent className="p-2 sm:p-3">
                             <div className="flex items-start gap-3">
-                              <div className="w-12 h-12 sm:w-9 sm:h-9 rounded-full bg-red-100 flex items-center justify-center">
-                                <XCircle className="h-5 w-5 sm:h-4 sm:w-4 text-red-600" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                  <h5 className="text-base sm:text-sm font-medium truncate">{report.title}</h5>
-                                  <Badge variant="outline" className="text-xs h-6 sm:h-5 px-2">
-                                    {report.report_type}
-                                  </Badge>
-                                  <Badge variant="destructive" className="text-xs h-6 sm:h-5 px-2">
-                                    Failed
-                                  </Badge>
-                                </div>
-                                <p className="text-sm sm:text-xs text-red-600 mb-2">
-                                  {report.processing_error || 'Processing failed'}
-                                </p>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="h-8 sm:h-7 w-auto text-sm sm:text-xs px-3 sm:px-2"
-                                  onClick={() => handleRetryProcessing(report.id)}
-                                >
-                                  <RefreshCw className="h-3 w-3 mr-1" />
-                                  Retry
-                                </Button>
+                               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                                 <XCircle className="h-4 w-4 text-red-600" />
+                               </div>
+                               <div className="flex-1 min-w-0">
+                                 <div className="flex items-center gap-1 mb-1 flex-wrap">
+                                   <h5 className="text-sm font-medium truncate">{report.title}</h5>
+                                   <Badge variant="outline" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 sm:px-2">
+                                     {report.report_type}
+                                   </Badge>
+                                   <Badge variant="destructive" className="text-[10px] sm:text-xs h-4 sm:h-5 px-1 sm:px-2">
+                                     Failed
+                                   </Badge>
+                                 </div>
+                                 <p className="text-xs text-red-600 mb-2">
+                                   {report.processing_error || 'Processing failed'}
+                                 </p>
+                                 <Button 
+                                   size="sm" 
+                                   variant="outline" 
+                                   className="h-7 w-auto text-xs px-2"
+                                   onClick={() => handleRetryProcessing(report.id)}
+                                 >
+                                   <RefreshCw className="h-3 w-3 mr-1" />
+                                   Retry
+                                 </Button>
                               </div>
                             </div>
                           </CardContent>
@@ -400,7 +400,7 @@ export function GenerateSummaryDialog({
           {/* Custom Prompt (Optional) */}
           <div>
             <h3 className="text-sm font-medium mb-2">Custom Instructions (Optional)</h3>
-            <p className="text-sm sm:text-xs text-muted-foreground mb-3">
+            <p className="text-xs text-muted-foreground mb-2">
               Provide specific questions or areas you'd like the AI to focus on
             </p>
             <Textarea
@@ -408,32 +408,32 @@ export function GenerateSummaryDialog({
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
               rows={3}
-              className="text-base sm:text-sm"
+              className="text-sm"
             />
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
+          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-3 border-t">
             <Button 
               variant="outline" 
               onClick={handleClose}
-              className="h-11 text-sm min-h-[44px]"
+              className="h-10 text-sm"
             >
               Cancel
             </Button>
             <Button
               onClick={handleGenerate}
               disabled={selectedReports.length === 0 || loading || !onGenerate || readyReports.length === 0}
-              className="h-11 text-sm min-h-[44px]"
+              className="h-10 text-sm"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-5 w-5 sm:h-4 sm:w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Generating...
                 </>
               ) : (
                 <>
-                  <Brain className="h-5 w-5 sm:h-4 sm:w-4 mr-2" />
+                  <Brain className="h-4 w-4 mr-2" />
                   Generate Summary
                 </>
               )}
