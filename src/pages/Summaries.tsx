@@ -117,21 +117,21 @@ export default function Summaries() {
       ) : (
         <>
           {/* Search and Filters */}
-          <div className="flex gap-4 items-center">
-            <div className="relative flex-1 max-w-md">
+          <div className="space-y-3">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search summaries..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-10"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
               <Button
                 variant={activeFilter === 'all' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-full h-8 px-3 text-xs shadow-none"
+                className="rounded-full h-8 px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
                 onClick={() => setActiveFilter('all')}
               >
                 All ({summaries.length})
@@ -139,7 +139,7 @@ export default function Summaries() {
               <Button
                 variant={activeFilter === 'comprehensive' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-full h-8 px-3 text-xs shadow-none"
+                className="rounded-full h-8 px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
                 onClick={() => setActiveFilter('comprehensive')}
               >
                 Comprehensive ({summaryTypeCounts.comprehensive})
@@ -147,7 +147,7 @@ export default function Summaries() {
               <Button
                 variant={activeFilter === 'abnormal_findings' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-full h-8 px-3 text-xs shadow-none"
+                className="rounded-full h-8 px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
                 onClick={() => setActiveFilter('abnormal_findings')}
               >
                 Abnormal ({summaryTypeCounts.abnormal_findings})
@@ -155,7 +155,7 @@ export default function Summaries() {
               <Button
                 variant={activeFilter === 'trend_analysis' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-full h-8 px-3 text-xs shadow-none"
+                className="rounded-full h-8 px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
                 onClick={() => setActiveFilter('trend_analysis')}
               >
                 Trends ({summaryTypeCounts.trend_analysis})
@@ -163,7 +163,7 @@ export default function Summaries() {
               <Button
                 variant={activeFilter === 'doctor_prep' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-full h-8 px-3 text-xs shadow-none"
+                className="rounded-full h-8 px-3 text-xs shadow-none whitespace-nowrap flex-shrink-0"
                 onClick={() => setActiveFilter('doctor_prep')}
               >
                 Doctor Prep ({summaryTypeCounts.doctor_prep})
