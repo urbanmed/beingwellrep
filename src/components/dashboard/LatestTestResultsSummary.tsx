@@ -218,12 +218,12 @@ export function LatestTestResultsSummary() {
   if (latestTests.length === 0) {
     return (
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="medical-heading-sm flex items-center">
-            <TestTube className="h-4 w-4 mr-2 text-primary" />
-            Latest Test Results
-          </CardTitle>
-        </CardHeader>
+      <CardHeader className="pb-2">
+        <CardTitle className="medical-heading-sm flex items-center">
+          <TestTube className="h-4 w-4 mr-2 text-primary" />
+          Latest Test Results
+        </CardTitle>
+      </CardHeader>
         <CardContent>
           <p className="medical-annotation text-center py-4">No recent lab test results found</p>
         </CardContent>
@@ -233,13 +233,13 @@ export function LatestTestResultsSummary() {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <CardTitle className="medical-heading-sm flex items-center">
           <TestTube className="h-4 w-4 mr-2 text-primary" />
           Latest Test Results
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2.5 sm:space-y-3">
         {latestTests.map((t, idx) => (
           <div key={`${t.name}-${idx}`} className="flex items-center justify-between">
             <div className="flex items-center space-x-2 min-w-0">
@@ -250,7 +250,7 @@ export function LatestTestResultsSummary() {
                 {t.value}
                 {t.unit ? ` ${t.unit}` : ""}
               </span>
-              <Badge variant={statusToBadgeVariant(t.status)} className="text-xs capitalize">
+              <Badge variant={statusToBadgeVariant(t.status)} className="text-[10px] sm:text-xs capitalize">
                 {t.status}
               </Badge>
             </div>
