@@ -57,12 +57,6 @@ export default function Upload() {
 
   return (
     <main className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 pb-16 sm:pb-20 space-y-4 sm:space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="medical-title">Upload Medical Documents</h1>
-        <p className="medical-label">
-          Simply upload your documents - our AI will automatically extract titles, types, and details
-        </p>
-      </div>
 
       {/* File Upload Area */}
       <FileUploadArea
