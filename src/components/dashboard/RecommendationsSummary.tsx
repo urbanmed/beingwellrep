@@ -151,7 +151,7 @@ export function RecommendationsSummary() {
           const showSeparator = idx === firstNonHighIdx && firstNonHighIdx > 0;
           const isNonHigh = it.priority !== 'high';
           return (
-            <Fragment key={it.id}>
+            <div key={it.id}>
               {showSeparator && <Separator className="my-2 bg-accent" />}
               <div className="flex items-center justify-between gap-2 sm:gap-3">
                 <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -173,7 +173,7 @@ export function RecommendationsSummary() {
                   {it.priority}
                 </Badge>
               </div>
-            </Fragment>
+            </div>
           );
         })}
       </CardContent>
