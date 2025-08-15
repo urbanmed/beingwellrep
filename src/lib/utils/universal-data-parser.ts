@@ -82,6 +82,28 @@ export function parseUniversalMedicalDocument(content: string | any): ParsedMedi
   if (typeof content === 'string') {
     textContent = content;
   } else if (typeof content === 'object' && content !== null) {
+    // Check for new extractedData format with separate markdown tables
+    if (content.extractedData) {
+      const { patientInformation, hospitalLabInformation, labTestResults } = content.extractedData;
+      
+      if (patientInformation) {
+        result.patientInfo = parsePatientMarkdownTable(patientInformation);
+      }
+      
+      if (hospitalLabInformation) {
+        result.medicalInfo = parseMedicalMarkdownTable(hospitalLabInformation);
+      }
+      
+      if (labTestResults) {
+        result.testResults = parseLabResultsMarkdownTable(labTestResults);
+      }
+      
+      // If we got structured data from markdown tables, return early
+      if (Object.keys(result.patientInfo).length > 0 || Object.keys(result.medicalInfo).length > 0 || result.testResults.length > 0) {
+        return result;
+      }
+    }
+    
     // Try to extract text from various object structures
     textContent = extractTextFromObject(content);
   }
@@ -392,6 +414,157 @@ function calculateTestStatus(result: string, referenceRange: string): string {
     const threshold = parseFloat(greaterThanMatch[1].replace(',', ''));
     if (!isNaN(threshold)) {
       return numericResult <= threshold ? 'Low' : 'Normal';
+    }
+  }
+  
+  return 'Normal';
+}
+
+// Enhanced parsing functions for new markdown table format
+export function parsePatientMarkdownTable(markdownTable: string): PatientInfo {
+  const patientInfo: PatientInfo = {};
+  
+  // Parse markdown table format: | Field | Value |
+  const lines = markdownTable.split('\n').filter(line => line.trim());
+  
+  for (const line of lines) {
+    if (line.includes('|') && !line.includes('---')) {
+      const parts = line.split('|').map(part => part.trim()).filter(part => part);
+      if (parts.length >= 2) {
+        const field = parts[0].toLowerCase();
+        const value = parts[1];
+        
+        if (field.includes('name') || field.includes('patient')) {
+          patientInfo.name = value;
+        } else if (field.includes('age')) {
+          patientInfo.age = value;
+        } else if (field.includes('gender') || field.includes('sex')) {
+          patientInfo.gender = value;
+        } else if (field.includes('collection') && field.includes('date')) {
+          patientInfo.dob = value;
+        } else if (field.includes('referring') || field.includes('doctor')) {
+          patientInfo.contact = value;
+        }
+      }
+    }
+  }
+  
+  return patientInfo;
+}
+
+export function parseMedicalMarkdownTable(markdownTable: string): MedicalInfo {
+  const medicalInfo: MedicalInfo = {};
+  
+  // Parse markdown table format: | Field | Value |
+  const lines = markdownTable.split('\n').filter(line => line.trim());
+  
+  for (const line of lines) {
+    if (line.includes('|') && !line.includes('---')) {
+      const parts = line.split('|').map(part => part.trim()).filter(part => part);
+      if (parts.length >= 2) {
+        const field = parts[0].toLowerCase();
+        const value = parts[1];
+        
+        if (field.includes('lab') || field.includes('laboratory') || field.includes('hospital')) {
+          medicalInfo.facilityName = value;
+        } else if (field.includes('address')) {
+          medicalInfo.address = value;
+        } else if (field.includes('phone') || field.includes('contact')) {
+          medicalInfo.contact = value;
+        }
+      }
+    }
+  }
+  
+  return medicalInfo;
+}
+
+export function parseLabResultsMarkdownTable(markdownTable: string): TestResult[] {
+  const testResults: TestResult[] = [];
+  const lines = markdownTable.split('\n').filter(line => line.trim());
+  
+  let headers: string[] = [];
+  let headerFound = false;
+  
+  for (const line of lines) {
+    if (line.includes('|') && !line.includes('---')) {
+      const parts = line.split('|').map(part => part.trim()).filter(part => part);
+      
+      if (!headerFound && parts.length >= 3) {
+        // Check if this looks like a header row
+        const firstPart = parts[0].toLowerCase();
+        if (firstPart.includes('test') || firstPart.includes('parameter') || firstPart.includes('name')) {
+          headers = parts;
+          headerFound = true;
+          continue;
+        }
+      }
+      
+      if (headerFound && parts.length >= 3) {
+        const testName = parts[0];
+        const result = parts[1];
+        const unit = parts[2];
+        const referenceRange = parts.length > 3 ? parts[3] : '';
+        
+        if (testName && result && testName !== 'Test Name') {
+          const status = calculateEnhancedTestStatus(result, referenceRange);
+          
+          testResults.push({
+            testName: testName,
+            result: result,
+            units: unit || '',
+            referenceRange: referenceRange || '',
+            status: status
+          });
+        }
+      }
+    }
+  }
+  
+  return testResults;
+}
+
+export function calculateEnhancedTestStatus(result: string, referenceRange: string): string {
+  if (!result || !referenceRange) return 'Normal';
+  
+  // Clean up the result and reference range
+  const cleanResult = result.trim();
+  const cleanRange = referenceRange.trim();
+  
+  // Handle special reference range formats
+  let normalizedRange = cleanRange.toLowerCase();
+  
+  // Extract range from formats like "Desirable: < 200", "Normal: 70-100"
+  if (normalizedRange.includes(':')) {
+    normalizedRange = normalizedRange.split(':')[1].trim();
+  }
+  
+  // Extract numeric value from result
+  const resultValue = parseFloat(cleanResult.replace(/[^\d.-]/g, ''));
+  if (isNaN(resultValue)) return 'Normal';
+  
+  // Handle different range formats
+  if (normalizedRange.includes('<')) {
+    const maxValue = parseFloat(normalizedRange.replace(/[^\d.-]/g, ''));
+    if (!isNaN(maxValue)) {
+      return resultValue < maxValue ? 'Normal' : 'High';
+    }
+  } else if (normalizedRange.includes('>')) {
+    const minValue = parseFloat(normalizedRange.replace(/[^\d.-]/g, ''));
+    if (!isNaN(minValue)) {
+      return resultValue > minValue ? 'Normal' : 'Low';
+    }
+  } else if (normalizedRange.includes('-')) {
+    const rangeParts = normalizedRange.split('-');
+    if (rangeParts.length === 2) {
+      const minValue = parseFloat(rangeParts[0].replace(/[^\d.-]/g, ''));
+      const maxValue = parseFloat(rangeParts[1].replace(/[^\d.-]/g, ''));
+      
+      if (!isNaN(minValue) && !isNaN(maxValue)) {
+        if (resultValue < minValue) return 'Low';
+        if (resultValue > maxValue) return 'High';
+        return 'Normal';
+      }
     }
   }
   
