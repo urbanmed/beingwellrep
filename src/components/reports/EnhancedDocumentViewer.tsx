@@ -27,10 +27,17 @@ interface EnhancedDocumentViewerProps {
 export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) {
   const [activeTab, setActiveTab] = useState("structured");
 
-  const hasStructuredData = report.parsed_data && 
-    (report.parsed_data.sections?.length > 0 || 
-     report.parsed_data.tests?.length > 0 ||
-     report.parsed_data.medications?.length > 0);
+  const hasStructuredData = report.parsed_data && (
+    // Check for extractedData structure (new format)
+    (report.parsed_data.extractedData?.labTestResults?.length > 0) ||
+    (report.parsed_data.extractedData?.medications?.length > 0) ||
+    (report.parsed_data.extractedData?.sections?.length > 0) ||
+    // Check for legacy direct structure
+    (report.parsed_data.sections?.length > 0) || 
+    (report.parsed_data.tests?.length > 0) ||
+    (report.parsed_data.medications?.length > 0) ||
+    (report.parsed_data.labTestResults?.length > 0)
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {

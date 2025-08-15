@@ -19,25 +19,16 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { generateDocumentUrl, checkDocumentExists } from "@/lib/utils/simple-document-access";
 import { useFileDownload } from "@/hooks/useFileDownload";
 
-// Configure PDF.js worker with proper version alignment
+// Configure PDF.js worker with multiple fallback strategies
 if (typeof window !== 'undefined') {
   try {
-    // Use exact version match with installed pdfjs-dist@5.4.54
-    const pdfjsVersion = '5.4.54';
-    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsVersion}/build/pdf.worker.min.js`;
-    console.log(`PDF.js worker configured for version ${pdfjsVersion}`);
+    // Primary: Use versioned CDN (more reliable than unpkg)
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+    console.log(`PDF.js worker configured with CDN version ${pdfjs.version}`);
   } catch (error) {
-    console.warn('PDF.js CDN worker setup failed, using local fallback:', error);
-    // Multiple fallback strategies
-    try {
-      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-        'pdfjs-dist/build/pdf.worker.min.js',
-        import.meta.url,
-      ).toString();
-    } catch (fallbackError) {
-      console.warn('Local worker fallback failed, using static path:', fallbackError);
-      pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-    }
+    console.warn('CDN worker setup failed, using alternative:', error);
+    // Fallback: Use unpkg with explicit version
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
   }
 }
 
@@ -313,7 +304,7 @@ export function SimpleDocumentViewer({ report }: SimpleDocumentViewerProps) {
                       </div>
                     )}
 
-                    {/* PDF viewer with error boundary */}
+                     {/* PDF viewer with error boundary */}
                     <div id="pdf-viewer-container" className="flex justify-center overflow-auto max-h-[800px] border rounded">
                       <Document
                         file={documentUrl}
@@ -328,12 +319,23 @@ export function SimpleDocumentViewer({ report }: SimpleDocumentViewerProps) {
                         error={
                           <div className="flex items-center justify-center p-8 text-muted-foreground">
                             <AlertCircle className="h-6 w-6 mr-2" />
-                            <span>Failed to load PDF</span>
+                            <div className="text-center">
+                              <span>Failed to load PDF</span>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="mt-2 block mx-auto"
+                                onClick={openInNativePDFViewer}
+                              >
+                                Open in Browser PDF Viewer
+                              </Button>
+                            </div>
                           </div>
                         }
                         options={{
-                          cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+                          cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/cmaps/`,
                           cMapPacked: true,
+                          standardFontDataUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/standard_fonts/`,
                         }}
                       >
                         <Page
