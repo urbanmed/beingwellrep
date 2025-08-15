@@ -19,12 +19,16 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { generateDocumentUrl, checkDocumentExists } from "@/lib/utils/simple-document-access";
 import { useFileDownload } from "@/hooks/useFileDownload";
 
-// Configure PDF.js worker with better error handling
+// Configure PDF.js worker for proper rendering
 if (typeof window !== 'undefined') {
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-  ).toString();
+  try {
+    // Use CDN worker to avoid version conflicts
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+  } catch (error) {
+    console.warn('PDF.js worker setup failed, using fallback:', error);
+    // Fallback to local worker
+    pdfjs.GlobalWorkerOptions.workerSrc = '/node_modules/pdfjs-dist/build/pdf.worker.js';
+  }
 }
 
 interface SimpleDocumentViewerProps {
@@ -290,7 +294,7 @@ export function SimpleDocumentViewer({ report }: SimpleDocumentViewerProps) {
                           </div>
                         }
                         options={{
-                          cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
+                          cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
                           cMapPacked: true,
                         }}
                       >

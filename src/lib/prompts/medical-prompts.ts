@@ -9,7 +9,15 @@ CRITICAL: You must also generate an intelligent document name based on the conte
 
 The document name must be included in your JSON response under the "suggestedName" field.`;
 
-export const LAB_RESULTS_PROMPT = `Extract structured data from this lab results document with proper hierarchical organization. Return JSON in this exact format:
+export const LAB_RESULTS_PROMPT = `Extract structured data from this lab results document with proper hierarchical organization.
+
+CRITICAL NAMING RULES:
+- For COMPREHENSIVE panels (CBC, CBP, CMP, BMP, Lipid Panel, etc.) with 5+ tests, name after the PANEL
+- For CBP/Complete Blood Picture: Always use "Complete Blood Picture" as primary name
+- For single/few tests: Use the specific test name
+- Prioritize test QUANTITY and comprehensiveness over individual mentions
+
+Return JSON in this exact format:
 
 {
   "reportType": "lab",
@@ -331,6 +339,71 @@ export function generateSmartTags(parsedData: any): string[] {
   return Array.from(tags);
 }
 
+// Intelligent document naming with CBP detection
+export function generateIntelligentDocumentName(
+  parsedData: any, 
+  reportDate: string
+): string {
+  const formatDate = (dateStr: string): string => {
+    try {
+      const date = new Date(dateStr);
+      return date.toISOString().split('T')[0];
+    } catch {
+      return new Date().toISOString().split('T')[0];
+    }
+  };
+
+  const formattedDate = formatDate(reportDate);
+
+  // Lab results intelligent naming
+  if (parsedData?.reportType === 'lab' && parsedData?.tests?.length > 0) {
+    const testNames = parsedData.tests.map(t => t.name?.toLowerCase() || '');
+    const testCount = parsedData.tests.length;
+    
+    // Detect comprehensive blood panels (CBP/CBC)
+    const bloodTestKeywords = ['hemoglobin', 'hematocrit', 'wbc', 'rbc', 'platelet', 'mcv', 'mch', 'mchc'];
+    const bloodTestCount = testNames.filter(name => 
+      bloodTestKeywords.some(keyword => name.includes(keyword))
+    ).length;
+    
+    // If 4+ blood tests, likely a CBP/CBC
+    if (bloodTestCount >= 4) {
+      return `Lab Results - Complete Blood Picture - ${formattedDate}`;
+    }
+    
+    // Check for other comprehensive panels
+    if (testCount >= 5) {
+      const metabolicKeywords = ['glucose', 'sodium', 'potassium', 'chloride', 'bun', 'creatinine'];
+      const metabolicCount = testNames.filter(name => 
+        metabolicKeywords.some(keyword => name.includes(keyword))
+      ).length;
+      
+      if (metabolicCount >= 4) {
+        return `Lab Results - Comprehensive Metabolic Panel - ${formattedDate}`;
+      }
+      
+      const lipidKeywords = ['cholesterol', 'triglyceride', 'hdl', 'ldl'];
+      const lipidCount = testNames.filter(name => 
+        lipidKeywords.some(keyword => name.includes(keyword))
+      ).length;
+      
+      if (lipidCount >= 3) {
+        return `Lab Results - Lipid Panel - ${formattedDate}`;
+      }
+    }
+    
+    // For single or few tests, use the primary test name
+    const primaryTest = parsedData.tests[0];
+    if (primaryTest?.name) {
+      return `Lab Results - ${primaryTest.name} - ${formattedDate}`;
+    }
+    
+    return `Lab Results - ${formattedDate}`;
+  }
+
+  return generateFallbackDocumentName(parsedData?.reportType || 'general', parsedData, reportDate);
+}
+
 export function generateFallbackDocumentName(
   reportType: string, 
   parsedData: any, 
@@ -339,7 +412,7 @@ export function generateFallbackDocumentName(
   const formatDate = (dateStr: string): string => {
     try {
       const date = new Date(dateStr);
-      return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+      return date.toISOString().split('T')[0];
     } catch {
       return new Date().toISOString().split('T')[0];
     }
@@ -348,18 +421,6 @@ export function generateFallbackDocumentName(
   const formattedDate = formatDate(reportDate);
 
   switch (reportType?.toLowerCase()) {
-    case 'lab_results':
-    case 'lab':
-      if (parsedData?.tests?.length > 0) {
-        const primaryTest = parsedData.tests[0];
-        if (primaryTest.isProfileHeader && primaryTest.name) {
-          return `Lab Results - ${primaryTest.name} - ${formattedDate}`;
-        } else if (primaryTest.name) {
-          return `Lab Results - ${primaryTest.name} - ${formattedDate}`;
-        }
-      }
-      return `Lab Results - ${formattedDate}`;
-
     case 'prescription':
     case 'pharmacy':
       if (parsedData?.medications?.length > 0) {

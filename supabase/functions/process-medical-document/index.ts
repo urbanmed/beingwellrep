@@ -322,6 +322,71 @@ const extractDataFromTextResponse = (text: string, reportType: string): any => {
   }
 };
 
+// Intelligent document naming with CBP detection
+const generateIntelligentDocumentName = (
+  parsedData: any, 
+  reportDate: string
+): string => {
+  const formatDate = (dateStr: string): string => {
+    try {
+      const date = new Date(dateStr);
+      return date.toISOString().split('T')[0];
+    } catch {
+      return new Date().toISOString().split('T')[0];
+    }
+  };
+
+  const formattedDate = formatDate(reportDate);
+
+  // Lab results intelligent naming
+  if (parsedData?.reportType === 'lab' && parsedData?.tests?.length > 0) {
+    const testNames = parsedData.tests.map(t => t.name?.toLowerCase() || '');
+    const testCount = parsedData.tests.length;
+    
+    // Detect comprehensive blood panels (CBP/CBC)
+    const bloodTestKeywords = ['hemoglobin', 'hematocrit', 'wbc', 'rbc', 'platelet', 'mcv', 'mch', 'mchc'];
+    const bloodTestCount = testNames.filter(name => 
+      bloodTestKeywords.some(keyword => name.includes(keyword))
+    ).length;
+    
+    // If 4+ blood tests, likely a CBP/CBC
+    if (bloodTestCount >= 4) {
+      return `Lab Results - Complete Blood Picture - ${formattedDate}`;
+    }
+    
+    // Check for other comprehensive panels
+    if (testCount >= 5) {
+      const metabolicKeywords = ['glucose', 'sodium', 'potassium', 'chloride', 'bun', 'creatinine'];
+      const metabolicCount = testNames.filter(name => 
+        metabolicKeywords.some(keyword => name.includes(keyword))
+      ).length;
+      
+      if (metabolicCount >= 4) {
+        return `Lab Results - Comprehensive Metabolic Panel - ${formattedDate}`;
+      }
+      
+      const lipidKeywords = ['cholesterol', 'triglyceride', 'hdl', 'ldl'];
+      const lipidCount = testNames.filter(name => 
+        lipidKeywords.some(keyword => name.includes(keyword))
+      ).length;
+      
+      if (lipidCount >= 3) {
+        return `Lab Results - Lipid Panel - ${formattedDate}`;
+      }
+    }
+    
+    // For single or few tests, use the primary test name
+    const primaryTest = parsedData.tests[0];
+    if (primaryTest?.name) {
+      return `Lab Results - ${primaryTest.name} - ${formattedDate}`;
+    }
+    
+    return `Lab Results - ${formattedDate}`;
+  }
+
+  return generateFallbackDocumentName(parsedData?.reportType || 'general', parsedData, reportDate);
+};
+
 const generateFallbackDocumentName = (
   reportType: string, 
   parsedData: any, 
@@ -330,7 +395,7 @@ const generateFallbackDocumentName = (
   const formatDate = (dateStr: string): string => {
     try {
       const date = new Date(dateStr);
-      return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+      return date.toISOString().split('T')[0];
     } catch {
       return new Date().toISOString().split('T')[0];
     }
@@ -339,18 +404,6 @@ const generateFallbackDocumentName = (
   const formattedDate = formatDate(reportDate);
 
   switch (reportType?.toLowerCase()) {
-    case 'lab_results':
-    case 'lab':
-      if (parsedData?.tests?.length > 0) {
-        const primaryTest = parsedData.tests[0];
-        if (primaryTest.isProfileHeader && primaryTest.name) {
-          return `Lab Results - ${primaryTest.name} - ${formattedDate}`;
-        } else if (primaryTest.name) {
-          return `Lab Results - ${primaryTest.name} - ${formattedDate}`;
-        }
-      }
-      return `Lab Results - ${formattedDate}`;
-
     case 'prescription':
     case 'pharmacy':
       if (parsedData?.medications?.length > 0) {
@@ -999,11 +1052,11 @@ serve(async (req) => {
       console.log('Fallback parsing result:', parsedData);
     }
 
-    // Generate intelligent document name
+    // Generate intelligent document name with CBP detection
     let finalDocumentName = suggestedName
     if (!finalDocumentName) {
-      // Fallback to our own naming logic if AI didn't provide a name
-      finalDocumentName = generateFallbackDocumentName(report.report_type, parsedData, report.report_date)
+      // Use intelligent naming that can detect CBP and other comprehensive panels
+      finalDocumentName = generateIntelligentDocumentName(parsedData, report.report_date)
     }
 
     // Clean up the suggested name (remove invalid characters, limit length)
