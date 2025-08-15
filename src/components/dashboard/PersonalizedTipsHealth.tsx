@@ -143,40 +143,40 @@ export function PersonalizedTipsHealth() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5 sm:space-y-3">
       <div className="flex items-center">
-        <Lightbulb className="h-4 w-4 mr-2 text-primary" />
+        <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 text-primary" />
         <h3 className="medical-heading-sm">Health Tips</h3>
       </div>
       
       <ScrollArea className="w-full whitespace-nowrap">
-        <div className="flex space-x-4 pb-4">
+        <div className="flex space-x-2 pb-2">
           {personalizedTips.map((tip) => (
             <Card 
               key={tip.id} 
-              className={`flex-none w-[280px] border-l-4 ${getPriorityBorder(tip.priority)}`}
+              className={`flex-none w-[calc((100vw-3rem)/2.5)] min-w-[120px] max-w-[160px] border-l-2 ${getPriorityBorder(tip.priority)}`}
             >
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <Badge variant={getCategoryColor(tip.category)} className="text-xs capitalize">
+              <CardHeader className="pb-1 px-2 pt-2">
+                <div className="flex items-center justify-between gap-1">
+                  <Badge variant={getCategoryColor(tip.category)} className="text-[10px] px-1 py-0 h-4">
                     {tip.category}
                   </Badge>
                   {tip.priority === 'important' && (
-                    <Badge variant="destructive" className="text-xs">
-                      Important
+                    <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">
+                      !
                     </Badge>
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <h4 className="medical-label font-medium leading-tight">{tip.title}</h4>
-                <p className="medical-annotation text-sm leading-relaxed whitespace-normal">
+              <CardContent className="px-2 pb-2 space-y-1">
+                <h4 className="text-[10px] sm:text-xs font-medium leading-tight line-clamp-2">{tip.title}</h4>
+                <p className="text-[10px] leading-snug text-muted-foreground line-clamp-3 whitespace-normal">
                   {tip.content}
                 </p>
                 {tip.source && (
-                  <Button variant="ghost" size="sm" className="text-xs p-0 h-auto">
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    Learn more
+                  <Button variant="ghost" size="sm" className="text-[9px] p-0 h-auto mt-1">
+                    <ExternalLink className="h-2 w-2 mr-0.5" />
+                    More
                   </Button>
                 )}
               </CardContent>
