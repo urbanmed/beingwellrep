@@ -129,7 +129,57 @@ export function ActionItems() {
           ? JSON.parse(report.parsed_data) 
           : report.parsed_data;
         
-        // Check lab results with enhanced parsing
+        // Check sections array for test results
+        if (data?.sections && Array.isArray(data.sections)) {
+          data.sections.forEach((section: any) => {
+            // Handle different section content structures
+            if (Array.isArray(section.content)) {
+              // Content is an array of tests
+              section.content.forEach((test: any) => {
+                const status = normalizeTestStatus(test.status);
+                if (status && ['critical', 'high', 'low', 'abnormal'].includes(status)) {
+                  const severity = determineSeverityLevel(status);
+                  
+                  flagged.push({
+                    id: `${report.id}-${test.testName || test.name}`,
+                    testName: test.testName || test.name || 'Unknown Test',
+                    value: `${test.result || test.value}${test.units ? ` ${test.units}` : ''}`,
+                    status: status as any,
+                    referenceRange: test.referenceRange || test.reference_range || test.refRange,
+                    reportId: report.id,
+                    reportTitle: report.title || 'Medical Report',
+                    reportDate: report.report_date,
+                    severity
+                  });
+                }
+              });
+            } else if (section.content && typeof section.content === 'object') {
+              // Content is an object with test properties
+              Object.entries(section.content).forEach(([key, value]: [string, any]) => {
+                if (value && typeof value === 'object' && value.status) {
+                  const status = normalizeTestStatus(value.status);
+                  if (status && ['critical', 'high', 'low', 'abnormal'].includes(status)) {
+                    const severity = determineSeverityLevel(status);
+                    
+                    flagged.push({
+                      id: `${report.id}-${key}`,
+                      testName: key.replace(/([A-Z])/g, ' $1').trim(),
+                      value: `${value.result || value.value}${value.units ? ` ${value.units}` : ''}`,
+                      status: status as any,
+                      referenceRange: value.referenceRange || value.reference_range || value.refRange,
+                      reportId: report.id,
+                      reportTitle: report.title || 'Medical Report',
+                      reportDate: report.report_date,
+                      severity
+                    });
+                  }
+                }
+              });
+            }
+          });
+        }
+        
+        // Fallback: Check legacy tests and vitals arrays (for backward compatibility)
         if (data?.tests) {
           data.tests.forEach((test: any) => {
             const status = normalizeTestStatus(test.status);
@@ -151,7 +201,6 @@ export function ActionItems() {
           });
         }
         
-        // Check vitals with enhanced parsing
         if (data?.vitals) {
           data.vitals.forEach((vital: any) => {
             const status = normalizeTestStatus(vital.status);
@@ -178,10 +227,10 @@ export function ActionItems() {
           flagged.push(...extractedResults);
         }
         
-        // Check sections for general documents
+        // Enhanced parsing for sections with text content
         if (data?.sections && Array.isArray(data.sections)) {
           data.sections.forEach((section: any) => {
-            if (section.content) {
+            if (section.content && typeof section.content === 'string') {
               const extractedResults = parseAbnormalFromText(section.content, report);
               flagged.push(...extractedResults);
             }
