@@ -30,12 +30,23 @@ export function SosButton({ size = 'default', variant = 'destructive', className
     console.log('📱 Platform:', navigator.platform);
 
     try {
-      // Haptic feedback for native platforms
+      // Enhanced haptic feedback for iOS
       if (isNativePlatform()) {
-        console.log('📳 Attempting haptic feedback...');
+        console.log('📳 Attempting iOS-optimized haptic feedback...');
         try {
+          // Primary impact
           await Haptics.impact({ style: ImpactStyle.Heavy });
-          console.log('✅ Haptic feedback successful');
+          console.log('✅ Primary haptic feedback successful');
+          
+          // Secondary impact for emergency feel (iOS pattern)
+          setTimeout(async () => {
+            try {
+              await Haptics.impact({ style: ImpactStyle.Medium });
+              console.log('✅ Secondary haptic feedback successful');
+            } catch (e) {
+              console.warn('⚠️ Secondary haptics failed:', e);
+            }
+          }, 100);
         } catch (error) {
           console.warn('⚠️ Haptics not available:', error);
         }
@@ -46,14 +57,28 @@ export function SosButton({ size = 'default', variant = 'destructive', className
       // Check if user has emergency contacts
       if (contacts.length === 0) {
         console.log('❌ No emergency contacts found');
-        alert('Please add emergency contacts in your profile before using SOS.');
+        const message = 'Please add emergency contacts in your profile before using SOS.';
+        if (isNativePlatform()) {
+          alert(message);
+        } else {
+          alert(message);
+        }
         return;
       }
 
-      console.log('📍 Getting location...');
-      // Get user location if available (Capacitor with web fallback)
-      const locationData = await getLocation({ enableHighAccuracy: true, timeout: 8000 });
+      console.log('📍 Getting location with iOS optimizations...');
+      // Get user location with iOS-optimized settings
+      const locationData = await getLocation({ 
+        enableHighAccuracy: true, 
+        timeout: isNativePlatform() ? 12000 : 8000 // More time for iOS
+      });
       console.log('📍 Location data:', locationData);
+
+      // Show feedback if location failed on iOS
+      if (isNativePlatform() && !locationData) {
+        console.log('📍 Location failed on iOS, continuing without location');
+        // Continue without blocking - emergency is priority
+      }
 
       console.log('💾 Triggering SOS in database...');
       // Trigger SOS activation in database
@@ -62,16 +87,24 @@ export function SosButton({ size = 'default', variant = 'destructive', className
       
       if (result.error) {
         console.error('❌ SOS trigger failed:', result.error);
-        alert(`SOS trigger failed: ${result.error.message}`);
+        const errorMsg = `SOS trigger failed: ${result.error.message}`;
+        alert(errorMsg);
         return;
       }
 
-      // Additional haptic feedback on successful trigger
+      // Additional haptic feedback on successful trigger (iOS pattern)
       if (isNativePlatform()) {
-        console.log('📳 Success haptic feedback...');
+        console.log('📳 Success haptic feedback pattern...');
         try {
           await Haptics.impact({ style: ImpactStyle.Heavy });
-          console.log('✅ Success haptic feedback successful');
+          setTimeout(async () => {
+            try {
+              await Haptics.impact({ style: ImpactStyle.Light });
+            } catch (e) {
+              console.warn('⚠️ Final haptic failed:', e);
+            }
+          }, 50);
+          console.log('✅ Success haptic pattern complete');
         } catch (error) {
           console.warn('⚠️ Success haptics not available:', error);
         }
@@ -87,7 +120,8 @@ export function SosButton({ size = 'default', variant = 'destructive', className
       
     } catch (error) {
       console.error('💥 SOS click handler error:', error);
-      alert(`SOS activation failed: ${error.message}`);
+      const errorMsg = `SOS activation failed: ${error.message}`;
+      alert(errorMsg);
     }
   };
 
@@ -148,9 +182,19 @@ export function SosButton({ size = 'default', variant = 'destructive', className
       <Button
         variant={variant}
         size={size}
-        className={`min-h-[44px] min-w-[44px] active:scale-95 transition-transform ${className}`}
+        className={`min-h-[44px] min-w-[44px] active:scale-95 transition-transform touch-manipulation select-none ${className}`}
         onClick={handleSosClick}
         disabled={activating || showCountdown}
+        style={{
+          // iOS-specific touch optimization
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none',
+          KhtmlUserSelect: 'none',
+          MozUserSelect: 'none',
+          msUserSelect: 'none',
+          userSelect: 'none',
+          WebkitTapHighlightColor: 'transparent'
+        }}
       >
         <AlertTriangle className="h-4 w-4 mr-2" />
         SOS

@@ -1,4 +1,6 @@
 import { Geolocation } from '@capacitor/geolocation';
+import { requestLocationPermission } from './ios-permissions';
+import { isIOSPlatform } from './mobile';
 
 export interface LocationData {
   latitude: number;
@@ -13,9 +15,28 @@ export async function getLocation(options?: { timeout?: number; enableHighAccura
 
   console.log('📍 Getting location with options:', { timeout, enableHighAccuracy });
 
+  // For iOS, check permissions first
+  if (isIOSPlatform()) {
+    console.log('📍 iOS detected, checking permissions...');
+    const permissionStatus = await requestLocationPermission();
+    
+    if (!permissionStatus.granted) {
+      console.log('📍 Location permission not granted:', permissionStatus);
+      if (permissionStatus.message) {
+        // Show iOS-native alert about permission
+        alert(permissionStatus.message);
+      }
+      return null;
+    }
+    console.log('📍 iOS location permission granted');
+  }
+
   try {
     console.log('📍 Trying Capacitor Geolocation...');
-    const position = await Geolocation.getCurrentPosition({ enableHighAccuracy, timeout });
+    const position = await Geolocation.getCurrentPosition({ 
+      enableHighAccuracy, 
+      timeout: isIOSPlatform() ? timeout * 2 : timeout // Give iOS more time
+    });
     console.log('📍 Capacitor location success:', position);
     return {
       latitude: position.coords.latitude,
@@ -26,7 +47,13 @@ export async function getLocation(options?: { timeout?: number; enableHighAccura
   } catch (capacitorError) {
     console.log('📍 Capacitor geolocation failed:', capacitorError);
     
-    // Fallback to browser geolocation
+    // For iOS, don't fallback to browser geolocation as it may not work properly
+    if (isIOSPlatform()) {
+      console.log('📍 iOS platform, not using browser fallback');
+      return null;
+    }
+    
+    // Fallback to browser geolocation for web
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       try {
         console.log('📍 Trying browser geolocation fallback...');
