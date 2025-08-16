@@ -73,9 +73,8 @@ export default function Profile() {
       <ProfileCompletionBanner />
       <h1 className="sr-only">Profile</h1>
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 rounded-full h-10 p-1">
+        <TabsList className="grid w-full grid-cols-3 rounded-full h-10 p-1">
           <TabsTrigger value="profile" className="rounded-full h-8 px-2 text-xs shadow-none">Profile</TabsTrigger>
-          <TabsTrigger value="billing" className="rounded-full h-8 px-2 text-xs shadow-none">Billing</TabsTrigger>
           <TabsTrigger value="family" className="rounded-full h-8 px-2 text-xs shadow-none">Family</TabsTrigger>
           <TabsTrigger value="emergency" className="rounded-full h-8 px-2 text-xs shadow-none">Emergency</TabsTrigger>
         </TabsList>
@@ -173,7 +172,7 @@ export default function Profile() {
 
           {/* Menu Options */}
           <div className="space-y-2">
-             <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+             <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate("/profile/settings")}>
                <CardHeader className="py-3">
                  <CardTitle className="medical-subheading flex items-center justify-between">
                    <div className="flex items-center">
@@ -235,10 +234,6 @@ export default function Profile() {
               </Button>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="billing">
-          <ProfileBillingTab />
         </TabsContent>
 
         <TabsContent value="family">

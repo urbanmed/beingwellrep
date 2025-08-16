@@ -20,6 +20,7 @@ import Cards from "./pages/Cards";
 
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
+import { AccountSettings } from "./components/profile/AccountSettings";
 import Pricing from "./pages/Pricing";
 import Concierge from "./pages/Concierge";
 
@@ -128,6 +129,13 @@ const AppRoutes: FC = () => (
     <Route path="/profile/edit" element={
       <ProtectedRoute>
         <ProfileEdit />
+      </ProtectedRoute>
+    } />
+    <Route path="/profile/settings" element={
+      <ProtectedRoute>
+        <MobileLayout>
+          <AccountSettings />
+        </MobileLayout>
       </ProtectedRoute>
     } />
     <Route path="/ai-assistant" element={
