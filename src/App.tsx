@@ -303,6 +303,13 @@ const AppRoutes: FC = () => (
     <Route path="/auth/verify" element={<VerifyPage />} />
       <Route path="/auth/phone-verify" element={<PhoneVerifyPage />} />
 
+      {/* Public Routes */}
+      <Route path="/pricing" element={
+        <MobileLayout>
+          <Pricing />
+        </MobileLayout>
+      } />
+
       {/* Legacy redirect for old onboarding path */}
       <Route path="/onboarding" element={<Navigate to="/auth/onboarding" replace />} />
     

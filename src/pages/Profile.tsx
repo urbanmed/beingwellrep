@@ -5,12 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, FileText, Activity, LogOut, User, Phone, Mail, Edit, Users, AlertTriangle } from "lucide-react";
+import { Settings, FileText, Activity, LogOut, User, Phone, Mail, Edit, Users, AlertTriangle, CreditCard, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { ProfileCompletionBanner } from "@/components/profile/ProfileCompletionBanner";
 import { FamilySection } from "@/components/profile/FamilySection";
 import { EmergencyContactsSection } from "@/components/profile/EmergencyContactsSection";
+import { ProfileBillingTab } from "@/components/billing/ProfileBillingTab";
 import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 import { getSignedUrl } from "@/lib/storage";
 
@@ -72,10 +73,11 @@ export default function Profile() {
       <ProfileCompletionBanner />
       <h1 className="sr-only">Profile</h1>
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 rounded-full h-10 p-1">
-          <TabsTrigger value="profile" className="rounded-full h-8 px-3 text-xs shadow-none">My Profile</TabsTrigger>
-          <TabsTrigger value="family" className="rounded-full h-8 px-3 text-xs shadow-none">Family</TabsTrigger>
-          <TabsTrigger value="emergency" className="rounded-full h-8 px-3 text-xs shadow-none">Emergency</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 rounded-full h-10 p-1">
+          <TabsTrigger value="profile" className="rounded-full h-8 px-2 text-xs shadow-none">Profile</TabsTrigger>
+          <TabsTrigger value="billing" className="rounded-full h-8 px-2 text-xs shadow-none">Billing</TabsTrigger>
+          <TabsTrigger value="family" className="rounded-full h-8 px-2 text-xs shadow-none">Family</TabsTrigger>
+          <TabsTrigger value="emergency" className="rounded-full h-8 px-2 text-xs shadow-none">Emergency</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -183,29 +185,41 @@ export default function Profile() {
                </CardHeader>
              </Card>
 
-             <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-               <CardHeader className="py-3">
-                 <CardTitle className="medical-subheading flex items-center justify-between">
-                   <div className="flex items-center">
-                     <FileText className="h-5 w-5 mr-3 text-primary" />
-                     My Documents
-                   </div>
-                   <span className="text-muted-foreground">→</span>
-                 </CardTitle>
-               </CardHeader>
-             </Card>
+              <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate("/vault")}>
+                <CardHeader className="py-3">
+                  <CardTitle className="medical-subheading flex items-center justify-between">
+                    <div className="flex items-center">
+                      <FileText className="h-5 w-5 mr-3 text-primary" />
+                      My Documents
+                    </div>
+                    <span className="text-muted-foreground">→</span>
+                  </CardTitle>
+                </CardHeader>
+              </Card>
 
-             <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-               <CardHeader className="py-3">
-                 <CardTitle className="medical-subheading flex items-center justify-between">
-                   <div className="flex items-center">
-                     <Activity className="h-5 w-5 mr-3 text-primary" />
-                     Health Analytics
-                   </div>
-                   <span className="text-muted-foreground">→</span>
-                 </CardTitle>
-               </CardHeader>
-             </Card>
+              <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate("/summaries")}>
+                <CardHeader className="py-3">
+                  <CardTitle className="medical-subheading flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Activity className="h-5 w-5 mr-3 text-primary" />
+                      Health Analytics
+                    </div>
+                    <span className="text-muted-foreground">→</span>
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+
+              <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate("/pricing")}>
+                <CardHeader className="py-3">
+                  <CardTitle className="medical-subheading flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Crown className="h-5 w-5 mr-3 text-primary" />
+                      Upgrade Plan
+                    </div>
+                    <span className="text-muted-foreground">→</span>
+                  </CardTitle>
+                </CardHeader>
+              </Card>
           </div>
 
           {/* Sign Out */}
@@ -221,6 +235,10 @@ export default function Profile() {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="billing">
+          <ProfileBillingTab />
         </TabsContent>
 
         <TabsContent value="family">

@@ -6,12 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Sparkles, Zap, Crown } from 'lucide-react';
 import { RazorpayCheckout } from '@/components/payment/RazorpayCheckout';
+import { MobileRazorpayCheckout } from '@/components/payment/MobileRazorpayCheckout';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 
 const PricingPage: React.FC = () => {
   const { user } = useAuth();
   const { plans, subscription, loading } = useSubscription();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const currentPlanId = subscription?.subscription_plan_id;
 
@@ -176,26 +179,54 @@ const PricingPage: React.FC = () => {
                   </Button>
                 ) : user ? (
                   <div className="w-full space-y-2">
-                    <RazorpayCheckout
-                      plan={plan}
-                      billingCycle="monthly"
-                      onSuccess={handlePaymentSuccess}
-                    >
-                      <Button className="w-full">
-                        Start Monthly Trial
-                      </Button>
-                    </RazorpayCheckout>
-                    
-                    {plan.price_yearly && (
-                      <RazorpayCheckout
-                        plan={plan}
-                        billingCycle="yearly"
-                        onSuccess={handlePaymentSuccess}
-                      >
-                        <Button variant="outline" className="w-full">
-                          Start Yearly Trial
-                        </Button>
-                      </RazorpayCheckout>
+                    {isMobile ? (
+                      <>
+                        <MobileRazorpayCheckout
+                          plan={plan}
+                          billingCycle="monthly"
+                          onSuccess={handlePaymentSuccess}
+                        >
+                          <Button className="w-full">
+                            Start Monthly Trial
+                          </Button>
+                        </MobileRazorpayCheckout>
+                        
+                        {plan.price_yearly && (
+                          <MobileRazorpayCheckout
+                            plan={plan}
+                            billingCycle="yearly"
+                            onSuccess={handlePaymentSuccess}
+                          >
+                            <Button variant="outline" className="w-full">
+                              Start Yearly Trial
+                            </Button>
+                          </MobileRazorpayCheckout>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <RazorpayCheckout
+                          plan={plan}
+                          billingCycle="monthly"
+                          onSuccess={handlePaymentSuccess}
+                        >
+                          <Button className="w-full">
+                            Start Monthly Trial
+                          </Button>
+                        </RazorpayCheckout>
+                        
+                        {plan.price_yearly && (
+                          <RazorpayCheckout
+                            plan={plan}
+                            billingCycle="yearly"
+                            onSuccess={handlePaymentSuccess}
+                          >
+                            <Button variant="outline" className="w-full">
+                              Start Yearly Trial
+                            </Button>
+                          </RazorpayCheckout>
+                        )}
+                      </>
                     )}
                   </div>
                 ) : (

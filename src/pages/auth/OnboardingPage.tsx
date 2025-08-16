@@ -11,6 +11,7 @@ import { OnboardingStep1 } from "@/components/profile/OnboardingStep1";
 import { OnboardingStep2 } from "@/components/profile/OnboardingStep2";
 import { OnboardingStep3 } from "@/components/profile/OnboardingStep3";
 import { OnboardingStep4 } from "@/components/profile/OnboardingStep4";
+import { OnboardingStep5 } from "@/components/profile/OnboardingStep5";
 import { useOptimisticUpdate } from "@/hooks/useOptimisticUpdate";
 import { SkipForward } from "lucide-react";
 import {
@@ -35,7 +36,7 @@ export default function OnboardingPage() {
   }>({});
   const { execute: executeOptimistically } = useOptimisticUpdate();
 
-  const totalSteps = 4;
+  const totalSteps = 5;
   const progress = (currentStep / totalSteps) * 100;
 
   // Load any existing draft data on mount
@@ -146,7 +147,13 @@ export default function OnboardingPage() {
     setCurrentStep(4);
   };
 
-  const handleOnboardingComplete = async (data: PrivacySettingsFormData) => {
+  const handleStep4Complete = (data: PrivacySettingsFormData) => {
+    setFormData(prev => ({ ...prev, step4: data }));
+    void savePartial(data);
+    setCurrentStep(5);
+  };
+
+  const handleOnboardingComplete = async () => {
     if (!user) return;
 
     setIsLoading(true);
@@ -156,7 +163,7 @@ export default function OnboardingPage() {
         ...formData.step1,
         ...formData.step2,
         ...formData.step3,
-        ...data,
+        ...formData.step4,
       };
 
       const { error } = await supabase
@@ -186,6 +193,10 @@ export default function OnboardingPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSkipPricing = () => {
+    handleOnboardingComplete();
   };
 
   const handleBack = () => {
@@ -299,9 +310,17 @@ export default function OnboardingPage() {
             {currentStep === 4 && (
               <OnboardingStep4
                 data={formData.step4 || {}}
-                onComplete={handleOnboardingComplete}
+                onComplete={handleStep4Complete}
                 onBack={handleBack}
                 isLoading={isLoading}
+              />
+            )}
+
+            {currentStep === 5 && (
+              <OnboardingStep5
+                onNext={handleOnboardingComplete}
+                onSkip={handleSkipPricing}
+                onBack={handleBack}
               />
             )}
           </CardContent>
