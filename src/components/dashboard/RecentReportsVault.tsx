@@ -135,14 +135,22 @@ export function RecentReportsVault() {
                       )}
                     </div>
 
-                    {/* Row 2: Report Type + Date + Actions */}
+                    {/* Row 2: Report Type/Date + Actions */}
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span className="capitalize">
-                        {report.report_type?.replace('_', ' ')}
-                      </span>
+                      <div>
+                        {report.report_type && report.report_type !== 'general' ? (
+                          <span className="capitalize">
+                            {report.report_type.replace('_', ' ')}
+                          </span>
+                        ) : (
+                          <span>{format(new Date(report.report_date), 'MMM d, yyyy')}</span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2">
-                        <span>{format(new Date(report.report_date), 'MMM d, yyyy')}</span>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                        {report.report_type && report.report_type !== 'general' && (
+                          <span>{format(new Date(report.report_date), 'MMM d, yyyy')}</span>
+                        )}
+                        <div className="flex gap-1 ml-2">
                           <Button
                             variant="ghost"
                             size="icon"
