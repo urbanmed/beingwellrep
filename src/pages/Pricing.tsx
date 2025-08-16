@@ -83,11 +83,11 @@ const PricingPage: React.FC = () => {
                 </div>
                 <CardDescription className="medical-label">{plan.description}</CardDescription>
                 
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold">
-                    {isFree ? 'Free' : formatPrice(plan.price_monthly)}
-                    {!isFree && <span className="medical-annotation">/month</span>}
-                  </div>
+                 <div className="space-y-2">
+                   <div className="medical-title font-bold">
+                     {isFree ? 'Free' : formatPrice(plan.price_monthly)}
+                     {!isFree && <span className="medical-annotation">/month</span>}
+                   </div>
                   {!isFree && plan.price_yearly && (
                     <div className="medical-annotation">
                       or {formatPrice(plan.price_yearly)}/year 

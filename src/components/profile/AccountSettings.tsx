@@ -30,7 +30,7 @@ export function AccountSettings() {
       {/* Settings Sections */}
       <div className="space-y-4">
         {/* Profile Settings */}
-        <Card>
+        <Card className="medical-card-shadow">
           <CardHeader className="pb-3">
             <CardTitle className="medical-subheading flex items-center gap-2">
               <User className="h-4 w-4" />
@@ -52,7 +52,7 @@ export function AccountSettings() {
         </Card>
 
         {/* Privacy & Security */}
-        <Card>
+        <Card className="medical-card-shadow">
           <CardHeader className="pb-3">
             <CardTitle className="medical-subheading flex items-center gap-2">
               <Shield className="h-4 w-4" />
@@ -77,7 +77,7 @@ export function AccountSettings() {
         </Card>
 
         {/* Notifications */}
-        <Card>
+        <Card className="medical-card-shadow">
           <CardHeader className="pb-3">
             <CardTitle className="medical-subheading flex items-center gap-2">
               <Bell className="h-4 w-4" />
@@ -106,7 +106,7 @@ export function AccountSettings() {
         </Card>
 
         {/* Billing Section */}
-        <Card>
+        <Card className="medical-card-shadow">
           <CardHeader className="pb-3">
             <CardTitle className="medical-subheading flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
