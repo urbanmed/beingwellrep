@@ -39,7 +39,6 @@ export function AIInsightsCarousel() {
     );
   }
 
-
   return (
     <Card>
       <CardHeader className="pb-3">
