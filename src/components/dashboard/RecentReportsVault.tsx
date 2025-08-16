@@ -131,7 +131,7 @@ export function RecentReportsVault() {
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-sm font-medium truncate flex-1">{report.title || 'Untitled Report'}</h3>
+                          <h3 className="text-xs font-medium truncate flex-1">{report.title || 'Untitled Report'}</h3>
                           {report.is_critical && (
                             <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">Critical</Badge>
                           )}
