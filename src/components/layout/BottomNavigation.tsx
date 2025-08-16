@@ -33,7 +33,7 @@ export function BottomNavigation() {
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                 )}
               >
-                <Icon className="h-5 w-5 sm:h-6 sm:w-6 mb-0.5 sm:mb-1" />
+                <Icon className="h-6 w-6 sm:h-7 sm:w-7 mb-0.5 sm:mb-1" />
                 <span className="text-[10px] sm:text-xs font-medium truncate">{label}</span>
               </NavLink>
             );
@@ -53,7 +53,7 @@ export function BottomNavigation() {
             )}
           >
             <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-primary-foreground/20 to-transparent" />
-            <centerItem.icon className="h-6 w-6 sm:h-7 sm:w-7" />
+            <centerItem.icon className="h-7 w-7 sm:h-8 sm:w-8" />
           </NavLink>
         </div>
 
@@ -73,7 +73,7 @@ export function BottomNavigation() {
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                 )}
               >
-                <Icon className="h-5 w-5 sm:h-6 sm:w-6 mb-0.5 sm:mb-1" />
+                <Icon className="h-6 w-6 sm:h-7 sm:w-7 mb-0.5 sm:mb-1" />
                 <span className="text-[10px] sm:text-xs font-medium truncate">{label}</span>
               </NavLink>
             );
