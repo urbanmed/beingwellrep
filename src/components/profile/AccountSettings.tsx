@@ -20,8 +20,8 @@ export function AccountSettings() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-xl font-semibold">Account Settings</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="medical-title">Account Settings</h1>
+          <p className="medical-label">
             Manage your account preferences and billing
           </p>
         </div>
@@ -32,11 +32,11 @@ export function AccountSettings() {
         {/* Profile Settings */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="medical-subheading flex items-center gap-2">
               <User className="h-4 w-4" />
               Profile Information
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="medical-label">
               Update your personal details and contact information
             </CardDescription>
           </CardHeader>
@@ -54,23 +54,23 @@ export function AccountSettings() {
         {/* Privacy & Security */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="medical-subheading flex items-center gap-2">
               <Shield className="h-4 w-4" />
               Privacy & Security
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="medical-label">
               Control your privacy settings and data sharing preferences
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <div className="flex items-center justify-between py-2">
-                <span className="text-sm">Data sharing with physicians</span>
-                <span className="text-xs text-muted-foreground">Enabled</span>
+                <span className="medical-body">Data sharing with physicians</span>
+                <span className="medical-annotation">Enabled</span>
               </div>
               <div className="flex items-center justify-between py-2">
-                <span className="text-sm">Anonymous analytics</span>
-                <span className="text-xs text-muted-foreground">Disabled</span>
+                <span className="medical-body">Anonymous analytics</span>
+                <span className="medical-annotation">Disabled</span>
               </div>
             </div>
           </CardContent>
@@ -79,27 +79,27 @@ export function AccountSettings() {
         {/* Notifications */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="medical-subheading flex items-center gap-2">
               <Bell className="h-4 w-4" />
               Notification Preferences
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="medical-label">
               Choose how you want to receive notifications
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <div className="flex items-center justify-between py-2">
-                <span className="text-sm">Email notifications</span>
-                <span className="text-xs text-muted-foreground">Enabled</span>
+                <span className="medical-body">Email notifications</span>
+                <span className="medical-annotation">Enabled</span>
               </div>
               <div className="flex items-center justify-between py-2">
-                <span className="text-sm">Push notifications</span>
-                <span className="text-xs text-muted-foreground">Enabled</span>
+                <span className="medical-body">Push notifications</span>
+                <span className="medical-annotation">Enabled</span>
               </div>
               <div className="flex items-center justify-between py-2">
-                <span className="text-sm">SMS notifications</span>
-                <span className="text-xs text-muted-foreground">Disabled</span>
+                <span className="medical-body">SMS notifications</span>
+                <span className="medical-annotation">Disabled</span>
               </div>
             </div>
           </CardContent>
@@ -108,11 +108,11 @@ export function AccountSettings() {
         {/* Billing Section */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="medical-subheading flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
               Billing & Subscription
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="medical-label">
               Manage your subscription plan and billing information
             </CardDescription>
           </CardHeader>
