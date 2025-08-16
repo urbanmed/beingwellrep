@@ -1,9 +1,18 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CreditCard } from 'lucide-react';
+import { SubscriptionPlan } from '@/hooks/useSubscription';
+
+interface RazorpayCheckoutProps {
+  plan: SubscriptionPlan;
+  billingCycle: 'monthly' | 'yearly';
+  onSuccess?: (subscriptionId: string) => void;
+  onFailure?: (error: any) => void;
+  children?: React.ReactNode;
+}
 
 declare global {
   interface Window {
@@ -11,16 +20,8 @@ declare global {
   }
 }
 
-interface RazorpayCheckoutProps {
-  planId: string;
-  billingCycle: 'monthly' | 'yearly';
-  onSuccess?: (paymentId: string, orderId: string, signature: string) => void;
-  onFailure?: (error: any) => void;
-  children: React.ReactNode;
-}
-
 export const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
-  planId,
+  plan,
   billingCycle,
   onSuccess,
   onFailure,
@@ -28,42 +29,38 @@ export const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = React.useState(false);
-  const [scriptLoaded, setScriptLoaded] = React.useState(false);
+  const [loading, setLoading] = useState(false);
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
 
   useEffect(() => {
+    // Load Razorpay script
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => setScriptLoaded(true);
-    script.onerror = () => {
-      console.error('Failed to load Razorpay script');
-      toast({
-        title: "Payment Error",
-        description: "Failed to load payment system. Please try again.",
-        variant: "destructive",
-      });
-    };
+    script.async = true;
+    script.onload = () => setRazorpayLoaded(true);
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
-  }, [toast]);
+  }, []);
 
   const handlePayment = async () => {
     if (!user) {
       toast({
         title: "Authentication Required",
-        description: "Please log in to continue with payment.",
+        description: "Please log in to subscribe to a plan",
         variant: "destructive",
       });
       return;
     }
 
-    if (!scriptLoaded) {
+    if (!razorpayLoaded) {
       toast({
-        title: "Payment Error",
-        description: "Payment system is still loading. Please try again.",
+        title: "Payment System Loading",
+        description: "Please wait for the payment system to load",
         variant: "destructive",
       });
       return;
@@ -76,81 +73,69 @@ export const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
       const { data: orderData, error: orderError } = await supabase.functions.invoke(
         'create-razorpay-order',
         {
-          body: { planId, billingCycle }
+          body: {
+            planId: plan.id,
+            billingCycle,
+          }
         }
       );
 
       if (orderError) throw orderError;
 
       const options = {
-        key: orderData.keyId,
-        amount: orderData.amount,
-        currency: orderData.currency,
+        key: orderData.key_id,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
         name: 'HealthVault Pro',
-        description: `${billingCycle} subscription`,
-        order_id: orderData.orderId,
-        prefill: {
-          name: user.user_metadata?.first_name || user.email?.split('@')[0] || '',
-          email: user.email,
-          contact: user.user_metadata?.phone_number || ''
-        },
+        description: `${plan.display_name} - ${billingCycle} subscription`,
+        order_id: orderData.order.id,
         theme: {
-          color: 'hsl(var(--primary))'
-        },
-        modal: {
-          ondismiss: () => {
-            setLoading(false);
-          }
+          color: 'hsl(var(--primary))',
         },
         handler: async (response: any) => {
           try {
-            // Create subscription with payment details
-            const { data: subscriptionData, error: subscriptionError } = await supabase.functions.invoke(
+            // Create subscription after successful payment
+            const { data: subscriptionData, error: subError } = await supabase.functions.invoke(
               'create-razorpay-subscription',
               {
                 body: {
-                  planId,
+                  planId: plan.id,
                   billingCycle,
                   paymentId: response.razorpay_payment_id,
                   orderId: response.razorpay_order_id,
-                  signature: response.razorpay_signature
+                  signature: response.razorpay_signature,
                 }
               }
             );
 
-            if (subscriptionError) throw subscriptionError;
+            if (subError) throw subError;
 
             toast({
-              title: "Payment Successful!",
-              description: "Your subscription has been activated successfully.",
+              title: "Subscription Activated!",
+              description: `Welcome to ${plan.display_name}! Your subscription is now active.`,
             });
 
-            onSuccess?.(response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature);
+            onSuccess?.(subscriptionData.subscription.id);
           } catch (error) {
             console.error('Subscription creation error:', error);
             toast({
               title: "Subscription Error",
-              description: "Payment successful but subscription setup failed. Please contact support.",
+              description: "Payment was successful but subscription setup failed. Please contact support.",
               variant: "destructive",
             });
             onFailure?.(error);
+          } finally {
+            setLoading(false);
           }
-          setLoading(false);
-        }
+        },
+        prefill: {
+          email: user.email,
+          contact: user.phone || '',
+        },
       };
 
-      const razorpay = new window.Razorpay(options);
-      razorpay.on('payment.failed', (response: any) => {
-        toast({
-          title: "Payment Failed",
-          description: response.error.description || "Payment was not successful. Please try again.",
-          variant: "destructive",
-        });
-        onFailure?.(response.error);
-        setLoading(false);
-      });
-
-      razorpay.open();
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (error) {
       console.error('Payment initiation error:', error);
       toast({
@@ -158,21 +143,39 @@ export const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
         description: "Failed to initiate payment. Please try again.",
         variant: "destructive",
       });
+      onFailure?.(error);
       setLoading(false);
     }
   };
 
+  const amount = billingCycle === 'yearly' ? plan.price_yearly : plan.price_monthly;
+
+  if (children) {
+    return (
+      <div onClick={handlePayment} className="cursor-pointer">
+        {children}
+      </div>
+    );
+  }
+
   return (
-    <div onClick={handlePayment}>
-      {React.cloneElement(children as React.ReactElement, {
-        disabled: loading || !scriptLoaded,
-        children: loading ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            Processing...
-          </>
-        ) : (children as React.ReactElement).props.children
-      })}
-    </div>
+    <Button
+      onClick={handlePayment}
+      disabled={loading || !razorpayLoaded}
+      className="w-full"
+      size="lg"
+    >
+      {loading ? (
+        <>
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          Processing...
+        </>
+      ) : (
+        <>
+          <CreditCard className="w-4 h-4 mr-2" />
+          Pay ₹{amount?.toLocaleString('en-IN')}
+        </>
+      )}
+    </Button>
   );
 };
