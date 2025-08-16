@@ -177,7 +177,7 @@ const PricingPage: React.FC = () => {
                 ) : user ? (
                   <div className="w-full space-y-2">
                     <RazorpayCheckout
-                      planId={plan.id}
+                      plan={plan}
                       billingCycle="monthly"
                       onSuccess={handlePaymentSuccess}
                     >
@@ -188,7 +188,7 @@ const PricingPage: React.FC = () => {
                     
                     {plan.price_yearly && (
                       <RazorpayCheckout
-                        planId={plan.id}
+                        plan={plan}
                         billingCycle="yearly"
                         onSuccess={handlePaymentSuccess}
                       >
