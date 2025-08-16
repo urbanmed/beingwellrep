@@ -5,6 +5,8 @@ import { useSosActivation } from '@/hooks/useSosActivation';
 import { useEmergencyContacts } from '@/hooks/useEmergencyContacts';
 import { SosCountdownModal } from './SosCountdownModal';
 import { getLocation } from '@/lib/utils/location';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { isNativePlatform } from '@/lib/utils/mobile';
 
 interface SosButtonProps {
   size?: 'sm' | 'default' | 'lg';
@@ -21,6 +23,15 @@ export function SosButton({ size = 'default', variant = 'destructive', className
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSosClick = async () => {
+    // Haptic feedback for native platforms
+    if (isNativePlatform()) {
+      try {
+        await Haptics.impact({ style: ImpactStyle.Heavy });
+      } catch (error) {
+        console.warn('Haptics not available:', error);
+      }
+    }
+
     // Check if user has emergency contacts
     if (contacts.length === 0) {
       alert('Please add emergency contacts in your profile before using SOS.');
@@ -33,6 +44,15 @@ export function SosButton({ size = 'default', variant = 'destructive', className
     // Trigger SOS activation in database
     const result = await triggerSos(locationData);
     if (result.error) return;
+
+    // Additional haptic feedback on successful trigger
+    if (isNativePlatform()) {
+      try {
+        await Haptics.impact({ style: ImpactStyle.Heavy });
+      } catch (error) {
+        console.warn('Haptics not available:', error);
+      }
+    }
 
     // Start countdown
     setCurrentActivation(result.data.id);
@@ -98,7 +118,7 @@ export function SosButton({ size = 'default', variant = 'destructive', className
       <Button
         variant={variant}
         size={size}
-        className={className}
+        className={`min-h-[44px] min-w-[44px] active:scale-95 transition-transform ${className}`}
         onClick={handleSosClick}
         disabled={activating || showCountdown}
       >
