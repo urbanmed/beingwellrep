@@ -103,10 +103,10 @@ export function AIInsightsCarousel() {
           <Button 
             size="sm" 
             variant="ghost" 
-            onClick={() => navigate('/summaries')}
+            onClick={() => navigate(`/summaries?id=${currentSummary.id}`)}
             className="text-xs"
           >
-            View All Insights
+            View Insights
           </Button>
         </div>
       </CardContent>
