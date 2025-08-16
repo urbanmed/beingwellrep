@@ -134,9 +134,9 @@ export type Database = {
           currency: string
           id: string
           invoice_url: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
           status: string
-          stripe_invoice_id: string | null
-          stripe_payment_intent_id: string | null
           subscription_plan_id: string | null
           updated_at: string
           user_id: string
@@ -149,9 +149,9 @@ export type Database = {
           currency?: string
           id?: string
           invoice_url?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           status: string
-          stripe_invoice_id?: string | null
-          stripe_payment_intent_id?: string | null
           subscription_plan_id?: string | null
           updated_at?: string
           user_id: string
@@ -164,9 +164,9 @@ export type Database = {
           currency?: string
           id?: string
           invoice_url?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           status?: string
-          stripe_invoice_id?: string | null
-          stripe_payment_intent_id?: string | null
           subscription_plan_id?: string | null
           updated_at?: string
           user_id?: string
@@ -1132,9 +1132,9 @@ export type Database = {
           name: string
           price_monthly: number
           price_yearly: number | null
+          razorpay_plan_id_monthly: string | null
+          razorpay_plan_id_yearly: string | null
           sort_order: number
-          stripe_price_id_monthly: string | null
-          stripe_price_id_yearly: string | null
           updated_at: string
         }
         Insert: {
@@ -1147,9 +1147,9 @@ export type Database = {
           name: string
           price_monthly: number
           price_yearly?: number | null
+          razorpay_plan_id_monthly?: string | null
+          razorpay_plan_id_yearly?: string | null
           sort_order?: number
-          stripe_price_id_monthly?: string | null
-          stripe_price_id_yearly?: string | null
           updated_at?: string
         }
         Update: {
@@ -1162,9 +1162,9 @@ export type Database = {
           name?: string
           price_monthly?: number
           price_yearly?: number | null
+          razorpay_plan_id_monthly?: string | null
+          razorpay_plan_id_yearly?: string | null
           sort_order?: number
-          stripe_price_id_monthly?: string | null
-          stripe_price_id_yearly?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1324,9 +1324,9 @@ export type Database = {
           current_period_end: string | null
           current_period_start: string | null
           id: string
+          razorpay_customer_id: string | null
+          razorpay_subscription_id: string | null
           status: string
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
           subscription_plan_id: string | null
           trial_end_date: string | null
           updated_at: string
@@ -1339,9 +1339,9 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          razorpay_customer_id?: string | null
+          razorpay_subscription_id?: string | null
           status?: string
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           subscription_plan_id?: string | null
           trial_end_date?: string | null
           updated_at?: string
@@ -1354,9 +1354,9 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          razorpay_customer_id?: string | null
+          razorpay_subscription_id?: string | null
           status?: string
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           subscription_plan_id?: string | null
           trial_end_date?: string | null
           updated_at?: string

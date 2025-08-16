@@ -5,8 +5,8 @@ export interface SubscriptionPlan {
   description: string | null;
   price_monthly: number;
   price_yearly: number | null;
-  stripe_price_id_monthly: string | null;
-  stripe_price_id_yearly: string | null;
+  razorpay_plan_id_monthly: string | null;
+  razorpay_plan_id_yearly: string | null;
   features: {
     documents_per_month: number;
     ai_queries_per_month: number;
@@ -26,8 +26,8 @@ export interface UserSubscription {
   id: string;
   user_id: string;
   subscription_plan_id: string;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
+  razorpay_customer_id: string | null;
+  razorpay_subscription_id: string | null;
   status: 'active' | 'cancelled' | 'past_due' | 'unpaid' | 'trialing';
   trial_end_date: string | null;
   current_period_start: string | null;
@@ -55,8 +55,8 @@ export interface BillingHistory {
   id: string;
   user_id: string;
   subscription_plan_id: string;
-  stripe_invoice_id: string | null;
-  stripe_payment_intent_id: string | null;
+  razorpay_payment_id: string | null;
+  razorpay_order_id: string | null;
   amount: number;
   currency: string;
   status: 'paid' | 'pending' | 'failed' | 'refunded';
