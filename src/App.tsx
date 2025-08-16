@@ -42,6 +42,7 @@ import SystemHealth from "./pages/admin/SystemHealth";
 import AuditLogs from "./pages/admin/AuditLogs";
 import Settings from "./pages/admin/Settings";
 import CustomPrompts from "./pages/admin/CustomPrompts";
+import AIChatMonitoring from "./pages/admin/AIChatMonitoring";
 import ProcessingQueuePanel from "./components/processing/ProcessingQueuePanel";
 import HealthInsightsPanel from "./components/insights/HealthInsightsPanel";
 import ExportCenter from "./components/export/ExportCenter";
@@ -239,6 +240,15 @@ const AppRoutes: FC = () => (
         <AdminRoute requiredRole="moderator">
           <AdminLayout>
             <ProcessingQueuePanel />
+          </AdminLayout>
+        </AdminRoute>
+      </ProtectedRoute>
+    } />
+    <Route path="/admin/ai-chat" element={
+      <ProtectedRoute>
+        <AdminRoute requiredRole="moderator">
+          <AdminLayout>
+            <AIChatMonitoring />
           </AdminLayout>
         </AdminRoute>
       </ProtectedRoute>

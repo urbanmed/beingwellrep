@@ -51,6 +51,12 @@ const adminNavItems = [
     roles: ['moderator', 'admin', 'super_admin']
   },
   { 
+    title: "AI Assistant", 
+    url: "/admin/ai-chat", 
+    icon: Brain,
+    roles: ['moderator', 'admin', 'super_admin']
+  },
+  { 
     title: "Health Insights", 
     url: "/admin/insights", 
     icon: Brain,
