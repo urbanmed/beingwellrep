@@ -23,42 +23,72 @@ export function SosButton({ size = 'default', variant = 'destructive', className
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSosClick = async () => {
-    // Haptic feedback for native platforms
-    if (isNativePlatform()) {
-      try {
-        await Haptics.impact({ style: ImpactStyle.Heavy });
-      } catch (error) {
-        console.warn('Haptics not available:', error);
+    console.log('🚨 SOS Button clicked - starting debug trace');
+    console.log('📱 Is native platform:', isNativePlatform());
+    console.log('📋 Emergency contacts count:', contacts.length);
+    console.log('📱 User agent:', navigator.userAgent);
+    console.log('📱 Platform:', navigator.platform);
+
+    try {
+      // Haptic feedback for native platforms
+      if (isNativePlatform()) {
+        console.log('📳 Attempting haptic feedback...');
+        try {
+          await Haptics.impact({ style: ImpactStyle.Heavy });
+          console.log('✅ Haptic feedback successful');
+        } catch (error) {
+          console.warn('⚠️ Haptics not available:', error);
+        }
+      } else {
+        console.log('📱 Not native platform, skipping haptics');
       }
-    }
 
-    // Check if user has emergency contacts
-    if (contacts.length === 0) {
-      alert('Please add emergency contacts in your profile before using SOS.');
-      return;
-    }
-
-    // Get user location if available (Capacitor with web fallback)
-    const locationData = await getLocation({ enableHighAccuracy: true, timeout: 8000 });
-
-    // Trigger SOS activation in database
-    const result = await triggerSos(locationData);
-    if (result.error) return;
-
-    // Additional haptic feedback on successful trigger
-    if (isNativePlatform()) {
-      try {
-        await Haptics.impact({ style: ImpactStyle.Heavy });
-      } catch (error) {
-        console.warn('Haptics not available:', error);
+      // Check if user has emergency contacts
+      if (contacts.length === 0) {
+        console.log('❌ No emergency contacts found');
+        alert('Please add emergency contacts in your profile before using SOS.');
+        return;
       }
-    }
 
-    // Start countdown
-    setCurrentActivation(result.data.id);
-    setShowCountdown(true);
-    setCountdown(30);
-    startCountdown();
+      console.log('📍 Getting location...');
+      // Get user location if available (Capacitor with web fallback)
+      const locationData = await getLocation({ enableHighAccuracy: true, timeout: 8000 });
+      console.log('📍 Location data:', locationData);
+
+      console.log('💾 Triggering SOS in database...');
+      // Trigger SOS activation in database
+      const result = await triggerSos(locationData);
+      console.log('💾 SOS trigger result:', result);
+      
+      if (result.error) {
+        console.error('❌ SOS trigger failed:', result.error);
+        alert(`SOS trigger failed: ${result.error.message}`);
+        return;
+      }
+
+      // Additional haptic feedback on successful trigger
+      if (isNativePlatform()) {
+        console.log('📳 Success haptic feedback...');
+        try {
+          await Haptics.impact({ style: ImpactStyle.Heavy });
+          console.log('✅ Success haptic feedback successful');
+        } catch (error) {
+          console.warn('⚠️ Success haptics not available:', error);
+        }
+      }
+
+      console.log('⏱️ Starting countdown...');
+      // Start countdown
+      setCurrentActivation(result.data.id);
+      setShowCountdown(true);
+      setCountdown(30);
+      startCountdown();
+      console.log('✅ SOS activation complete');
+      
+    } catch (error) {
+      console.error('💥 SOS click handler error:', error);
+      alert(`SOS activation failed: ${error.message}`);
+    }
   };
 
   const startCountdown = () => {
