@@ -119,66 +119,77 @@ export function RecentReportsVault() {
                   onClick={() => navigate(`/vault/${report.id}`)}
                 >
                   <CardContent className="p-3">
-                    <div className="space-y-2">
-                      {/* First Row: Title + Critical Badge + Status Icon */}
-                      <div className="flex items-center gap-2">
-                        <div className="flex-shrink-0">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center ${config.color}`}>
-                            <span className="text-base">{config.icon}</span>
-                          </div>
+                    {/* Single Row Layout like Vault Slim Cards */}
+                    <div className="flex items-start gap-3">
+                      {/* Type Icon */}
+                      <div className="flex-shrink-0">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center ${config.color}`}>
+                          <span className="text-base">{config.icon}</span>
                         </div>
-                        <h3 className="medical-heading-sm truncate flex-1">{report.title || 'Untitled Report'}</h3>
-                        {report.is_critical && (
-                          <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">Critical</Badge>
-                        )}
-                        {report.parsing_status === 'completed' && (
-                          <CheckCircle className="h-4 w-4 text-success flex-shrink-0" />
-                        )}
                       </div>
-
-                      {/* Second Row: Action Icons + Date */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditTitle(report.id, report.title || '');
-                            }}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/vault/${report.id}`);
-                            }}
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                          {report.file_url && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                downloadFile(report.id, report.file_name, report.file_url);
-                              }}
-                              disabled={isDownloading(report.id)}
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                            </Button>
+                      
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-sm font-medium truncate flex-1">{report.title || 'Untitled Report'}</h3>
+                          {report.is_critical && (
+                            <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">Critical</Badge>
+                          )}
+                          {report.parsing_status === 'completed' && (
+                            <CheckCircle className="h-4 w-4 text-success flex-shrink-0" />
                           )}
                         </div>
-                        <div className="medical-annotation">
-                          {format(new Date(report.report_date), 'MMM d, yyyy')}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {report.report_type?.replace('_', ' ')}
+                          </span>
+                          <span className="text-xs text-muted-foreground">•</span>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(report.report_date), 'MMM d, yyyy')}
+                          </span>
                         </div>
+                      </div>
+                      
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditTitle(report.id, report.title || '');
+                          }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/vault/${report.id}`);
+                          }}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        
+                        {report.file_url && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              downloadFile(report.id, report.file_name, report.file_url);
+                            }}
+                            disabled={isDownloading(report.id)}
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
