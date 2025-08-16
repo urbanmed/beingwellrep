@@ -325,7 +325,7 @@ export function ActionItems() {
             Latest Health Results
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-3 py-2">
+        <CardContent className="px-3 py-1.5">
           <p className="medical-annotation text-center py-2">
             No flagged results found in your recent reports
           </p>
@@ -348,7 +348,7 @@ export function ActionItems() {
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-3 py-2 space-y-0">
+      <CardContent className="px-3 py-1.5 space-y-0">
         {groupedResults.map((group) => (
           <div key={group.dateKey} className="space-y-0">
             <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">
