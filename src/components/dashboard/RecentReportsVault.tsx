@@ -115,7 +115,7 @@ export function RecentReportsVault() {
               return (
                 <Card 
                   key={report.id}
-                  className="group cursor-pointer hover:shadow-sm"
+                  className="group cursor-pointer hover:shadow-sm medical-card-shadow"
                   onClick={() => navigate(`/vault/${report.id}`)}
                 >
                   <CardContent className="p-3">
@@ -123,11 +123,11 @@ export function RecentReportsVault() {
                       {/* First Row: Title + Critical Badge + Status Icon */}
                       <div className="flex items-center gap-2">
                         <div className="flex-shrink-0">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center ${config.color}`}>
-                            <span className="text-sm">{config.icon}</span>
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center ${config.color}`}>
+                            <span className="text-base">{config.icon}</span>
                           </div>
                         </div>
-                        <h3 className="text-sm font-medium truncate flex-1">{report.title || 'Untitled Report'}</h3>
+                        <h3 className="medical-heading-sm truncate flex-1">{report.title || 'Untitled Report'}</h3>
                         {report.is_critical && (
                           <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">Critical</Badge>
                         )}
@@ -176,7 +176,7 @@ export function RecentReportsVault() {
                             </Button>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="medical-annotation">
                           {format(new Date(report.report_date), 'MMM d, yyyy')}
                         </div>
                       </div>
