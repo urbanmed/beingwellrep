@@ -20,6 +20,7 @@ import Cards from "./pages/Cards";
 
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
+import Pricing from "./pages/Pricing";
 import Concierge from "./pages/Concierge";
 
 import NotFound from "./pages/NotFound";
