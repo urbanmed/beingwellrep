@@ -79,14 +79,14 @@ const PricingPage: React.FC = () => {
               <CardHeader className="text-center">
                 <div className="flex items-center justify-center mb-2">
                   {getPlanIcon(plan.name)}
-                  <CardTitle className="ml-2 medical-subheading">{plan.display_name}</CardTitle>
+                  <CardTitle className="ml-2 medical-label font-semibold">{plan.display_name}</CardTitle>
                 </div>
-                <CardDescription className="medical-label">{plan.description}</CardDescription>
+                <CardDescription className="medical-annotation">{plan.description}</CardDescription>
                 
                  <div className="space-y-2">
-                   <div className="medical-title font-bold">
+                   <div className="medical-heading font-bold">
                      {isFree ? 'Free' : formatPrice(plan.price_monthly)}
-                     {!isFree && <span className="medical-annotation">/month</span>}
+                     {!isFree && <span className="medical-annotation ml-1">/month</span>}
                    </div>
                   {!isFree && plan.price_yearly && (
                     <div className="medical-annotation">
@@ -101,64 +101,64 @@ const PricingPage: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex items-center">
                     <Check className="h-4 w-4 text-primary mr-2" />
-                    <span className="medical-body">
-                      {features.documents_per_month === -1 
-                        ? 'Unlimited documents' 
-                        : `${features.documents_per_month} documents/month`
-                      }
-                    </span>
+                     <span className="medical-annotation">
+                       {features.documents_per_month === -1 
+                         ? 'Unlimited documents' 
+                         : `${features.documents_per_month} documents/month`
+                       }
+                     </span>
                   </div>
                   
                   <div className="flex items-center">
                     <Check className="h-4 w-4 text-primary mr-2" />
-                    <span className="medical-body">
-                      {features.ai_queries_per_month === -1 
-                        ? 'Unlimited AI queries' 
-                        : `${features.ai_queries_per_month} AI queries/month`
-                      }
-                    </span>
+                     <span className="medical-annotation">
+                       {features.ai_queries_per_month === -1 
+                         ? 'Unlimited AI queries' 
+                         : `${features.ai_queries_per_month} AI queries/month`
+                       }
+                     </span>
                   </div>
                   
                   <div className="flex items-center">
                     <Check className="h-4 w-4 text-primary mr-2" />
-                    <span className="medical-body">
-                      {features.storage_mb === -1 
-                        ? 'Unlimited storage' 
-                        : `${features.storage_mb}MB storage`
-                      }
-                    </span>
+                     <span className="medical-annotation">
+                       {features.storage_mb === -1 
+                         ? 'Unlimited storage' 
+                         : `${features.storage_mb}MB storage`
+                       }
+                     </span>
                   </div>
                   
                   <div className="flex items-center">
                     <Check className="h-4 w-4 text-primary mr-2" />
-                    <span className="medical-body">
-                      {features.family_members === -1 
-                        ? 'Unlimited family members' 
-                        : `${features.family_members} family members`
-                      }
-                    </span>
+                     <span className="medical-annotation">
+                       {features.family_members === -1 
+                         ? 'Unlimited family members' 
+                         : `${features.family_members} family members`
+                       }
+                     </span>
                   </div>
                   
                   {features.export_formats && (
                     <div className="flex items-center">
                       <Check className="h-4 w-4 text-primary mr-2" />
-                      <span className="medical-body">
-                        Export: {features.export_formats.join(', ').toUpperCase()}
-                      </span>
+                       <span className="medical-annotation">
+                         Export: {features.export_formats.join(', ').toUpperCase()}
+                       </span>
                     </div>
                   )}
                   
                   {features.priority_support && (
                     <div className="flex items-center">
                       <Check className="h-4 w-4 text-primary mr-2" />
-                      <span className="medical-body">Priority support</span>
+                      <span className="medical-annotation">Priority support</span>
                     </div>
                   )}
                   
                   {features.advanced_analytics && (
                     <div className="flex items-center">
                       <Check className="h-4 w-4 text-primary mr-2" />
-                      <span className="medical-body">Advanced analytics</span>
+                      <span className="medical-annotation">Advanced analytics</span>
                     </div>
                   )}
                 </div>
