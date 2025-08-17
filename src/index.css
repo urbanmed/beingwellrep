@@ -239,19 +239,19 @@
   
   /* Safe area support for mobile devices with notches */
   .pb-safe {
-    padding-bottom: max(env(safe-area-inset-bottom), 8px);
+    padding-bottom: env(safe-area-inset-bottom, 34px);
   }
   
   .pt-safe {
-    padding-top: max(env(safe-area-inset-top), 8px);
+    padding-top: env(safe-area-inset-top, 44px);
   }
   
   .pl-safe {
-    padding-left: max(env(safe-area-inset-left), 8px);
+    padding-left: env(safe-area-inset-left, 0px);
   }
   
   .pr-safe {
-    padding-right: max(env(safe-area-inset-right), 8px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
 
   /* iOS-specific safe area handling */
@@ -263,17 +263,25 @@
     .ios-safe-bottom {
       padding-bottom: max(env(safe-area-inset-bottom), 34px);
     }
+    
+    .h-screen {
+      height: 100dvh;
+    }
+    
+    .min-h-screen {
+      min-height: 100dvh;
+    }
   }
 
   /* Full height utilities for mobile */
   .min-h-screen-safe {
-    min-height: 100vh;
-    min-height: 100dvh;
+    min-height: calc(100vh - env(safe-area-inset-top, 44px) - env(safe-area-inset-bottom, 34px));
+    min-height: calc(100dvh - env(safe-area-inset-top, 44px) - env(safe-area-inset-bottom, 34px));
   }
 
   .h-screen-safe {
-    height: 100vh;
-    height: 100dvh;
+    height: calc(100vh - env(safe-area-inset-top, 44px) - env(safe-area-inset-bottom, 34px));
+    height: calc(100dvh - env(safe-area-inset-top, 44px) - env(safe-area-inset-bottom, 34px));
   }
 }
 

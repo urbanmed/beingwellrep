@@ -13,13 +13,13 @@ const config: CapacitorConfig = {
       vibrationIntensity: 'medium'
     },
     StatusBar: {
-      style: 'light',
+      style: 'default',
       backgroundColor: '#FFFFFF',
-      overlay: false
+      overlay: true
     }
   },
   ios: {
-    contentInset: 'never',
+    contentInset: 'automatic',
     allowsLinkPreview: false,
     backgroundColor: '#FFFFFF',
     overrideUserInterfaceStyle: 'light',

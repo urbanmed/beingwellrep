@@ -47,18 +47,26 @@
 	<!-- Status Bar Configuration -->
 	<key>UIStatusBarStyle</key>
 	<string>UIStatusBarStyleDefault</string>
+	<key>UIStatusBarHidden</key>
+	<false/>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
 	
 	<!-- Safe Area and Layout Configuration -->
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
-	<key>UIStatusBarHidden</key>
-	<false/>
 	
 	<!-- Viewport and Display Configuration -->
 	<key>UIRequiresFullScreen</key>
 	<false/>
 	<key>UISupportsDocumentBrowser</key>
 	<false/>
+	
+	<!-- iOS Specific Layout Configuration -->
+	<key>UIInterfaceOrientationMask</key>
+	<integer>2</integer>
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
 	
 	<!-- Location Permissions for Emergency SOS -->
 	<key>NSLocationWhenInUseUsageDescription</key>

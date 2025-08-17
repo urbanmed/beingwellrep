@@ -15,7 +15,7 @@ export function BottomNavigation() {
   const location = useLocation();
 
   return (
-    <nav className="bg-card border-t border-border medical-card-shadow pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border medical-card-shadow pb-safe z-50">
       <div className="relative flex items-center h-14 sm:h-16 px-3 sm:px-4">
         {/* Left side navigation items */}
         <div className="flex flex-1 justify-around">
