@@ -27,12 +27,11 @@
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
@@ -53,8 +52,6 @@
 	<!-- Safe Area and Layout Configuration -->
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
 	
 	<!-- Viewport and Display Configuration -->
 	<key>UIRequiresFullScreen</key>
@@ -67,6 +64,18 @@
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Default Configuration</string>
+					<key>UISceneDelegateClassName</key>
+					<string>SceneDelegate</string>
+				</dict>
+			</array>
+		</dict>
 	</dict>
 	
 	<!-- iOS Specific Layout Configuration -->
@@ -74,16 +83,35 @@
 	<integer>2</integer>
 	<key>UIUserInterfaceStyle</key>
 	<string>Light</string>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-	</array>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>
-		<string>LaunchScreenBackground</string>
+		<string>AccentColor</string>
 		<key>UIImageName</key>
-		<string>LaunchScreen</string>
+		<string></string>
+		<key>UILaunchScreenMininumTime</key>
+		<real>0.5</real>
+	</dict>
+	
+	<!-- WebView and Network Configuration -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>WKAppBoundDomains</key>
+	<array>
+		<string>capacitor://localhost</string>
+		<string>https://localhost</string>
+	</array>
+	
+	<!-- iOS 15+ Specific Configuration -->
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
 	</dict>
 	
 	<!-- Location Permissions for Emergency SOS -->
