@@ -88,14 +88,16 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="structured" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-2 h-12 p-1">
+          <TabsTrigger value="structured" className="flex items-center gap-2 text-sm font-medium h-10">
             <BarChart3 className="h-4 w-4" />
-            Extracted Data
+            <span className="hidden sm:inline">Extracted Data</span>
+            <span className="sm:hidden">Data</span>
           </TabsTrigger>
-          <TabsTrigger value="original" className="flex items-center gap-2">
+          <TabsTrigger value="original" className="flex items-center gap-2 text-sm font-medium h-10">
             <Eye className="h-4 w-4" />
-            Original Document
+            <span className="hidden sm:inline">Original Document</span>
+            <span className="sm:hidden">Original</span>
           </TabsTrigger>
         </TabsList>
 

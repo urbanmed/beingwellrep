@@ -116,7 +116,9 @@ const AppRoutes: FC = () => (
     } />
     <Route path="/vault/:id" element={
       <ProtectedRoute>
-        <ReportDetail />
+        <MobileLayout>
+          <ReportDetail />
+        </MobileLayout>
       </ProtectedRoute>
     } />
     <Route path="/profile" element={
@@ -128,7 +130,9 @@ const AppRoutes: FC = () => (
     } />
     <Route path="/profile/edit" element={
       <ProtectedRoute>
-        <ProfileEdit />
+        <MobileLayout>
+          <ProfileEdit />
+        </MobileLayout>
       </ProtectedRoute>
     } />
     <Route path="/profile/settings" element={
