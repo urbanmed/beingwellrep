@@ -2,7 +2,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DocumentViewer } from "@/components/reports/DocumentViewer";
-import { MobileLayout } from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -71,7 +70,7 @@ export default function ReportDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pt-safe flex items-center justify-center">
+      <div className="flex items-center justify-center py-8">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
@@ -79,30 +78,26 @@ export default function ReportDetail() {
 
   if (!report) {
     return (
-      <div className="min-h-screen bg-background pt-safe">
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Report not found</p>
-        </div>
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Report not found</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pt-safe">
-      <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 space-y-4 sm:space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-        </div>
-        
-        <DocumentViewer report={report} />
+    <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 space-y-4 sm:space-y-6">
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
       </div>
+      
+      <DocumentViewer report={report} />
     </div>
   );
 }

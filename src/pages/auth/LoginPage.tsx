@@ -92,8 +92,7 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4 pt-safe">
-      <Card className="w-full max-w-md animate-fade-in medical-card-shadow border-0 bg-card/95 backdrop-blur-sm">
+    <Card className="w-full max-w-md animate-fade-in medical-card-shadow border-0 bg-card/95 backdrop-blur-sm">
         <CardHeader className="space-y-2 text-center pb-6">
           <div className="mb-4 animate-fade-in">
             <img 
@@ -157,7 +156,6 @@ const LoginPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
   );
 };
 

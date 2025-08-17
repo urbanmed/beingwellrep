@@ -77,8 +77,7 @@ const SignupPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 p-4 pt-safe">
-      <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="mb-4 animate-fade-in">
             <img 
@@ -160,7 +159,6 @@ const SignupPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
   );
 };
 

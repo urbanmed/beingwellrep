@@ -206,42 +206,50 @@ export function SimpleDocumentViewer({ report }: SimpleDocumentViewerProps) {
       <CardContent className="p-6">
         <div className="space-y-4">
           {/* Header with controls */}
-          <div className="flex items-center justify-between border-b pb-4">
-            <div className="flex items-center space-x-2">
-              <Icon className="h-5 w-5 text-muted-foreground" />
-              <span className="font-medium">{report.title}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 gap-3">
+            <div className="flex items-center space-x-2 min-w-0 flex-1">
+              <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+              <span className="font-medium truncate">{report.title}</span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-end space-x-1 sm:space-x-2 flex-shrink-0">
               {fileInfo.type === 'pdf' && (
                 <>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setScale(Math.max(0.5, scale - 0.25))}
+                    className="px-2 sm:px-3"
                   >
                     <ZoomOut className="h-4 w-4" />
+                    <span className="sr-only">Zoom out</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setScale(Math.min(3, scale + 0.25))}
+                    className="px-2 sm:px-3"
                   >
                     <ZoomIn className="h-4 w-4" />
+                    <span className="sr-only">Zoom in</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setRotation((rotation + 90) % 360)}
+                    className="px-2 sm:px-3"
                   >
                     <RotateCw className="h-4 w-4" />
+                    <span className="sr-only">Rotate</span>
                   </Button>
                 </>
               )}
-              <Button variant="outline" size="sm" onClick={handleDownload}>
+              <Button variant="outline" size="sm" onClick={handleDownload} className="px-2 sm:px-3">
                 <Download className="h-4 w-4" />
+                <span className="sr-only">Download</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={handleViewOriginal}>
+              <Button variant="outline" size="sm" onClick={handleViewOriginal} className="px-2 sm:px-3">
                 <ExternalLink className="h-4 w-4" />
+                <span className="sr-only">Open in new tab</span>
               </Button>
             </div>
           </div>
@@ -281,31 +289,35 @@ export function SimpleDocumentViewer({ report }: SimpleDocumentViewerProps) {
                   <>
                     {/* PDF pagination controls */}
                     {numPages && numPages > 1 && (
-                      <div className="flex items-center justify-center space-x-4">
+                      <div className="flex items-center justify-center space-x-2 sm:space-x-4 px-4">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setPageNumber(Math.max(1, pageNumber - 1))}
                           disabled={pageNumber <= 1}
+                          className="px-2 sm:px-3"
                         >
                           <ChevronLeft className="h-4 w-4" />
+                          <span className="sr-only">Previous page</span>
                         </Button>
-                        <span className="text-sm">
-                          Page {pageNumber} of {numPages}
+                        <span className="text-sm font-medium px-2">
+                          {pageNumber} / {numPages}
                         </span>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setPageNumber(Math.min(numPages, pageNumber + 1))}
                           disabled={pageNumber >= numPages}
+                          className="px-2 sm:px-3"
                         >
                           <ChevronRight className="h-4 w-4" />
+                          <span className="sr-only">Next page</span>
                         </Button>
                       </div>
                     )}
 
                      {/* PDF viewer with error boundary */}
-                    <div id="pdf-viewer-container" className="flex justify-center overflow-auto max-h-[800px] border rounded">
+                    <div id="pdf-viewer-container" className="flex justify-center overflow-auto max-h-[60vh] sm:max-h-[800px] border rounded touch-pan-x touch-pan-y">
                       <Document
                         file={documentUrl}
                         onLoadSuccess={onDocumentLoadSuccess}
@@ -360,11 +372,11 @@ export function SimpleDocumentViewer({ report }: SimpleDocumentViewerProps) {
                 )}
               </div>
             ) : fileInfo.type === 'image' && documentUrl ? (
-              <div className="flex justify-center">
+              <div className="flex justify-center overflow-auto max-h-[60vh] sm:max-h-[800px] touch-pan-x touch-pan-y">
                 <img
                   src={documentUrl}
                   alt={report.title}
-                  className="max-w-full max-h-[800px] rounded border"
+                  className="max-w-full h-auto rounded border"
                   style={{ transform: `scale(${scale}) rotate(${rotation}deg)` }}
                 />
               </div>
