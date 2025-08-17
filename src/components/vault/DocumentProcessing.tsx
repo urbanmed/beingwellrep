@@ -165,17 +165,8 @@ export function DocumentProcessing() {
           </div>
         </div>
         
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>{stats.totalReports} reports</span>
-            <span>•</span>
-            <span>{stats.processedReports} processed</span>
-            <span>•</span>
-            <span>{stats.totalSummaries} summaries</span>
-          </div>
-          <div className="w-40">
-            <ViewModeSelector viewMode={viewMode} onViewModeChange={setViewMode} />
-          </div>
+        <div className="flex items-center justify-end">
+          <ViewModeSelector viewMode={viewMode} onViewModeChange={setViewMode} />
         </div>
       </div>
       {selectionMode && (
