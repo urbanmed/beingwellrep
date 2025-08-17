@@ -13,7 +13,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <main className="flex-1 pb-[calc(56px+env(safe-area-inset-bottom)+8px)] sm:pb-[calc(64px+env(safe-area-inset-bottom)+8px)]">
+      <main className="flex-1 pb-[calc(56px+env(safe-area-inset-bottom))] sm:pb-[calc(64px+env(safe-area-inset-bottom))]">
         {children}
       </main>
       {!(["/vault", "/ai-assistant", "/profile"].includes(pathname)) && <FloatingUploadButton />}
