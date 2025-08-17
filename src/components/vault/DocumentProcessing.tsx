@@ -170,132 +170,141 @@ export function DocumentProcessing() {
         </div>
       )}
 
-      {viewMode === 'timeline' ? (
-        <>
-          {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
-            <Card>
-              <CardContent className="p-3 sm:p-4">
-                <div className="text-center">
-                  <div className="text-lg sm:text-2xl font-bold text-primary">{stats.totalReports}</div>
-                  <div className="text-xs text-muted-foreground">Reports</div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 sm:p-4">
-                <div className="text-center">
-                  <div className="text-lg sm:text-2xl font-bold text-success">{stats.processedReports}</div>
-                  <div className="text-xs text-muted-foreground">Processed</div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 sm:p-4">
-                <div className="text-center">
-                  <div className="text-lg sm:text-2xl font-bold text-accent-foreground">{stats.totalSummaries}</div>
-                  <div className="text-xs text-muted-foreground">Summaries</div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Filters */}
-          <TimelineFilters
-            filters={filters}
-            availableTags={availableTags}
-            onFiltersChange={updateFilters}
-          />
-
-          {/* Controls Row */}
-          <div className="flex items-center justify-between">
-            <Button 
-              variant={selectionMode ? "secondary" : "outline"} 
-              size="sm" 
-              onClick={toggleSelectionMode} 
-              className="text-xs"
-            >
-              {selectionMode ? "Cancel" : "Select"}
-            </Button>
-            <ViewModeSelector viewMode={viewMode} onViewModeChange={setViewMode} />
-          </div>
-
-          {/* Timeline Content */}
-          <div className="space-y-3">
-            {Object.keys(statusGroupedItems).length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No items found</h3>
-                  <p className="text-muted-foreground">
-                    {filters.search || filters.type !== 'all' || filters.dateRange !== 'all' || filters.tags.length > 0
-                      ? "Try adjusting your filters to see more results."
-                      : "Start by uploading your first medical report to build your timeline."
-                    }
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              Object.entries(statusGroupedItems).map(([period, periodItems]) => (
-                <div key={period} className="space-y-3">
-                  <div className="flex items-center gap-2 sticky top-0 bg-background/80 backdrop-blur-sm py-2 z-10">
-                    <h3 className="text-lg font-semibold">{period}</h3>
-                    <div className="text-sm text-muted-foreground">
-                      ({periodItems.length} item{periodItems.length !== 1 ? 's' : ''})
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    {periodItems.map((item) => (
-                      <TimelineItem
-                        key={item.id}
-                        item={item}
-                        isExpanded={expandedItems.has(item.id)}
-                        onToggleExpanded={() => toggleItemExpanded(item.id)}
-                        onViewDetails={handleViewDetails}
-                        onDelete={handleDeleteRequest}
-                        selectionMode={selectionMode}
-                        selected={selectedIds.has(item.id)}
-                        onSelectChange={(checked) => handleToggleItemSelect(item, checked)}
-                        compact
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </>
-      ) : (
-        <>
-          {viewMode === 'card' ? (
-            <MixedGridView
-              items={items}
-              onViewDetails={handleViewDetails}
-              onDelete={handleDeleteRequest}
-              selectionMode={selectionMode}
-              selectedIds={selectedIds}
-              onToggleSelect={handleToggleItemSelect}
-            />
-          ) : (
-            <div className="space-y-2">
-              {items.map((item) => (
-                <TimelineItem
-                  key={item.id}
-                  item={item}
-                  isExpanded={expandedItems.has(item.id)}
-                  onToggleExpanded={() => toggleItemExpanded(item.id)}
-                  onViewDetails={handleViewDetails}
-                  onDelete={handleDeleteRequest}
-                  selectionMode={selectionMode}
-                  selected={selectedIds.has(item.id)}
-                  onSelectChange={(checked) => handleToggleItemSelect(item, checked)}
-                  compact
-                />
-              ))}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="text-center">
+              <div className="text-lg sm:text-2xl font-bold text-primary">{stats.totalReports}</div>
+              <div className="text-xs text-muted-foreground">Reports</div>
             </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="text-center">
+              <div className="text-lg sm:text-2xl font-bold text-success">{stats.processedReports}</div>
+              <div className="text-xs text-muted-foreground">Processed</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="text-center">
+              <div className="text-lg sm:text-2xl font-bold text-accent-foreground">{stats.totalSummaries}</div>
+              <div className="text-xs text-muted-foreground">Summaries</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <TimelineFilters
+        filters={filters}
+        availableTags={availableTags}
+        onFiltersChange={updateFilters}
+      />
+
+      {/* Controls Row */}
+      <div className="flex items-center justify-between">
+        <Button 
+          variant={selectionMode ? "secondary" : "outline"} 
+          size="sm" 
+          onClick={toggleSelectionMode} 
+          className="text-xs"
+        >
+          {selectionMode ? "Cancel" : "Select"}
+        </Button>
+        <ViewModeSelector viewMode={viewMode} onViewModeChange={setViewMode} />
+      </div>
+
+      {/* Content based on view mode */}
+      {viewMode === 'timeline' ? (
+        <div className="space-y-3">
+          {Object.keys(statusGroupedItems).length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No items found</h3>
+                <p className="text-muted-foreground">
+                  {filters.search || filters.type !== 'all' || filters.dateRange !== 'all' || filters.tags.length > 0
+                    ? "Try adjusting your filters to see more results."
+                    : "Start by uploading your first medical report to build your timeline."
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            Object.entries(statusGroupedItems).map(([period, periodItems]) => (
+              <div key={period} className="space-y-3">
+                <div className="flex items-center gap-2 sticky top-0 bg-background/80 backdrop-blur-sm py-2 z-10">
+                  <h3 className="text-lg font-semibold">{period}</h3>
+                  <div className="text-sm text-muted-foreground">
+                    ({periodItems.length} item{periodItems.length !== 1 ? 's' : ''})
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {periodItems.map((item) => (
+                    <TimelineItem
+                      key={item.id}
+                      item={item}
+                      isExpanded={expandedItems.has(item.id)}
+                      onToggleExpanded={() => toggleItemExpanded(item.id)}
+                      onViewDetails={handleViewDetails}
+                      onDelete={handleDeleteRequest}
+                      selectionMode={selectionMode}
+                      selected={selectedIds.has(item.id)}
+                      onSelectChange={(checked) => handleToggleItemSelect(item, checked)}
+                      compact
+                    />
+                  ))}
+                </div>
+              </div>
+            ))
           )}
-        </>
+        </div>
+      ) : viewMode === 'card' ? (
+        <MixedGridView
+          items={items}
+          onViewDetails={handleViewDetails}
+          onDelete={handleDeleteRequest}
+          selectionMode={selectionMode}
+          selectedIds={selectedIds}
+          onToggleSelect={handleToggleItemSelect}
+        />
+      ) : (
+        <div className="space-y-2">
+          {items.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No items found</h3>
+                <p className="text-muted-foreground">
+                  {filters.search || filters.type !== 'all' || filters.dateRange !== 'all' || filters.tags.length > 0
+                    ? "Try adjusting your filters to see more results."
+                    : "Start by uploading your first medical report to build your timeline."
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            items.map((item) => (
+              <TimelineItem
+                key={item.id}
+                item={item}
+                isExpanded={expandedItems.has(item.id)}
+                onToggleExpanded={() => toggleItemExpanded(item.id)}
+                onViewDetails={handleViewDetails}
+                onDelete={handleDeleteRequest}
+                selectionMode={selectionMode}
+                selected={selectedIds.has(item.id)}
+                onSelectChange={(checked) => handleToggleItemSelect(item, checked)}
+                compact
+              />
+            ))
+          )}
+        </div>
       )}
       {/* Delete dialogs */}
       <DeleteConfirmDialog
