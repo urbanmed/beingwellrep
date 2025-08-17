@@ -15,10 +15,8 @@ export function BottomNavigation() {
   const location = useLocation();
 
   return (
-    <nav className="ios-fixed-bottom bg-card border-t border-border medical-card-shadow z-50">
-      <div className="relative flex items-center h-14 sm:h-16 px-3 sm:px-4" style={{ 
-        paddingBottom: 'var(--safe-area-inset-bottom, 0px)' 
-      }}>
+    <nav className="bg-card border-t border-border medical-card-shadow z-50">
+      <div className="relative flex items-center h-14 sm:h-16 px-3 sm:px-4">
         {/* Left side navigation items */}
         <div className="flex flex-1 justify-around">
           {navItems.slice(0, 2).map(({ icon: Icon, label, path }) => {

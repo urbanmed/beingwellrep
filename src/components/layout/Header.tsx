@@ -42,7 +42,7 @@ export function Header() {
 
 
   return (
-    <header className="ios-fixed-top bg-background border-b border-border z-50">
+    <header className="bg-background border-b border-border z-50">
       <div className="flex items-center justify-center px-3 sm:px-4 py-3 sm:py-2">
         <div 
           className="cursor-pointer touch-target active:scale-95 transition-transform"

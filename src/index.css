@@ -237,22 +237,38 @@
     @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
   }
   
-  /* iOS Safe Area Constants and Utilities */
+  /* Standard CSS Safe Area Implementation */
   :root {
     /* iOS safe area inset variables with fallbacks */
     --safe-area-inset-top: env(safe-area-inset-top, 0px);
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
     --safe-area-inset-left: env(safe-area-inset-left, 0px);
     --safe-area-inset-right: env(safe-area-inset-right, 0px);
-    
-    /* iOS device specific measurements */
-    --ios-notch-height: 44px;
-    --ios-home-indicator-height: 34px;
-    --ios-status-bar-height: 20px;
-    
-    /* Layout heights - updated for accurate header measurement */
-    --header-height: 7rem; /* Increased to account for logo + greeting sections */
-    --bottom-nav-height: 5rem;
+  }
+
+  /* Standard header and footer positioning */
+  header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 7rem;
+    padding-top: env(safe-area-inset-top);
+    background: hsl(var(--background));
+    z-index: 1000;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  footer, nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 5rem;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: hsl(var(--card));
+    z-index: 1000;
+    border-top: 1px solid hsl(var(--border));
   }
 
   /* Viewport-aware heights for iOS */
