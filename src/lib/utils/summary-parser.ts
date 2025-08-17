@@ -153,11 +153,11 @@ export function getSeverityBadge(content: any) {
   const hasLowPriority = parsed.low_priority?.findings?.length > 0 || parsed.low_priority?.topics?.length > 0;
   
   if (hasHighPriority) {
-    return { variant: 'destructive' as const, label: 'High Priority' };
+    return { variant: 'destructive' as const, label: 'High Priority', priority: 'high' as const };
   } else if (hasMediumPriority) {
-    return { variant: 'default' as const, label: 'Medium Priority' };
+    return { variant: 'warning' as const, label: 'Medium Priority', priority: 'medium' as const };
   } else if (hasLowPriority) {
-    return { variant: 'secondary' as const, label: 'Low Priority' };
+    return { variant: 'success' as const, label: 'Low Priority', priority: 'low' as const };
   }
   
   // Fallback to legacy severity indicators
@@ -167,16 +167,16 @@ export function getSeverityBadge(content: any) {
     switch (String(severityLevel).toLowerCase()) {
       case 'severe':
       case 'high':
-        return { variant: 'destructive' as const, label: 'High Priority' };
+        return { variant: 'destructive' as const, label: 'High Priority', priority: 'high' as const };
       case 'moderate':
       case 'medium':
-        return { variant: 'default' as const, label: 'Moderate Priority' };
+        return { variant: 'warning' as const, label: 'Medium Priority', priority: 'medium' as const };
       case 'mild':
       case 'low':
-        return { variant: 'secondary' as const, label: 'Low Priority' };
+        return { variant: 'success' as const, label: 'Low Priority', priority: 'low' as const };
     }
   }
   
   // Default safe badge
-  return { variant: 'secondary' as const, label: 'Info' };
+  return { variant: 'secondary' as const, label: 'Info', priority: 'low' as const };
 }

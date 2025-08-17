@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { Lightbulb, ExternalLink, X } from "lucide-react";
+import { Lightbulb, ExternalLink, X, AlertTriangle, Info } from "lucide-react";
 import { useReports } from "@/hooks/useReports";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useMemo, useState } from "react";
@@ -137,6 +137,20 @@ export function PersonalizedTipsHealth() {
     return priority === 'important' ? 'border-l-destructive' : 'border-l-muted';
   };
 
+  // Priority icon configuration
+  const priorityIconConfig = {
+    important: {
+      icon: AlertTriangle,
+      className: "text-destructive",
+      bgClassName: "bg-destructive/10"
+    },
+    info: {
+      icon: Info,
+      className: "text-blue-600",
+      bgClassName: "bg-blue-100"
+    }
+  };
+
   if (personalizedTips.length === 0) {
     return (
       <Card>
@@ -175,10 +189,13 @@ export function PersonalizedTipsHealth() {
                   <Badge variant={getCategoryColor(tip.category)} className="text-xs px-1 py-0 h-5">
                     {tip.category}
                   </Badge>
-                  {tip.priority === 'important' && (
-                    <Badge variant="destructive" className="text-xs px-1 py-0 h-5">
-                      !
-                    </Badge>
+                  {priorityIconConfig[tip.priority] && (
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${priorityIconConfig[tip.priority].bgClassName}`}>
+                      {(() => {
+                        const PriorityIcon = priorityIconConfig[tip.priority].icon;
+                        return <PriorityIcon className={`h-3 w-3 ${priorityIconConfig[tip.priority].className}`} />;
+                      })()}
+                    </div>
                   )}
                 </div>
               </CardHeader>

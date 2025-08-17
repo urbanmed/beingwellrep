@@ -779,7 +779,7 @@ export function SummaryViewer({
           {summary.confidence_score && (
             <div className="flex items-center gap-1">
               <span>Confidence:</span>
-              <Badge variant="outline" className="text-xs">{summary.confidence_score}%</Badge>
+              <Badge variant="outline" className="text-xs">{Math.round(summary.confidence_score * 100)}%</Badge>
             </div>
           )}
         </div>

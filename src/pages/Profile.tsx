@@ -13,6 +13,8 @@ import { FamilySection } from "@/components/profile/FamilySection";
 import { EmergencyContactsSection } from "@/components/profile/EmergencyContactsSection";
 import { ProfileBillingTab } from "@/components/billing/ProfileBillingTab";
 import { useFamilyMembers } from "@/hooks/useFamilyMembers";
+import { useReports } from "@/hooks/useReports";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { getSignedUrl } from "@/lib/storage";
 
 export default function Profile() {
@@ -21,6 +23,8 @@ export default function Profile() {
   const navigate = useNavigate();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { familyMembers } = useFamilyMembers();
+  const { reports } = useReports();
+  const { profile } = useUserProfile();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -73,9 +77,8 @@ export default function Profile() {
       <ProfileCompletionBanner />
       <h1 className="sr-only">Profile</h1>
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 rounded-full h-10 p-1">
+        <TabsList className="grid w-full grid-cols-3 rounded-full h-10 p-1">
           <TabsTrigger value="profile" className="rounded-full h-8 px-2 text-xs shadow-none">Profile</TabsTrigger>
-          <TabsTrigger value="billing" className="rounded-full h-8 px-2 text-xs shadow-none">Billing</TabsTrigger>
           <TabsTrigger value="family" className="rounded-full h-8 px-2 text-xs shadow-none">Family</TabsTrigger>
           <TabsTrigger value="emergency" className="rounded-full h-8 px-2 text-xs shadow-none">Emergency</TabsTrigger>
         </TabsList>
@@ -96,7 +99,7 @@ export default function Profile() {
                 </Avatar>
                  <div className="flex-1">
                    <h2 className="medical-heading-sm">
-                     {user?.email?.split('@')[0] || 'User'}
+                     {profile?.first_name ? `${profile.first_name}${profile.last_name ? ` ${profile.last_name}` : ''}` : (user?.email?.split('@')[0] || 'User')}
                    </h2>
                   <div className="space-y-0.5 medical-label-xs text-muted-foreground">
                     {user?.email && (
@@ -127,7 +130,7 @@ export default function Profile() {
           </Card>
 
            {/* Quick Stats */}
-           <div className="grid grid-cols-3 gap-2 sm:gap-3">
+           <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <Card>
                 <CardContent className="p-2">
                   <div className="flex items-center space-x-3">
@@ -135,21 +138,7 @@ export default function Profile() {
                       <FileText className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <div className="text-lg font-bold text-foreground">0</div>
-                      <p className="text-xs text-muted-foreground">Documents</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-2">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
-                      <Activity className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold text-foreground">0</div>
+                      <div className="text-lg font-bold text-foreground">{reports.length}</div>
                       <p className="text-xs text-muted-foreground">Reports</p>
                     </div>
                   </div>
@@ -173,7 +162,7 @@ export default function Profile() {
 
           {/* Menu Options */}
           <div className="space-y-2">
-             <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+             <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate("/profile/settings")}>
                <CardHeader className="py-3">
                  <CardTitle className="medical-subheading flex items-center justify-between">
                    <div className="flex items-center">
@@ -235,10 +224,6 @@ export default function Profile() {
               </Button>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="billing">
-          <ProfileBillingTab />
         </TabsContent>
 
         <TabsContent value="family">
