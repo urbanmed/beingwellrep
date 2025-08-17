@@ -149,12 +149,7 @@ export function DocumentProcessing() {
   }
 
   return (
-    <section className="space-y-6 pt-safe-offset-header">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-foreground">Health Records</h1>
-        </div>
-      </div>
+    <section className="space-y-3 pt-safe-offset-header">
       {selectionMode && (
         <div className="flex items-center justify-between rounded-md border p-2 sm:p-3 bg-muted/30">
           <div className="text-xs sm:text-sm">{selectedIds.size} selected</div>
