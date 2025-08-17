@@ -153,20 +153,6 @@ export function DocumentProcessing() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold text-foreground">Health Records</h1>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant={selectionMode ? "secondary" : "outline"} 
-              size="sm" 
-              onClick={toggleSelectionMode} 
-              className="text-xs"
-            >
-              {selectionMode ? "Cancel" : "Select"}
-            </Button>
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-end">
-          <ViewModeSelector viewMode={viewMode} onViewModeChange={setViewMode} />
         </div>
       </div>
       {selectionMode && (
@@ -225,6 +211,19 @@ export function DocumentProcessing() {
             availableTags={availableTags}
             onFiltersChange={updateFilters}
           />
+
+          {/* Controls Row */}
+          <div className="flex items-center justify-between">
+            <Button 
+              variant={selectionMode ? "secondary" : "outline"} 
+              size="sm" 
+              onClick={toggleSelectionMode} 
+              className="text-xs"
+            >
+              {selectionMode ? "Cancel" : "Select"}
+            </Button>
+            <ViewModeSelector viewMode={viewMode} onViewModeChange={setViewMode} />
+          </div>
 
           {/* Timeline Content */}
           <div className="space-y-3">
