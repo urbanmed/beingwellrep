@@ -237,61 +237,163 @@
     @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
   }
   
-  /* Safe area support for mobile devices with notches */
+  /* iOS Safe Area Constants and Utilities */
+  :root {
+    /* iOS safe area inset variables with fallbacks */
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-inset-left: env(safe-area-inset-left, 0px);
+    --safe-area-inset-right: env(safe-area-inset-right, 0px);
+    
+    /* iOS device specific measurements */
+    --ios-notch-height: 44px;
+    --ios-home-indicator-height: 34px;
+    --ios-status-bar-height: 20px;
+    
+    /* Layout heights */
+    --header-height: 4rem;
+    --bottom-nav-height: 5rem;
+  }
+
+  /* Viewport-aware heights for iOS */
+  .ios-viewport-height {
+    height: 100vh;
+    height: 100dvh;
+    height: calc(var(--vh, 1vh) * 100);
+  }
+
+  .ios-viewport-min-height {
+    min-height: 100vh;
+    min-height: 100dvh;
+    min-height: calc(var(--vh, 1vh) * 100);
+  }
+
+  /* Safe area padding utilities */
   .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 34px);
+    padding-bottom: var(--safe-area-inset-bottom);
   }
   
   .pt-safe {
-    padding-top: env(safe-area-inset-top, 44px);
+    padding-top: var(--safe-area-inset-top);
   }
   
   .pl-safe {
-    padding-left: env(safe-area-inset-left, 0px);
+    padding-left: var(--safe-area-inset-left);
   }
   
   .pr-safe {
-    padding-right: env(safe-area-inset-right, 0px);
+    padding-right: var(--safe-area-inset-right);
+  }
+
+  /* Safe area margin utilities */
+  .mb-safe {
+    margin-bottom: var(--safe-area-inset-bottom);
+  }
+  
+  .mt-safe {
+    margin-top: var(--safe-area-inset-top);
+  }
+  
+  .ml-safe {
+    margin-left: var(--safe-area-inset-left);
+  }
+  
+  .mr-safe {
+    margin-right: var(--safe-area-inset-right);
   }
 
   /* iOS specific height adjustments */
   .h-screen {
     height: 100vh;
     height: 100dvh;
+    /* Support for older iOS versions */
+    height: calc(var(--vh, 1vh) * 100);
   }
 
   .min-h-screen {
     min-height: 100vh;
     min-height: 100dvh;
+    min-height: calc(var(--vh, 1vh) * 100);
   }
 
   .min-h-screen-safe {
-    min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-    min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    min-height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+    min-height: calc(100dvh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+    min-height: calc(var(--vh, 1vh) * 100 - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
   }
 
   .h-screen-safe {
-    height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-    height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+    height: calc(100dvh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+    height: calc(var(--vh, 1vh) * 100 - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
   }
 
-  /* iOS safe area utilities */
+  /* iOS layout component utilities */
   .ios-header-height {
-    height: calc(4rem + env(safe-area-inset-top, 0px));
+    height: calc(var(--header-height) + var(--safe-area-inset-top));
   }
 
   .ios-nav-height {
-    height: calc(5rem + env(safe-area-inset-bottom, 0px));
+    height: calc(var(--bottom-nav-height) + var(--safe-area-inset-bottom));
   }
 
   .ios-content-height {
-    height: calc(100vh - 4rem - 5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-    height: calc(100dvh - 4rem - 5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    height: calc(100vh - var(--header-height) - var(--bottom-nav-height) - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+    height: calc(100dvh - var(--header-height) - var(--bottom-nav-height) - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+    height: calc(var(--vh, 1vh) * 100 - var(--header-height) - var(--bottom-nav-height) - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
   }
 
-  .h-screen-safe {
-    height: calc(100vh - env(safe-area-inset-top, 44px) - env(safe-area-inset-bottom, 34px));
-    height: calc(100dvh - env(safe-area-inset-top, 44px) - env(safe-area-inset-bottom, 34px));
+  /* iOS specific positioning */
+  .ios-fixed-top {
+    position: fixed;
+    top: var(--safe-area-inset-top);
+    left: 0;
+    right: 0;
+    z-index: 50;
+  }
+
+  .ios-fixed-bottom {
+    position: fixed;
+    bottom: var(--safe-area-inset-bottom);
+    left: 0;
+    right: 0;
+    z-index: 50;
+  }
+
+  /* Notch and home indicator aware spacing */
+  .ios-notch-aware {
+    padding-top: max(var(--safe-area-inset-top), var(--ios-notch-height));
+  }
+
+  .ios-home-indicator-aware {
+    padding-bottom: max(var(--safe-area-inset-bottom), var(--ios-home-indicator-height));
+  }
+
+  /* iOS WebView specific adjustments */
+  @supports (-webkit-appearance: none) {
+    /* WebKit/Safari specific styles */
+    .ios-webkit-height {
+      height: -webkit-fill-available;
+    }
+    
+    .ios-webkit-min-height {
+      min-height: -webkit-fill-available;
+    }
+  }
+
+  /* iOS orientation and device specific handling */
+  @media screen and (max-width: 430px) and (orientation: portrait) {
+    /* iPhone specific adjustments */
+    .ios-phone-portrait {
+      --safe-area-adjustment: max(env(safe-area-inset-top), 44px);
+    }
+  }
+
+  @media screen and (max-height: 430px) and (orientation: landscape) {
+    /* iPhone landscape adjustments */
+    .ios-phone-landscape {
+      --safe-area-adjustment: max(env(safe-area-inset-left), env(safe-area-inset-right));
+    }
   }
 }
 
