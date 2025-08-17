@@ -47,6 +47,16 @@ bun run build
 echo "🧹 Cleaning iOS platform..."
 bunx cap clean ios
 
+# Add iOS platform if not exists
+if [ ! -d "ios" ]; then
+    echo "📱 Adding iOS platform..."
+    bunx cap add ios
+fi
+
+# Update CocoaPods
+echo "🔄 Updating CocoaPods..."
+cd ios && pod install --repo-update && cd ..
+
 # Sync with iOS platform
 echo "🔄 Syncing with iOS platform..."
 bunx cap sync ios
