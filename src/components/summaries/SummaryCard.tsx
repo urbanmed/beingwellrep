@@ -169,11 +169,6 @@ export function SummaryCard({ summary, onView, onPin, onDelete }: SummaryCardPro
                     {severityBadgeInfo.label}
                   </Badge>
                 )}
-                {summary.confidence_score && (
-                  <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                    {Math.round(summary.confidence_score * 100)}% confidence
-                  </Badge>
-                )}
               </div>
 
               <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
