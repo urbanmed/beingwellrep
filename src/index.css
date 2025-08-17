@@ -146,21 +146,33 @@
     @apply border-border;
   }
 
-  html, body {
+  html {
     margin: 0;
     padding: 0;
     height: 100%;
+    height: 100dvh; /* Dynamic viewport height for mobile */
     overflow-x: hidden;
   }
 
   body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    height: 100dvh; /* Dynamic viewport height for mobile */
+    overflow-x: hidden;
     @apply bg-background text-foreground font-inter;
+    /* Prevent iOS Safari bounce scrolling */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
   }
 
   #root {
     height: 100%;
+    height: 100dvh; /* Dynamic viewport height for mobile */
     margin: 0;
     padding: 0;
+    display: flex;
+    flex-direction: column;
   }
   
   /* Medical App Typography System */
