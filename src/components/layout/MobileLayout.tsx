@@ -43,9 +43,9 @@ export function MobileLayout({ children, authMode = false }: MobileLayoutProps) 
   }
   
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background">
       <Header />
-      <main className="pt-[7rem] pb-[5rem] overflow-auto">
+      <main className="pt-safe-offset-header pb-safe-offset-footer px-4 overflow-auto h-full">
         {children}
       </main>
       {!(["/vault", "/ai-assistant", "/profile"].includes(pathname)) && <FloatingUploadButton />}

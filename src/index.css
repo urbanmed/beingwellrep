@@ -309,6 +309,15 @@
   .mt-safe {
     margin-top: var(--safe-area-inset-top);
   }
+
+  /* Safe area offset utilities for content spacing */
+  .pt-safe-offset-header {
+    padding-top: calc(7rem + env(safe-area-inset-top));
+  }
+  
+  .pb-safe-offset-footer {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
   
   .ml-safe {
     margin-left: var(--safe-area-inset-left);
