@@ -16,6 +16,11 @@ const config: CapacitorConfig = {
       style: 'light',
       backgroundColor: '#FFFFFF',
       overlay: false
+    },
+    Keyboard: {
+      resize: 'body',
+      style: 'light',
+      resizeOnFullScreen: true
     }
   },
   ios: {
@@ -26,14 +31,13 @@ const config: CapacitorConfig = {
     preferredContentMode: 'mobile',
     scrollEnabled: true,
     allowInlineMediaPlayback: true,
-    webContentsDebuggingEnabled: true,
-    limitsNavigationsToAppBoundDomains: false
-  },
-  // Remove server config for native app deployment
-  // server: {
-  //   url: 'https://19c2bff5-5cc9-411b-b7e2-36bbe14692c6.lovableproject.com?forceHideBadge=true',
-  //   cleartext: true,
-  // },
+    webContentsDebuggingEnabled: false, // Disabled for production
+    limitsNavigationsToAppBoundDomains: false,
+    handleApplicationURL: false,
+    // iOS-specific WebView configuration
+    scheme: 'capacitor',
+    hostname: 'localhost'
+  }
 };
 
 export default config;
