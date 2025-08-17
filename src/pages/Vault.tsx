@@ -1,6 +1,6 @@
 
 import { useEffect } from "react";
-import { DocumentProcessing } from "@/components/vault/DocumentProcessing";
+import { LazyDocumentProcessing } from "@/components/vault/LazyDocumentProcessing";
 import { FloatingUploadButton } from "@/components/vault/FloatingUploadButton";
 
 export default function Vault() {
@@ -14,7 +14,7 @@ export default function Vault() {
 
   return (
     <main className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 pb-16 sm:pb-20 space-y-4 sm:space-y-6">
-      <DocumentProcessing />
+      <LazyDocumentProcessing />
       <FloatingUploadButton />
     </main>
   );
