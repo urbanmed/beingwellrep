@@ -17,9 +17,7 @@ import {
   MoreVertical,
   Pin,
   PinOff,
-  Trash2,
-  Info,
-  CheckCircle
+  Trash2
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Summary } from "@/types/summary";
@@ -68,25 +66,6 @@ export function SummaryCard({ summary, onView, onPin, onDelete }: SummaryCardPro
 
   // Get severity badge using the utility function
   const severityBadgeInfo = getSeverityBadge(parsedContent);
-
-  // Priority icon configuration
-  const priorityIconConfig = {
-    high: {
-      icon: AlertTriangle,
-      className: "text-destructive",
-      bgClassName: "bg-destructive/10"
-    },
-    medium: {
-      icon: Info,
-      className: "text-blue-600",
-      bgClassName: "bg-blue-100"
-    },
-    low: {
-      icon: CheckCircle,
-      className: "text-green-600",
-      bgClassName: "bg-green-100"
-    }
-  };
 
   // Risk scoring (new)
   const riskScore: number | undefined = parsedContent?.risk?.overall_score;
@@ -185,13 +164,15 @@ export function SummaryCard({ summary, onView, onPin, onDelete }: SummaryCardPro
                     Risk: {riskLevel?.toUpperCase()} • {Math.round(riskScore)}/100
                   </Badge>
                 )}
-                {severityBadgeInfo?.priority && priorityIconConfig[severityBadgeInfo.priority] && (
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${priorityIconConfig[severityBadgeInfo.priority].bgClassName}`}>
-                    {(() => {
-                      const PriorityIcon = priorityIconConfig[severityBadgeInfo.priority].icon;
-                      return <PriorityIcon className={`h-3 w-3 ${priorityIconConfig[severityBadgeInfo.priority].className}`} />;
-                    })()}
-                  </div>
+                {severityBadgeInfo && (
+                  <Badge variant={severityBadgeInfo.variant} className="h-5 px-1.5 text-[10px]">
+                    {severityBadgeInfo.label}
+                  </Badge>
+                )}
+                {summary.confidence_score && (
+                  <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                    {Math.round(summary.confidence_score * 100)}% confidence
+                  </Badge>
                 )}
               </div>
 

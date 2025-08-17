@@ -146,50 +146,25 @@
     @apply border-border;
   }
 
-  html {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    height: 100dvh; /* Dynamic viewport height for mobile */
-    overflow-x: hidden;
-  }
-
   body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    height: 100dvh; /* Dynamic viewport height for mobile */
-    overflow-x: hidden;
     @apply bg-background text-foreground font-inter;
-    /* Prevent iOS Safari bounce scrolling */
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: none;
-  }
-
-  #root {
-    height: 100%;
-    height: 100dvh; /* Dynamic viewport height for mobile */
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
   }
   
   /* Medical App Typography System */
   .medical-title {
-    @apply font-bold text-lg text-foreground; /* 18px, bold - reduced from xl */
+    @apply font-bold text-xl text-foreground; /* 20-22px, bold */
   }
   
   .medical-title-sm {
-    @apply font-bold text-base text-foreground; /* 16px, bold - reduced from lg */
+    @apply font-bold text-lg text-foreground; /* 18px, bold - smaller title */
   }
   
   .medical-heading {
-    @apply font-medium text-base text-foreground; /* 16px, medium - reduced from lg */
+    @apply font-medium text-lg text-foreground; /* 16-18px, medium */
   }
   
   .medical-heading-sm {
-    @apply font-medium text-sm text-foreground; /* 14px, medium - reduced from base */
+    @apply font-medium text-base text-foreground; /* 16px, medium - smaller heading */
   }
   
   .medical-subheading {
@@ -245,11 +220,11 @@
   
   /* Safe area support for mobile devices with notches */
   .pb-safe {
-    padding-bottom: max(env(safe-area-inset-bottom), 8px);
+    padding-bottom: env(safe-area-inset-bottom);
   }
   
   .pt-safe {
-    padding-top: max(env(safe-area-inset-top), 0px);
+    padding-top: env(safe-area-inset-top);
   }
   
   .pl-safe {

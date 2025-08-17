@@ -1,13 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Calendar, User, FolderOpen, CheckCircle, AlertCircle, Clock, Eye, Download, Pencil } from "lucide-react";
+import { FileText, Calendar, User, FolderOpen, CheckCircle, AlertCircle, Clock, Eye, Download } from "lucide-react";
 import { useReports } from "@/hooks/useReports";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { useFileDownload } from "@/hooks/useFileDownload";
-import { EditReportTitleDialog } from "@/components/reports/EditReportTitleDialog";
-import { useState } from "react";
 
 const REPORT_TYPE_CONFIG = {
   blood_test: { 
@@ -43,18 +41,9 @@ const REPORT_TYPE_CONFIG = {
 };
 
 export function RecentReportsVault() {
-  const { reports, fetchReports } = useReports();
+  const { reports } = useReports();
   const { downloadFile, isDownloading } = useFileDownload();
   const navigate = useNavigate();
-  const [editTitleDialog, setEditTitleDialog] = useState<{
-    open: boolean;
-    reportId: string;
-    currentTitle: string;
-  }>({
-    open: false,
-    reportId: "",
-    currentTitle: "",
-  });
 
   const recentReports = reports
     .filter(r => r.parsing_status === 'completed')
@@ -74,16 +63,21 @@ export function RecentReportsVault() {
     }
   };
 
-  const handleEditTitle = (reportId: string, currentTitle: string) => {
-    setEditTitleDialog({
-      open: true,
-      reportId,
-      currentTitle,
-    });
-  };
-
-  const handleTitleUpdated = () => {
-    fetchReports();
+  const getStatusBadge = (status: string, confidence: number | null) => {
+    switch (status) {
+      case 'completed':
+        return (
+          <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+            Ready {confidence && `(${Math.round(confidence * 100)}%)`}
+          </Badge>
+        );
+      case 'failed':
+        return <Badge variant="destructive">Failed</Badge>;
+      case 'processing':
+        return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Processing</Badge>;
+      default:
+        return <Badge variant="outline">Pending</Badge>;
+    }
   };
 
   return (
@@ -115,81 +109,61 @@ export function RecentReportsVault() {
               return (
                 <Card 
                   key={report.id}
-                  className="group cursor-pointer hover:shadow-sm medical-card-shadow"
+                  className="group cursor-pointer hover:shadow-sm"
                   onClick={() => navigate(`/vault/${report.id}`)}
                 >
-                  <CardContent className="p-3 space-y-2">
-                    {/* Row 1: Type Icon + Title + Critical Badge + Status */}
-                    <div className="flex items-center gap-3">
+                  <CardContent className="p-3">
+                    <div className="flex items-start gap-3">
                       <div className="flex-shrink-0">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${config.color}`}>
-                          <span className="text-sm">{config.icon}</span>
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center ${config.color}`}>
+                          <span className="text-base">{config.icon}</span>
                         </div>
                       </div>
-                      <h3 className="text-xs font-medium truncate flex-1">{report.title || 'Untitled Report'}</h3>
-                      {report.is_critical && (
-                        <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">Critical</Badge>
-                      )}
-                      {report.parsing_status === 'completed' && (
-                        <CheckCircle className="h-4 w-4 text-success flex-shrink-0" />
-                      )}
-                    </div>
 
-                    {/* Row 2: Report Type/Date + Actions */}
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <div>
-                        {report.report_type && report.report_type !== 'general' ? (
-                          <span className="capitalize">
-                            {report.report_type.replace('_', ' ')}
-                          </span>
-                        ) : (
-                          <span>{format(new Date(report.report_date), 'MMM d, yyyy')}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {report.report_type && report.report_type !== 'general' && (
-                          <span>{format(new Date(report.report_date), 'MMM d, yyyy')}</span>
-                        )}
-                        <div className="flex gap-1 ml-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditTitle(report.id, report.title || '');
-                            }}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/vault/${report.id}`);
-                            }}
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                          
-                          {report.file_url && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                downloadFile(report.id, report.file_name, report.file_url);
-                              }}
-                              disabled={isDownloading(report.id)}
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                            </Button>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-medium truncate">{report.title || 'Untitled Report'}</h3>
+                          {report.is_critical && (
+                            <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">Critical</Badge>
                           )}
                         </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="capitalize">{report.report_type.replace('_', ' ')}</span>
+                          <span>•</span>
+                          <span>{format(new Date(report.report_date), 'MMM d, yyyy')}</span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          {getStatusIcon(report.parsing_status)}
+                          {getStatusBadge(report.parsing_status, report.extraction_confidence)}
+                        </div>
+                      </div>
+
+                      <div className="flex-shrink-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/vault/${report.id}`);
+                          }}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        {report.file_url && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              downloadFile(report.id, report.file_name, report.file_url);
+                            }}
+                            disabled={isDownloading(report.id)}
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -208,14 +182,6 @@ export function RecentReportsVault() {
           </>
         )}
       </CardContent>
-      
-      <EditReportTitleDialog
-        open={editTitleDialog.open}
-        onOpenChange={(open) => setEditTitleDialog(prev => ({ ...prev, open }))}
-        reportId={editTitleDialog.reportId}
-        currentTitle={editTitleDialog.currentTitle}
-        onTitleUpdated={handleTitleUpdated}
-      />
     </Card>
   );
 }

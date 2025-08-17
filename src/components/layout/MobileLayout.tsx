@@ -11,13 +11,12 @@ interface MobileLayoutProps {
 export function MobileLayout({ children }: MobileLayoutProps) {
   const { pathname } = useLocation();
   return (
-    <div className="h-full min-h-screen bg-background flex flex-col"
-         style={{ height: '100dvh', minHeight: '100dvh' }}>
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       <main className="flex-1 pb-[calc(56px+env(safe-area-inset-bottom))] sm:pb-[calc(64px+env(safe-area-inset-bottom))]">
         {children}
       </main>
-      {!(["/vault", "/ai-assistant", "/profile"].includes(pathname)) && <FloatingUploadButton />}
+      {pathname !== "/vault" && <FloatingUploadButton />}
       <BottomNavigation />
     </div>
   );

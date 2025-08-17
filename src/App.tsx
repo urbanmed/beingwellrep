@@ -20,7 +20,6 @@ import Cards from "./pages/Cards";
 
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
-import { AccountSettings } from "./components/profile/AccountSettings";
 import Pricing from "./pages/Pricing";
 import Concierge from "./pages/Concierge";
 
@@ -116,9 +115,7 @@ const AppRoutes: FC = () => (
     } />
     <Route path="/vault/:id" element={
       <ProtectedRoute>
-        <MobileLayout>
-          <ReportDetail />
-        </MobileLayout>
+        <ReportDetail />
       </ProtectedRoute>
     } />
     <Route path="/profile" element={
@@ -130,16 +127,7 @@ const AppRoutes: FC = () => (
     } />
     <Route path="/profile/edit" element={
       <ProtectedRoute>
-        <MobileLayout>
-          <ProfileEdit />
-        </MobileLayout>
-      </ProtectedRoute>
-    } />
-    <Route path="/profile/settings" element={
-      <ProtectedRoute>
-        <MobileLayout>
-          <AccountSettings />
-        </MobileLayout>
+        <ProfileEdit />
       </ProtectedRoute>
     } />
     <Route path="/ai-assistant" element={
