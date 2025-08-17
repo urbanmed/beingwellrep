@@ -11,12 +11,21 @@ const config: CapacitorConfig = {
     },
     Haptics: {
       vibrationIntensity: 'medium'
+    },
+    StatusBar: {
+      style: 'light',
+      backgroundColor: '#FFFFFF',
+      overlay: false
     }
   },
   ios: {
-    contentInset: 'automatic',
+    contentInset: 'never',
     allowsLinkPreview: false,
-    backgroundColor: '#000000'
+    backgroundColor: '#FFFFFF',
+    overrideUserInterfaceStyle: 'light',
+    preferredContentMode: 'mobile',
+    scrollEnabled: true,
+    allowInlineMediaPlayback: true
   },
   // Remove server config for native app deployment
   // server: {

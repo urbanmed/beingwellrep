@@ -44,6 +44,22 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	
+	<!-- Status Bar Configuration -->
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleDefault</string>
+	
+	<!-- Safe Area and Layout Configuration -->
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIStatusBarHidden</key>
+	<false/>
+	
+	<!-- Viewport and Display Configuration -->
+	<key>UIRequiresFullScreen</key>
+	<false/>
+	<key>UISupportsDocumentBrowser</key>
+	<false/>
+	
 	<!-- Location Permissions for Emergency SOS -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs location access to send your location during emergency SOS alerts to your emergency contacts.</string>
