@@ -13,6 +13,7 @@ import { FamilySection } from "@/components/profile/FamilySection";
 import { EmergencyContactsSection } from "@/components/profile/EmergencyContactsSection";
 import { ProfileBillingTab } from "@/components/billing/ProfileBillingTab";
 import { useFamilyMembers } from "@/hooks/useFamilyMembers";
+import { useReports } from "@/hooks/useReports";
 import { getSignedUrl } from "@/lib/storage";
 
 export default function Profile() {
@@ -21,6 +22,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { familyMembers } = useFamilyMembers();
+  const { reports } = useReports();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -126,7 +128,7 @@ export default function Profile() {
           </Card>
 
            {/* Quick Stats */}
-           <div className="grid grid-cols-3 gap-2 sm:gap-3">
+           <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <Card>
                 <CardContent className="p-2">
                   <div className="flex items-center space-x-3">
@@ -134,21 +136,7 @@ export default function Profile() {
                       <FileText className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <div className="text-lg font-bold text-foreground">0</div>
-                      <p className="text-xs text-muted-foreground">Documents</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-2">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
-                      <Activity className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold text-foreground">0</div>
+                      <div className="text-lg font-bold text-foreground">{reports.length}</div>
                       <p className="text-xs text-muted-foreground">Reports</p>
                     </div>
                   </div>
