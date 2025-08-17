@@ -46,7 +46,7 @@ export function MobileLayout({ children, authMode = false }: MobileLayoutProps) 
     <div className="ios-viewport-height bg-background flex flex-col overflow-hidden">
       <Header />
       <main className="flex-1 overflow-auto relative" style={{ 
-        paddingTop: 'var(--safe-area-inset-top, 0px)',
+        paddingTop: 'calc(var(--header-height) + var(--safe-area-inset-top, 0px))',
         marginBottom: 'calc(5rem + var(--safe-area-inset-bottom, 0px))'
       }}>
         {children}
