@@ -250,8 +250,8 @@
     --ios-home-indicator-height: 34px;
     --ios-status-bar-height: 20px;
     
-    /* Layout heights */
-    --header-height: 4rem;
+    /* Layout heights - updated for accurate header measurement */
+    --header-height: 7rem; /* Increased to account for logo + greeting sections */
     --bottom-nav-height: 5rem;
   }
 
