@@ -9,7 +9,7 @@ import { SosButton } from '@/components/sos/SosButton';
 import { RecommendationsSummary } from '@/components/dashboard/RecommendationsSummary';
 import { ActionItems } from '@/components/dashboard/ActionItems';
 import { RecentReportsVault } from '@/components/dashboard/RecentReportsVault';
-import { LazyAIInsightsCarousel } from '@/components/dashboard/LazyAIInsightsCarousel';
+import { AIInsightsCarousel } from '@/components/dashboard/AIInsightsCarousel';
 
 import { HealthTasksReminders } from '@/components/dashboard/HealthTasksReminders';
 import { PersonalizedTipsHealth } from '@/components/dashboard/PersonalizedTipsHealth';
@@ -113,7 +113,7 @@ const Index = () => {
       <RecentReportsVault />
 
       {/* AI Insights */}
-      <LazyAIInsightsCarousel />
+      <AIInsightsCarousel />
 
       {/* Tasks and Tips */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">

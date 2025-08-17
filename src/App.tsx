@@ -1,4 +1,4 @@
-import { type FC, Suspense, lazy } from "react";
+import { type FC } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,50 +10,47 @@ import { AdminRoute } from "@/components/admin/AdminRoute";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { AdminLayout } from "@/components/admin/layout/AdminLayout";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import Index from "./pages/Index";
+import Upload from "./pages/Upload";
+import Summaries from "./pages/Summaries";
+import Vault from "./pages/Vault";
+import ReportDetail from "./pages/ReportDetail";
+import AIAssistant from "./pages/AIAssistant";
+import Prescriptions from "./pages/Prescriptions";
+import Cards from "./pages/Cards";
 
-// Lazy load main pages
-const Index = lazy(() => import("./pages/Index"));
-const Upload = lazy(() => import("./pages/Upload"));
-const Summaries = lazy(() => import("./pages/Summaries"));
-const Vault = lazy(() => import("./pages/Vault"));
-const ReportDetail = lazy(() => import("./pages/ReportDetail"));
-const AIAssistant = lazy(() => import("./pages/AIAssistant"));
-const Prescriptions = lazy(() => import("./pages/Prescriptions"));
-const Cards = lazy(() => import("./pages/Cards"));
-const Profile = lazy(() => import("./pages/Profile"));
-const ProfileEdit = lazy(() => import("./pages/ProfileEdit"));
-const AccountSettings = lazy(() => import("./components/profile/AccountSettings").then(m => ({ default: m.AccountSettings })));
-const Pricing = lazy(() => import("./pages/Pricing"));
-const Concierge = lazy(() => import("./pages/Concierge"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+import Profile from "./pages/Profile";
+import ProfileEdit from "./pages/ProfileEdit";
+import { AccountSettings } from "./components/profile/AccountSettings";
+import Pricing from "./pages/Pricing";
+import Concierge from "./pages/Concierge";
 
-// Lazy load auth pages
-const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
-const SignupPage = lazy(() => import("./pages/auth/SignupPage"));
-const OnboardingPage = lazy(() => import("./pages/auth/OnboardingPage"));
-const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage").then(m => ({ default: m.ForgotPasswordPage })));
-const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage").then(m => ({ default: m.ResetPasswordPage })));
-const VerifyPage = lazy(() => import("./pages/auth/VerifyPage").then(m => ({ default: m.VerifyPage })));
-const PhoneVerifyPage = lazy(() => import("./pages/auth/PhoneVerifyPage").then(m => ({ default: m.PhoneVerifyPage })));
+import NotFound from "./pages/NotFound";
+import LoginPage from "./pages/auth/LoginPage";
+import SignupPage from "./pages/auth/SignupPage";
+import OnboardingPage from "./pages/auth/OnboardingPage";
+import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
+import { VerifyPage } from "./pages/auth/VerifyPage";
+import { PhoneVerifyPage } from "./pages/auth/PhoneVerifyPage";
 
-// Lazy load admin pages - separate chunk
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
-const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
-const Analytics = lazy(() => import("./pages/admin/Analytics"));
-const ContentManagement = lazy(() => import("./pages/admin/ContentManagement"));
-const MedicalData = lazy(() => import("./pages/admin/MedicalData"));
-const SosMonitoring = lazy(() => import("./pages/admin/SosMonitoring"));
-const SystemHealth = lazy(() => import("./pages/admin/SystemHealth"));
-const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
-const Settings = lazy(() => import("./pages/admin/Settings"));
-const CustomPrompts = lazy(() => import("./pages/admin/CustomPrompts"));
-const AIChatMonitoring = lazy(() => import("./pages/admin/AIChatMonitoring"));
-const ProcessingQueuePanel = lazy(() => import("./components/processing/ProcessingQueuePanel"));
-const HealthInsightsPanel = lazy(() => import("./components/insights/HealthInsightsPanel"));
-const ExportCenter = lazy(() => import("./components/export/ExportCenter"));
-const ImportCenter = lazy(() => import("./components/import/ImportCenter"));
+// Admin pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import UserManagement from "./pages/admin/UserManagement";
+import Analytics from "./pages/admin/Analytics";
+import ContentManagement from "./pages/admin/ContentManagement";
+import MedicalData from "./pages/admin/MedicalData";
+import SosMonitoring from "./pages/admin/SosMonitoring";
+import SystemHealth from "./pages/admin/SystemHealth";
+import AuditLogs from "./pages/admin/AuditLogs";
+import Settings from "./pages/admin/Settings";
+import CustomPrompts from "./pages/admin/CustomPrompts";
+import AIChatMonitoring from "./pages/admin/AIChatMonitoring";
+import ProcessingQueuePanel from "./components/processing/ProcessingQueuePanel";
+import HealthInsightsPanel from "./components/insights/HealthInsightsPanel";
+import ExportCenter from "./components/export/ExportCenter";
+import ImportCenter from "./components/import/ImportCenter";
+import NotificationsPage from "./pages/NotificationsPage";
 
 // Create QueryClient instance outside of component
 const queryClient = new QueryClient({
@@ -74,8 +71,7 @@ const AuthRedirect: FC = () => {
 };
 
 const AppRoutes: FC = () => (
-  <Suspense fallback={<LoadingSpinner />}>
-    <Routes>
+  <Routes>
     {/* Protected Routes */}
     <Route path="/" element={
       <ProtectedRoute>
@@ -359,7 +355,6 @@ const AppRoutes: FC = () => (
       {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />
     </Routes>
-  </Suspense>
 );
 
 const App: FC = () => {

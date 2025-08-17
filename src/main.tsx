@@ -14,16 +14,8 @@ if (__dsn) {
   Sentry.init({ dsn: __dsn, tracesSampleRate: 0.1 });
 }
 
-const rootElement = document.getElementById("root")!;
-const root = createRoot(rootElement);
-
-// Only use StrictMode in development for better performance in production
-if (import.meta.env.DEV) {
-  root.render(
-    <StrictMode>
-      <App />
-    </StrictMode>
-  );
-} else {
-  root.render(<App />);
-}
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
