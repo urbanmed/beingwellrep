@@ -149,17 +149,35 @@ export function DocumentProcessing() {
   }
 
   return (
-    <section className="space-y-4">
-      <header className="flex items-center justify-end">
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <Button variant={selectionMode ? "secondary" : "outline"} size="sm" onClick={toggleSelectionMode} className="text-xs sm:text-sm">
-            {selectionMode ? "Cancel" : "Select"}
-          </Button>
-          <div className="w-36 sm:w-48">
+    <section className="space-y-6 pt-safe-offset-header">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold text-foreground">Health Records</h1>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant={selectionMode ? "secondary" : "outline"} 
+              size="sm" 
+              onClick={toggleSelectionMode} 
+              className="text-xs"
+            >
+              {selectionMode ? "Cancel" : "Select"}
+            </Button>
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>{stats.totalReports} reports</span>
+            <span>•</span>
+            <span>{stats.processedReports} processed</span>
+            <span>•</span>
+            <span>{stats.totalSummaries} summaries</span>
+          </div>
+          <div className="w-40">
             <ViewModeSelector viewMode={viewMode} onViewModeChange={setViewMode} />
           </div>
         </div>
-      </header>
+      </div>
       {selectionMode && (
         <div className="flex items-center justify-between rounded-md border p-2 sm:p-3 bg-muted/30">
           <div className="text-xs sm:text-sm">{selectedIds.size} selected</div>

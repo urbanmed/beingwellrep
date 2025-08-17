@@ -13,7 +13,7 @@ export default function Vault() {
   }, []);
 
   return (
-    <div className="pb-safe-offset-footer px-3 sm:px-4 space-y-4 sm:space-y-6">
+    <div className="pb-safe-offset-footer px-3 sm:px-4">
       <LazyDocumentProcessing />
       <FloatingUploadButton />
     </div>

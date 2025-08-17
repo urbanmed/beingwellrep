@@ -56,22 +56,22 @@ export function Header() {
           />
         </div>
       </div>
-      {!loading && (
-        <div className="flex items-center justify-between px-3 sm:px-4 pb-2">
-          <div className="flex items-center truncate mr-2">
-            <h2 className="text-base sm:text-lg font-medium text-foreground">{baseGreeting}</h2>
-            {planIcon}
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            <NotificationCenter />
-            <Link to="/profile" aria-label="Go to profile" className="shrink-0 touch-target">
-              <Avatar className="h-7 w-7 sm:h-8 sm:w-8 border border-border">
-                <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
-              </Avatar>
-            </Link>
-          </div>
+      <div className="flex items-center justify-between px-3 sm:px-4 pb-2">
+        <div className="flex items-center truncate mr-2">
+          <h2 className="text-base sm:text-lg font-medium text-foreground">
+            {loading ? `${greeting} 👋` : baseGreeting}
+          </h2>
+          {!loading && planIcon}
         </div>
-      )}
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <NotificationCenter />
+          <Link to="/profile" aria-label="Go to profile" className="shrink-0 touch-target">
+            <Avatar className="h-7 w-7 sm:h-8 sm:w-8 border border-border">
+              <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
+            </Avatar>
+          </Link>
+        </div>
+      </div>
     </header>
   );
 }
