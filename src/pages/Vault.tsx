@@ -13,9 +13,9 @@ export default function Vault() {
   }, []);
 
   return (
-    <main className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 pb-16 sm:pb-20 space-y-4 sm:space-y-6">
+    <div className="pt-safe-offset-header pb-safe-offset-footer px-3 sm:px-4 space-y-4 sm:space-y-6">
       <LazyDocumentProcessing />
       <FloatingUploadButton />
-    </main>
+    </div>
   );
 }
