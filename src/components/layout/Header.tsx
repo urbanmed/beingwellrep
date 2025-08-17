@@ -42,8 +42,8 @@ export function Header() {
 
 
   return (
-    <header className="bg-background border-b border-border sticky top-0 z-50 pt-safe">
-      <div className="flex items-center justify-center px-3 sm:px-4 py-6 sm:py-4 mt-10 sm:mt-8">
+    <header className="bg-background border-b border-border">
+      <div className="flex items-center justify-center px-3 sm:px-4 py-3 sm:py-2">
         <div 
           className="cursor-pointer touch-target active:scale-95 transition-transform"
           onClick={() => navigate("/")}
