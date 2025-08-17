@@ -14,6 +14,7 @@ import { EmergencyContactsSection } from "@/components/profile/EmergencyContacts
 import { ProfileBillingTab } from "@/components/billing/ProfileBillingTab";
 import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 import { useReports } from "@/hooks/useReports";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { getSignedUrl } from "@/lib/storage";
 
 export default function Profile() {
@@ -23,6 +24,7 @@ export default function Profile() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { familyMembers } = useFamilyMembers();
   const { reports } = useReports();
+  const { profile } = useUserProfile();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -97,7 +99,7 @@ export default function Profile() {
                 </Avatar>
                  <div className="flex-1">
                    <h2 className="medical-heading-sm">
-                     {user?.email?.split('@')[0] || 'User'}
+                     {profile?.first_name ? `${profile.first_name}${profile.last_name ? ` ${profile.last_name}` : ''}` : (user?.email?.split('@')[0] || 'User')}
                    </h2>
                   <div className="space-y-0.5 medical-label-xs text-muted-foreground">
                     {user?.email && (
