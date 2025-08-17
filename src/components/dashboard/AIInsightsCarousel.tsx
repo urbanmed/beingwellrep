@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { PriorityIcon } from "@/components/ui/priority-icon";
 import { Brain, Sparkles } from "lucide-react";
 import { useSummaries } from "@/hooks/useSummaries";
 import { useNavigate } from "react-router-dom";
@@ -52,7 +53,7 @@ export function AIInsightsCarousel() {
           <div className="flex space-x-4">
             {recentSummaries.map((summary) => {
               const severityBadgeRaw = getSeverityBadge(summary.content);
-              const severityBadge = severityBadgeRaw ?? { variant: 'secondary' as const, label: 'Info' };
+              const severityBadge = severityBadgeRaw ?? { variant: 'secondary' as const, label: 'Info', priority: 'low' as const };
               const preview = getContentPreview(summary.content, 120);
               
               return (
@@ -63,9 +64,11 @@ export function AIInsightsCarousel() {
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-start justify-between mb-2">
                       <h4 className="medical-label font-medium">{summary.title}</h4>
-                      <Badge variant={severityBadge.variant} className="text-xs">
-                        {severityBadge.label}
-                      </Badge>
+                      <PriorityIcon 
+                        priority={severityBadge.priority}
+                        size="sm"
+                        showTooltip={true}
+                      />
                     </div>
                     
                     <p className="medical-annotation leading-relaxed whitespace-normal">{preview}</p>
