@@ -9,62 +9,74 @@ export interface PermissionStatus {
 }
 
 export async function requestLocationPermission(): Promise<PermissionStatus> {
+  // For all platforms except native iOS, assume granted
   if (!isIOSPlatform()) {
-    console.log('📍 Not iOS platform, skipping permission request');
+    console.log('📍 Not iOS platform, permissions assumed granted');
     return { granted: true, denied: false, restricted: false };
   }
 
   try {
     console.log('📍 Requesting location permissions on iOS...');
     
-    // Check current permissions
+    // Check current permissions first
     const permissions = await Geolocation.checkPermissions();
     console.log('📍 Current permissions:', permissions);
     
     if (permissions.location === 'granted') {
+      console.log('✅ Location permission already granted');
       return { granted: true, denied: false, restricted: false };
     }
     
     if (permissions.location === 'denied') {
+      console.log('❌ Location permission previously denied');
       return {
         granted: false,
         denied: true,
         restricted: false,
-        message: 'Location permission was denied. Please enable it in Settings > Privacy & Security > Location Services.'
+        message: 'Location access denied. To use emergency features, go to Settings > BeingWell > Location and select "While Using App".'
       };
     }
     
-    // Request permissions if not determined
-    const requestResult = await Geolocation.requestPermissions();
-    console.log('📍 Permission request result:', requestResult);
-    
-    if (requestResult.location === 'granted') {
-      return { granted: true, denied: false, restricted: false };
+    // For prompt-able states, request permissions
+    if (permissions.location === 'prompt' || permissions.location === 'prompt-with-rationale') {
+      console.log('📱 Requesting location permissions...');
+      const requestResult = await Geolocation.requestPermissions();
+      console.log('📍 Permission request result:', requestResult);
+      
+      if (requestResult.location === 'granted') {
+        console.log('✅ Location permission granted after request');
+        return { granted: true, denied: false, restricted: false };
+      }
+      
+      if (requestResult.location === 'denied') {
+        console.log('❌ Location permission denied after request');
+        return {
+          granted: false,
+          denied: true,
+          restricted: false,
+          message: 'Location access is required for emergency features. Please enable it in your device settings.'
+        };
+      }
     }
     
-    if (requestResult.location === 'denied') {
-      return {
-        granted: false,
-        denied: true,
-        restricted: false,
-        message: 'Location permission was denied. For emergency features to work, please enable location access in Settings.'
-      };
-    }
-    
+    // Handle other cases
+    console.log('⚠️ Location permission in unexpected state:', permissions.location);
     return {
       granted: false,
       denied: false,
       restricted: true,
-      message: 'Location access is restricted. Please check your device settings.'
+      message: 'Location access status unclear. Please check your device settings if emergency features don\'t work.'
     };
     
   } catch (error) {
     console.error('📍 Error requesting location permission:', error);
+    // On iOS simulator, permissions might fail but location might still work
+    console.log('🔧 Permission check failed, attempting fallback...');
     return {
       granted: false,
-      denied: true,
+      denied: false,
       restricted: false,
-      message: 'Unable to request location permission. Please check your device settings.'
+      message: 'Could not verify location permissions. Emergency features may still work.'
     };
   }
 }

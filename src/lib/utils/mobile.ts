@@ -4,55 +4,66 @@ import { Capacitor } from '@capacitor/core';
 export function isNativePlatform(): boolean {
   try {
     console.log('🔍 Checking native platform...');
-    console.log('🔍 Capacitor object:', typeof Capacitor);
-    console.log('🔍 Capacitor.isNativePlatform:', typeof Capacitor?.isNativePlatform);
     
-    // Primary detection method
+    // Primary detection method - Capacitor.isNativePlatform()
     const hasCapacitor = typeof Capacitor !== 'undefined';
     const hasNativeFunction = typeof Capacitor?.isNativePlatform === 'function';
-    const capacitorResult = hasNativeFunction ? Capacitor.isNativePlatform() : false;
     
-    // iOS-specific detection methods
+    if (hasCapacitor && hasNativeFunction) {
+      const capacitorResult = Capacitor.isNativePlatform();
+      console.log('🔍 Capacitor.isNativePlatform():', capacitorResult);
+      if (capacitorResult) {
+        console.log('✅ Native platform detected via Capacitor API');
+        return true;
+      }
+    }
+    
+    // Secondary detection methods for edge cases
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isIOSCapacitor = isIOS && hasCapacitor;
-    const hasCapacitorInUserAgent = navigator.userAgent.includes('Capacitor');
-    
-    // iOS WebKit detection for native app
-    const isIOSWebKit = 'webkit' in window && isIOS;
-    const hasIOSStatusBar = window.innerHeight !== window.screen.height && isIOS;
-    
-    // Android detection
     const isAndroid = /Android/.test(navigator.userAgent);
-    const isAndroidCapacitor = isAndroid && hasCapacitor;
+    const hasCapacitorInUserAgent = navigator.userAgent.includes('Capacitor');
+    const hasCapacitorBridge = hasCapacitor && typeof (window as any).Capacitor?.Plugins !== 'undefined';
+    
+    // iOS-specific detection (for iOS simulator issues)
+    const isIOSNative = isIOS && (
+      hasCapacitorInUserAgent ||
+      hasCapacitorBridge ||
+      // iOS app-specific WebView characteristics
+      navigator.userAgent.includes('Mobile/') ||
+      // Check for iOS app scheme
+      window.location.protocol === 'capacitor:' ||
+      // iOS WebView detection
+      (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome'))
+    );
+    
+    // Android-specific detection
+    const isAndroidNative = isAndroid && (
+      hasCapacitorInUserAgent ||
+      hasCapacitorBridge ||
+      navigator.userAgent.includes('wv') // Android WebView
+    );
     
     console.log('🔍 Detection results:', {
       hasCapacitor,
       hasNativeFunction,
-      capacitorResult,
       isIOS,
-      isIOSCapacitor,
-      isIOSWebKit,
-      hasIOSStatusBar,
       isAndroid,
-      isAndroidCapacitor,
       hasCapacitorInUserAgent,
+      hasCapacitorBridge,
+      isIOSNative,
+      isAndroidNative,
       userAgent: navigator.userAgent,
-      windowHeight: window.innerHeight,
-      screenHeight: window.screen.height
+      protocol: window.location.protocol
     });
     
-    // Return true if any native detection method succeeds
-    const isNative = capacitorResult || 
-                    isIOSCapacitor || 
-                    isAndroidCapacitor || 
-                    hasCapacitorInUserAgent ||
-                    (isIOSWebKit && hasIOSStatusBar);
+    const isNative = isIOSNative || isAndroidNative;
     console.log('🔍 Final isNative result:', isNative);
     
     return isNative;
   } catch (error) {
     console.error('🔍 Error detecting native platform:', error);
-    return false;
+    // Fallback: if we have Capacitor, assume native
+    return typeof Capacitor !== 'undefined';
   }
 }
 
