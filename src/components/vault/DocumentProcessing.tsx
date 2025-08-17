@@ -149,7 +149,7 @@ export function DocumentProcessing() {
   }
 
   return (
-    <section className="space-y-3 pt-safe-offset-header">
+    <section className="space-y-3 pt-2 sm:pt-4">
       {selectionMode && (
         <div className="flex items-center justify-between rounded-md border p-2 sm:p-3 bg-muted/30">
           <div className="text-xs sm:text-sm">{selectedIds.size} selected</div>
