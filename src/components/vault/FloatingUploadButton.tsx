@@ -22,7 +22,7 @@ export function FloatingUploadButton({ onUploadComplete }: FloatingUploadButtonP
     return (
       <>
         {/* Mobile: Fixed bottom button with lab integration hint */}
-        <div className="fixed bottom-24 sm:bottom-28 left-3 right-3 z-50">
+        <div className="fixed bottom-20 sm:bottom-24 left-3 right-3 z-50">
           <div className="flex flex-col items-center space-y-2">
             {/* Lab integration hint */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200/50 dark:border-blue-800/50 rounded-lg px-3 py-1.5 shadow-sm">
