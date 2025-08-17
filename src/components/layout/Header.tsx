@@ -42,7 +42,7 @@ export function Header() {
 
 
   return (
-    <header className="bg-background border-b border-border pt-safe">
+    <header className="bg-background border-b border-border" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <div className="flex items-center justify-center px-3 sm:px-4 py-3 sm:py-2">
         <div 
           className="cursor-pointer touch-target active:scale-95 transition-transform"

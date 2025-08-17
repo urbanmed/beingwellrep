@@ -254,29 +254,39 @@
     padding-right: env(safe-area-inset-right, 0px);
   }
 
-  /* iOS-specific safe area handling */
-  @supports (-webkit-touch-callout: none) {
-    .ios-safe-top {
-      padding-top: max(env(safe-area-inset-top), 44px);
-    }
-    
-    .ios-safe-bottom {
-      padding-bottom: max(env(safe-area-inset-bottom), 34px);
-    }
-    
-    .h-screen {
-      height: 100dvh;
-    }
-    
-    .min-h-screen {
-      min-height: 100dvh;
-    }
+  /* iOS specific height adjustments */
+  .h-screen {
+    height: 100vh;
+    height: 100dvh;
   }
 
-  /* Full height utilities for mobile */
+  .min-h-screen {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
   .min-h-screen-safe {
-    min-height: calc(100vh - env(safe-area-inset-top, 44px) - env(safe-area-inset-bottom, 34px));
-    min-height: calc(100dvh - env(safe-area-inset-top, 44px) - env(safe-area-inset-bottom, 34px));
+    min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+
+  .h-screen-safe {
+    height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+
+  /* iOS safe area utilities */
+  .ios-header-height {
+    height: calc(4rem + env(safe-area-inset-top, 0px));
+  }
+
+  .ios-nav-height {
+    height: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .ios-content-height {
+    height: calc(100vh - 4rem - 5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - 4rem - 5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   }
 
   .h-screen-safe {

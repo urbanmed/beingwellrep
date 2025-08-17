@@ -1,8 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.beingwell',
-  appName: 'beingwell',
+  appId: 'com.beingwell.app',
+  appName: 'BeingWell',
   webDir: 'dist',
   plugins: {
     Geolocation: {
@@ -13,19 +13,21 @@ const config: CapacitorConfig = {
       vibrationIntensity: 'medium'
     },
     StatusBar: {
-      style: 'default',
+      style: 'light',
       backgroundColor: '#FFFFFF',
-      overlay: true
+      overlay: false
     }
   },
   ios: {
-    contentInset: 'automatic',
+    contentInset: 'never',
     allowsLinkPreview: false,
     backgroundColor: '#FFFFFF',
     overrideUserInterfaceStyle: 'light',
     preferredContentMode: 'mobile',
     scrollEnabled: true,
-    allowInlineMediaPlayback: true
+    allowInlineMediaPlayback: true,
+    webContentsDebuggingEnabled: true,
+    limitsNavigationsToAppBoundDomains: false
   },
   // Remove server config for native app deployment
   // server: {

@@ -25,7 +25,7 @@ export function MobileLayout({ children, authMode = false }: MobileLayoutProps) 
   return (
     <div className="h-screen bg-background flex flex-col">
       <Header />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto pt-safe">
         {children}
       </main>
       {!(["/vault", "/ai-assistant", "/profile"].includes(pathname)) && <FloatingUploadButton />}

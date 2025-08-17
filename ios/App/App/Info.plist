@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>beingwell</string>
+	<string>BeingWell</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -46,27 +46,45 @@
 	
 	<!-- Status Bar Configuration -->
 	<key>UIStatusBarStyle</key>
-	<string>UIStatusBarStyleDefault</string>
+	<string>UIStatusBarStyleLightContent</string>
 	<key>UIStatusBarHidden</key>
 	<false/>
-	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<true/>
 	
 	<!-- Safe Area and Layout Configuration -->
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
 	
 	<!-- Viewport and Display Configuration -->
 	<key>UIRequiresFullScreen</key>
 	<false/>
 	<key>UISupportsDocumentBrowser</key>
 	<false/>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UISceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
 	
 	<!-- iOS Specific Layout Configuration -->
 	<key>UIInterfaceOrientationMask</key>
 	<integer>2</integer>
 	<key>UIUserInterfaceStyle</key>
 	<string>Light</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchScreenBackground</string>
+		<key>UIImageName</key>
+		<string>LaunchScreen</string>
+	</dict>
 	
 	<!-- Location Permissions for Emergency SOS -->
 	<key>NSLocationWhenInUseUsageDescription</key>
@@ -88,11 +106,14 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app may use the microphone for voice notes and health data entry.</string>
 	
-	<!-- Haptic Feedback Support -->
-	<key>UIRequiredDeviceCapabilities</key>
+	<!-- Deployment Target -->
+	<key>MinimumOSVersion</key>
+	<string>13.0</string>
+	<key>DTPlatformName</key>
+	<string>iphoneos</string>
+	<key>CFBundleSupportedPlatforms</key>
 	<array>
-		<string>armv7</string>
-		<string>gamekit</string>
+		<string>iPhoneOS</string>
 	</array>
 </dict>
 </plist>
