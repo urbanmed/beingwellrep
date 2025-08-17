@@ -6,10 +6,22 @@ import { useLocation } from "react-router-dom";
 
 interface MobileLayoutProps {
   children: ReactNode;
+  authMode?: boolean;
 }
 
-export function MobileLayout({ children }: MobileLayoutProps) {
+export function MobileLayout({ children, authMode = false }: MobileLayoutProps) {
   const { pathname } = useLocation();
+  
+  if (authMode) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <main className="flex-1 flex items-center justify-center p-4">
+          {children}
+        </main>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />

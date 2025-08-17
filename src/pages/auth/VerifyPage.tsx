@@ -6,8 +6,7 @@ import { ArrowLeft, Phone } from 'lucide-react';
 
 export const VerifyPage: React.FC = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 p-4 pt-safe">
-      <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
             Email Verification Not Available
@@ -39,6 +38,5 @@ export const VerifyPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
   );
 };
