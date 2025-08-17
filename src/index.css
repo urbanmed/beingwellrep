@@ -152,19 +152,19 @@
   
   /* Medical App Typography System */
   .medical-title {
-    @apply font-bold text-lg text-foreground; /* 18px, bold - reduced from xl */
+    @apply font-bold text-xl text-foreground; /* 20-22px, bold */
   }
   
   .medical-title-sm {
-    @apply font-bold text-base text-foreground; /* 16px, bold - reduced from lg */
+    @apply font-bold text-lg text-foreground; /* 18px, bold - smaller title */
   }
   
   .medical-heading {
-    @apply font-medium text-base text-foreground; /* 16px, medium - reduced from lg */
+    @apply font-medium text-lg text-foreground; /* 16-18px, medium */
   }
   
   .medical-heading-sm {
-    @apply font-medium text-sm text-foreground; /* 14px, medium - reduced from base */
+    @apply font-medium text-base text-foreground; /* 16px, medium - smaller heading */
   }
   
   .medical-subheading {

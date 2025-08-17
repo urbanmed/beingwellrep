@@ -41,23 +41,23 @@ const PricingPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-4 space-y-6">
-        <div className="text-center medical-label">Loading pricing plans...</div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">Loading pricing plans...</div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 space-y-6">
-      <div className="text-center mb-8">
-        <h1 className="medical-title mb-4">Choose Your Health Plan</h1>
-        <p className="medical-label max-w-2xl mx-auto">
+    <div className="container mx-auto px-4 py-8">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold mb-4">Choose Your Health Plan</h1>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Start your health journey with our comprehensive medical record management system.
           All paid plans include a 14-day free trial.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
         {plans.map((plan) => {
           const isCurrentPlan = currentPlanId === plan.id;
           const isFree = plan.name === 'free';
@@ -66,7 +66,7 @@ const PricingPage: React.FC = () => {
           return (
             <Card 
               key={plan.id} 
-              className={`relative medical-card-shadow ${plan.name === 'premium' ? 'border-primary shadow-lg scale-105' : ''}`}
+              className={`relative ${plan.name === 'premium' ? 'border-primary shadow-lg scale-105' : ''}`}
             >
               {plan.name === 'premium' && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -79,17 +79,17 @@ const PricingPage: React.FC = () => {
               <CardHeader className="text-center">
                 <div className="flex items-center justify-center mb-2">
                   {getPlanIcon(plan.name)}
-                  <CardTitle className="ml-2 medical-label font-semibold">{plan.display_name}</CardTitle>
+                  <CardTitle className="ml-2">{plan.display_name}</CardTitle>
                 </div>
-                <CardDescription className="medical-annotation">{plan.description}</CardDescription>
+                <CardDescription>{plan.description}</CardDescription>
                 
-                 <div className="space-y-2">
-                   <div className="medical-heading font-bold">
-                     {isFree ? 'Free' : formatPrice(plan.price_monthly)}
-                     {!isFree && <span className="medical-annotation ml-1">/month</span>}
-                   </div>
+                <div className="space-y-2">
+                  <div className="text-3xl font-bold">
+                    {isFree ? 'Free' : formatPrice(plan.price_monthly)}
+                    {!isFree && <span className="text-sm font-normal text-muted-foreground">/month</span>}
+                  </div>
                   {!isFree && plan.price_yearly && (
-                    <div className="medical-annotation">
+                    <div className="text-sm text-muted-foreground">
                       or {formatPrice(plan.price_yearly)}/year 
                       <Badge variant="secondary" className="ml-2">Save 17%</Badge>
                     </div>
@@ -101,64 +101,64 @@ const PricingPage: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex items-center">
                     <Check className="h-4 w-4 text-primary mr-2" />
-                     <span className="medical-annotation">
-                       {features.documents_per_month === -1 
-                         ? 'Unlimited documents' 
-                         : `${features.documents_per_month} documents/month`
-                       }
-                     </span>
+                    <span className="text-sm">
+                      {features.documents_per_month === -1 
+                        ? 'Unlimited documents' 
+                        : `${features.documents_per_month} documents/month`
+                      }
+                    </span>
                   </div>
                   
                   <div className="flex items-center">
                     <Check className="h-4 w-4 text-primary mr-2" />
-                     <span className="medical-annotation">
-                       {features.ai_queries_per_month === -1 
-                         ? 'Unlimited AI queries' 
-                         : `${features.ai_queries_per_month} AI queries/month`
-                       }
-                     </span>
+                    <span className="text-sm">
+                      {features.ai_queries_per_month === -1 
+                        ? 'Unlimited AI queries' 
+                        : `${features.ai_queries_per_month} AI queries/month`
+                      }
+                    </span>
                   </div>
                   
                   <div className="flex items-center">
                     <Check className="h-4 w-4 text-primary mr-2" />
-                     <span className="medical-annotation">
-                       {features.storage_mb === -1 
-                         ? 'Unlimited storage' 
-                         : `${features.storage_mb}MB storage`
-                       }
-                     </span>
+                    <span className="text-sm">
+                      {features.storage_mb === -1 
+                        ? 'Unlimited storage' 
+                        : `${features.storage_mb}MB storage`
+                      }
+                    </span>
                   </div>
                   
                   <div className="flex items-center">
                     <Check className="h-4 w-4 text-primary mr-2" />
-                     <span className="medical-annotation">
-                       {features.family_members === -1 
-                         ? 'Unlimited family members' 
-                         : `${features.family_members} family members`
-                       }
-                     </span>
+                    <span className="text-sm">
+                      {features.family_members === -1 
+                        ? 'Unlimited family members' 
+                        : `${features.family_members} family members`
+                      }
+                    </span>
                   </div>
                   
                   {features.export_formats && (
                     <div className="flex items-center">
                       <Check className="h-4 w-4 text-primary mr-2" />
-                       <span className="medical-annotation">
-                         Export: {features.export_formats.join(', ').toUpperCase()}
-                       </span>
+                      <span className="text-sm">
+                        Export: {features.export_formats.join(', ').toUpperCase()}
+                      </span>
                     </div>
                   )}
                   
                   {features.priority_support && (
                     <div className="flex items-center">
                       <Check className="h-4 w-4 text-primary mr-2" />
-                      <span className="medical-annotation">Priority support</span>
+                      <span className="text-sm">Priority support</span>
                     </div>
                   )}
                   
                   {features.advanced_analytics && (
                     <div className="flex items-center">
                       <Check className="h-4 w-4 text-primary mr-2" />
-                      <span className="medical-annotation">Advanced analytics</span>
+                      <span className="text-sm">Advanced analytics</span>
                     </div>
                   )}
                 </div>
@@ -243,36 +243,36 @@ const PricingPage: React.FC = () => {
         })}
       </div>
 
-      <div className="mt-12">
-        <h2 className="medical-heading-sm text-center mb-6">Frequently Asked Questions</h2>
-        <div className="max-w-3xl mx-auto space-y-4">
+      <div className="mt-16">
+        <h2 className="text-2xl font-bold text-center mb-8">Frequently Asked Questions</h2>
+        <div className="max-w-3xl mx-auto space-y-6">
           <div>
-            <h3 className="medical-subheading mb-2">How does the free trial work?</h3>
-            <p className="medical-label">
+            <h3 className="font-semibold mb-2">How does the free trial work?</h3>
+            <p className="text-muted-foreground">
               All paid plans include a 14-day free trial. No credit card required to start. 
               You can cancel anytime during the trial period without being charged.
             </p>
           </div>
           
           <div>
-            <h3 className="medical-subheading mb-2">Can I change my plan later?</h3>
-            <p className="medical-label">
+            <h3 className="font-semibold mb-2">Can I change my plan later?</h3>
+            <p className="text-muted-foreground">
               Yes, you can upgrade or downgrade your plan at any time. 
               Changes will be reflected in your next billing cycle.
             </p>
           </div>
           
           <div>
-            <h3 className="medical-subheading mb-2">What payment methods do you accept?</h3>
-            <p className="medical-label">
+            <h3 className="font-semibold mb-2">What payment methods do you accept?</h3>
+            <p className="text-muted-foreground">
               We accept all major credit cards, debit cards, UPI, net banking, 
               and popular wallets through our secure Razorpay integration.
             </p>
           </div>
           
           <div>
-            <h3 className="medical-subheading mb-2">Is my data secure?</h3>
-            <p className="medical-label">
+            <h3 className="font-semibold mb-2">Is my data secure?</h3>
+            <p className="text-muted-foreground">
               Absolutely. We use enterprise-grade security with end-to-end encryption 
               and comply with healthcare data protection standards.
             </p>

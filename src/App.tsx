@@ -20,7 +20,6 @@ import Cards from "./pages/Cards";
 
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
-import { AccountSettings } from "./components/profile/AccountSettings";
 import Pricing from "./pages/Pricing";
 import Concierge from "./pages/Concierge";
 
@@ -116,9 +115,7 @@ const AppRoutes: FC = () => (
     } />
     <Route path="/vault/:id" element={
       <ProtectedRoute>
-        <MobileLayout>
-          <ReportDetail />
-        </MobileLayout>
+        <ReportDetail />
       </ProtectedRoute>
     } />
     <Route path="/profile" element={
@@ -130,16 +127,7 @@ const AppRoutes: FC = () => (
     } />
     <Route path="/profile/edit" element={
       <ProtectedRoute>
-        <MobileLayout>
-          <ProfileEdit />
-        </MobileLayout>
-      </ProtectedRoute>
-    } />
-    <Route path="/profile/settings" element={
-      <ProtectedRoute>
-        <MobileLayout>
-          <AccountSettings />
-        </MobileLayout>
+        <ProfileEdit />
       </ProtectedRoute>
     } />
     <Route path="/ai-assistant" element={
@@ -303,43 +291,17 @@ const AppRoutes: FC = () => (
     
     {/* Auth Routes */}
     <Route path="/auth" element={<AuthRedirect />} />
-    <Route path="/auth/login" element={
-      <MobileLayout authMode>
-        <LoginPage />
-      </MobileLayout>
-    } />
-    <Route path="/auth/signup" element={
-      <MobileLayout authMode>
-        <SignupPage />
-      </MobileLayout>
-    } />
+    <Route path="/auth/login" element={<LoginPage />} />
+    <Route path="/auth/signup" element={<SignupPage />} />
     <Route path="/auth/onboarding" element={
       <ProtectedRoute>
-        <MobileLayout>
-          <OnboardingPage />
-        </MobileLayout>
+        <OnboardingPage />
       </ProtectedRoute>
     } />
-    <Route path="/auth/forgot-password" element={
-      <MobileLayout authMode>
-        <ForgotPasswordPage />
-      </MobileLayout>
-    } />
-    <Route path="/auth/reset-password" element={
-      <MobileLayout authMode>
-        <ResetPasswordPage />
-      </MobileLayout>
-    } />
-    <Route path="/auth/verify" element={
-      <MobileLayout authMode>
-        <VerifyPage />
-      </MobileLayout>
-    } />
-    <Route path="/auth/phone-verify" element={
-      <MobileLayout authMode>
-        <PhoneVerifyPage />
-      </MobileLayout>
-    } />
+    <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+    <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+    <Route path="/auth/verify" element={<VerifyPage />} />
+      <Route path="/auth/phone-verify" element={<PhoneVerifyPage />} />
 
       {/* Public Routes */}
       <Route path="/pricing" element={

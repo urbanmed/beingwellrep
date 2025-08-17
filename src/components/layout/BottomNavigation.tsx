@@ -15,7 +15,7 @@ export function BottomNavigation() {
   const location = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border medical-card-shadow z-50" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}>
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border medical-card-shadow z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="relative flex items-center h-14 sm:h-16 px-3 sm:px-4">
         {/* Left side navigation items */}
         <div className="flex flex-1 justify-around">
@@ -33,7 +33,7 @@ export function BottomNavigation() {
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                 )}
               >
-                <Icon className="h-6 w-6 sm:h-7 sm:w-7 mb-0.5 sm:mb-1" />
+                <Icon className="h-5 w-5 sm:h-6 sm:w-6 mb-0.5 sm:mb-1" />
                 <span className="text-[10px] sm:text-xs font-medium truncate">{label}</span>
               </NavLink>
             );
@@ -53,7 +53,7 @@ export function BottomNavigation() {
             )}
           >
             <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-primary-foreground/20 to-transparent" />
-            <centerItem.icon className="h-7 w-7 sm:h-8 sm:w-8" />
+            <centerItem.icon className="h-6 w-6 sm:h-7 sm:w-7" />
           </NavLink>
         </div>
 
@@ -73,7 +73,7 @@ export function BottomNavigation() {
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                 )}
               >
-                <Icon className="h-6 w-6 sm:h-7 sm:w-7 mb-0.5 sm:mb-1" />
+                <Icon className="h-5 w-5 sm:h-6 sm:w-6 mb-0.5 sm:mb-1" />
                 <span className="text-[10px] sm:text-xs font-medium truncate">{label}</span>
               </NavLink>
             );
