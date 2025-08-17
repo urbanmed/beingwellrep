@@ -107,12 +107,13 @@
 		<string>https://localhost</string>
 	</array>
 	
-	<!-- iOS 15+ Specific Configuration -->
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
-	</dict>
+	<!-- Build and Version Configuration -->
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
 	
 	<!-- Location Permissions for Emergency SOS -->
 	<key>NSLocationWhenInUseUsageDescription</key>
