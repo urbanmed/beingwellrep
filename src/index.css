@@ -23,7 +23,7 @@
 @layer base {
   :root {
     /* Layout dimensions */
-    --header-height: 5rem;            /* Actual header height ~80px */
+    --header-height: 6rem;            /* Actual header height ~96px to account for both logo and greeting sections */
     --bottom-nav-height: 4rem;        /* Bottom navigation height */
 
     /* Primary Backgrounds */
