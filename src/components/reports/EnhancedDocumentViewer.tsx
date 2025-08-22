@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Eye, BarChart3 } from "lucide-react";
+import { FileText, Eye, BarChart3, Target } from "lucide-react";
 import { CustomStructuredDataViewer } from "./CustomStructuredDataViewer";
 import { SimpleDocumentViewer } from "./SimpleDocumentViewer";
+import { FHIRDataViewer } from "./FHIRDataViewer";
 
 interface EnhancedDocumentViewerProps {
   report: {
@@ -88,11 +89,16 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-12 p-1">
+        <TabsList className="grid w-full grid-cols-3 h-12 p-1">
           <TabsTrigger value="structured" className="flex items-center gap-2 text-sm font-medium h-10">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Extracted Data</span>
             <span className="sm:hidden">Data</span>
+          </TabsTrigger>
+          <TabsTrigger value="fhir" className="flex items-center gap-2 text-sm font-medium h-10">
+            <Target className="h-4 w-4" />
+            <span className="hidden sm:inline">FHIR Data</span>
+            <span className="sm:hidden">FHIR</span>
           </TabsTrigger>
           <TabsTrigger value="original" className="flex items-center gap-2 text-sm font-medium h-10">
             <Eye className="h-4 w-4" />
@@ -120,6 +126,10 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="fhir" className="mt-6">
+          <FHIRDataViewer reportId={report.id} reportTitle={report.title} />
         </TabsContent>
 
         <TabsContent value="original" className="mt-6">
