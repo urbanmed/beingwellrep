@@ -511,6 +511,28 @@ export function convertVitalsToFHIRObservations(
       }
     }
 
+    // Add interpretation based on status (if available)
+    // Note: status may not be available on all vital types
+    if ('status' in vital && vital.status) {
+      const interpretationMap: Record<string, { code: string; display: string }> = {
+        'normal': { code: 'N', display: 'Normal' },
+        'high': { code: 'H', display: 'High' },
+        'low': { code: 'L', display: 'Low' },
+        'critical': { code: 'HH', display: 'Critical high' }
+      };
+
+      const interpretation = interpretationMap[(vital as any).status];
+      if (interpretation) {
+        observation.interpretation = [{
+          coding: [{
+            system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation',
+            code: interpretation.code,
+            display: interpretation.display
+          }]
+        }];
+      }
+    }
+
     // Add notes
     if (vital.notes) {
       observation.note = [{
@@ -530,7 +552,7 @@ export function convertGeneralDataToFHIRDiagnosticReport(
   patientReference: string,
   reportId?: string
 ): FHIRDiagnosticReport {
-  const diagnosticReportId = generateFHIRId('general-report-');
+  const diagnosticReportId = generateFHIRId('diag-report-');
   
   const diagnosticReport: FHIRDiagnosticReport = {
     resourceType: 'DiagnosticReport',
@@ -541,7 +563,7 @@ export function convertGeneralDataToFHIRDiagnosticReport(
     },
     identifier: reportId ? [
       {
-        system: 'http://beingwell.app/general-report-id',
+        system: 'http://beingwell.app/diagnostic-report-id',
         value: reportId
       }
     ] : undefined,
@@ -549,12 +571,12 @@ export function convertGeneralDataToFHIRDiagnosticReport(
     category: [{
       coding: [{
         system: 'http://terminology.hl7.org/CodeSystem/v2-0074',
-        code: 'GEN',
+        code: 'GE',
         display: 'General'
       }]
     }],
     code: {
-      text: 'General Medical Report'
+      text: 'General Medical Document'
     },
     subject: {
       reference: `Patient/${patientReference}`
@@ -564,6 +586,8 @@ export function convertGeneralDataToFHIRDiagnosticReport(
   // Add effective date
   if (generalData.visitDate) {
     diagnosticReport.effectiveDateTime = generalData.visitDate;
+  } else if (generalData.reportDate) {
+    diagnosticReport.effectiveDateTime = generalData.reportDate;
   }
 
   // Add issued date
@@ -571,7 +595,7 @@ export function convertGeneralDataToFHIRDiagnosticReport(
     diagnosticReport.issued = generalData.reportDate;
   }
 
-  // Add performer
+  // Add performer (provider/facility)
   if (generalData.provider || generalData.facility) {
     diagnosticReport.performer = [];
     if (generalData.provider) {
@@ -586,18 +610,162 @@ export function convertGeneralDataToFHIRDiagnosticReport(
     }
   }
 
-  // Add conclusion from sections
+  // Add sections as conclusion
   if (generalData.sections && generalData.sections.length > 0) {
-    const conclusionText = generalData.sections
+    const sectionText = generalData.sections
       .map(section => `${section.title}: ${section.content}`)
       .join('\n\n');
-    diagnosticReport.conclusion = conclusionText;
+    diagnosticReport.conclusion = sectionText;
   }
 
   return diagnosticReport;
 }
 
-// Main converter function
+// Create FHIR Encounter from doctor note or consultation data
+export function convertConsultationToFHIREncounter(
+  consultationData: any,
+  patientReference: string,
+  sourceNoteId?: string
+): FHIREncounter {
+  const encounterId = generateFHIRId('encounter-');
+  
+  const encounter: FHIREncounter = {
+    resourceType: 'Encounter',
+    id: encounterId,
+    meta: {
+      lastUpdated: new Date().toISOString(),
+      profile: ['http://hl7.org/fhir/StructureDefinition/Encounter']
+    },
+    identifier: sourceNoteId ? [
+      {
+        system: 'http://beingwell.app/encounter-id',
+        value: sourceNoteId
+      }
+    ] : undefined,
+    status: 'finished',
+    class: {
+      system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode',
+      code: 'AMB',
+      display: 'ambulatory'
+    },
+    type: [{
+      coding: [{
+        system: 'http://snomed.info/sct',
+        code: '185349003',
+        display: 'Encounter for check up (procedure)'
+      }]
+    }],
+    subject: {
+      reference: `Patient/${patientReference}`
+    }
+  };
+
+  // Add period
+  if (consultationData.visitDate || consultationData.noteDate) {
+    const date = consultationData.visitDate || consultationData.noteDate;
+    encounter.period = {
+      start: date,
+      end: date
+    };
+  }
+
+  // Add participant (physician)
+  if (consultationData.physicianName || consultationData.provider) {
+    encounter.participant = [{
+      individual: {
+        display: consultationData.physicianName || consultationData.provider
+      }
+    }];
+  }
+
+  // Remove location property as it's not in the FHIR type - using serviceProvider instead
+  // Add service provider (facility) if available
+  if (consultationData.facilityName || consultationData.facility) {
+    encounter.serviceProvider = {
+      display: consultationData.facilityName || consultationData.facility
+    };
+  }
+
+  // Add reason for visit if available
+  if (consultationData.reasonForVisit || consultationData.chiefComplaint) {
+    encounter.reasonCode = [{
+      text: consultationData.reasonForVisit || consultationData.chiefComplaint
+    }];
+  }
+
+  return encounter;
+}
+
+// Create FHIR CarePlan from recommendation or care plan data
+export function convertRecommendationsToFHIRCarePlan(
+  recommendationsData: any,
+  patientReference: string
+): FHIRCarePlan {
+  const carePlanId = generateFHIRId('care-plan-');
+  
+  const carePlan: FHIRCarePlan = {
+    resourceType: 'CarePlan',
+    id: carePlanId,
+    meta: {
+      lastUpdated: new Date().toISOString(),
+      profile: ['http://hl7.org/fhir/StructureDefinition/CarePlan']
+    },
+    status: 'active',
+    intent: 'plan',
+    title: recommendationsData.title || 'Health Care Plan',
+    description: recommendationsData.description || 'Generated care plan based on medical data',
+    subject: {
+      reference: `Patient/${patientReference}`
+    }
+  };
+
+  // Add period (default to 3 months from now)
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setMonth(endDate.getMonth() + 3);
+  
+  carePlan.period = {
+    start: startDate.toISOString(),
+    end: endDate.toISOString()
+  };
+
+  // Add activities from recommendations
+  if (recommendationsData.recommendations && Array.isArray(recommendationsData.recommendations)) {
+    carePlan.activity = recommendationsData.recommendations.map((rec: any, index: number) => ({
+      detail: {
+        kind: 'ServiceRequest',
+        code: {
+          text: rec.title || rec.description || `Recommendation ${index + 1}`
+        },
+        status: 'scheduled',
+        description: rec.description || rec.details
+      }
+    }));
+  } else if (recommendationsData.activities && Array.isArray(recommendationsData.activities)) {
+    carePlan.activity = recommendationsData.activities.map((activity: any) => ({
+      detail: {
+        kind: activity.kind || 'ServiceRequest',
+        code: {
+          text: activity.title || activity.name || 'Care Activity'
+        },
+        status: activity.status || 'scheduled',
+        description: activity.description
+      }
+    }));
+  }
+
+  // Add goals if available
+  if (recommendationsData.goals && Array.isArray(recommendationsData.goals)) {
+    carePlan.goal = recommendationsData.goals.map((goal: any) => ({
+      reference: `Goal/${generateFHIRId('goal-')}`,
+      display: goal.description || goal.title
+    }));
+  }
+
+  return carePlan;
+}
+
+// Main conversion orchestrator function
 export function convertParsedMedicalDataToFHIR(
   data: ParsedMedicalData,
   patientReference: string,
@@ -606,34 +774,105 @@ export function convertParsedMedicalDataToFHIR(
   observations?: FHIRObservation[];
   medicationRequests?: FHIRMedicationRequest[];
   diagnosticReports?: FHIRDiagnosticReport[];
+  encounters?: FHIREncounter[];
+  carePlans?: FHIRCarePlan[];
 } {
-  const result: {
-    observations?: FHIRObservation[];
-    medicationRequests?: FHIRMedicationRequest[];
-    diagnosticReports?: FHIRDiagnosticReport[];
-  } = {};
+  const result: any = {};
 
-  switch (data.reportType) {
-    case 'lab':
-      result.observations = convertLabResultsToFHIRObservations(data as LabResultData, patientReference, reportId);
-      break;
-      
-    case 'prescription':
-      result.medicationRequests = convertPrescriptionToFHIRMedicationRequest(data as PrescriptionData, patientReference, reportId);
-      break;
-      
-    case 'radiology':
-      result.diagnosticReports = [convertRadiologyToFHIRDiagnosticReport(data as RadiologyData, patientReference, reportId)];
-      break;
-      
-    case 'vitals':
-      result.observations = convertVitalsToFHIRObservations(data as VitalSignsData, patientReference, reportId);
-      break;
-      
-    case 'general':
-      result.diagnosticReports = [convertGeneralDataToFHIRDiagnosticReport(data as GeneralMedicalData, patientReference, reportId)];
-      break;
+  console.log('Converting parsed medical data to FHIR, report type:', data.reportType);
+
+  // Note: Working with ParsedMedicalData as 'any' for now to handle union types
+  const parsedData = data as any;
+
+  try {
+    switch (parsedData.reportType?.toLowerCase()) {
+      case 'lab':
+      case 'lab_results':
+        if (parsedData.tests) {
+          result.observations = convertLabResultsToFHIRObservations(
+            parsedData as LabResultData,
+            patientReference,
+            reportId
+          );
+        }
+        break;
+
+      case 'prescription':
+      case 'pharmacy':
+        if (parsedData.medications) {
+          result.medicationRequests = convertPrescriptionToFHIRMedicationRequest(
+            parsedData as PrescriptionData,
+            patientReference,
+            reportId
+          );
+        }
+        break;
+
+      case 'radiology':
+      case 'imaging':
+        if (parsedData.study) {
+          result.diagnosticReports = [convertRadiologyToFHIRDiagnosticReport(
+            parsedData as RadiologyData,
+            patientReference,
+            reportId
+          )];
+        }
+        break;
+
+      case 'vitals':
+      case 'vital_signs':
+        if (parsedData.vitals) {
+          result.observations = convertVitalsToFHIRObservations(
+            parsedData as VitalSignsData,
+            patientReference,
+            reportId
+          );
+        }
+        break;
+
+      case 'consultation':
+      case 'doctor_note':
+        if (parsedData.content || parsedData.notes) {
+          result.encounters = [convertConsultationToFHIREncounter(
+            parsedData,
+            patientReference,
+            reportId
+          )];
+        }
+        break;
+
+      default:
+        // For general medical documents
+        if (parsedData.sections || parsedData.content) {
+          result.diagnosticReports = [convertGeneralDataToFHIRDiagnosticReport(
+            parsedData as GeneralMedicalData,
+            patientReference,
+            reportId
+          )];
+        }
+        break;
+    }
+
+    // Add care plan if recommendations are available  
+    if (parsedData.recommendations && Array.isArray(parsedData.recommendations) && parsedData.recommendations.length > 0) {
+      result.carePlans = [convertRecommendationsToFHIRCarePlan(
+        { recommendations: parsedData.recommendations },
+        patientReference
+      )];
+    }
+
+    console.log('FHIR conversion completed:', {
+      observations: result.observations?.length || 0,
+      medicationRequests: result.medicationRequests?.length || 0,
+      diagnosticReports: result.diagnosticReports?.length || 0,
+      encounters: result.encounters?.length || 0,
+      carePlans: result.carePlans?.length || 0
+    });
+
+    return result;
+
+  } catch (error) {
+    console.error('Error converting parsed medical data to FHIR:', error);
+    return {};
   }
-
-  return result;
 }

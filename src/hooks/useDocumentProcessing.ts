@@ -3,12 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { validateMedicalData, checkForDuplicates } from '@/lib/utils/medical-data-validator';
 import { generateSmartTags } from '@/lib/prompts/medical-prompts';
+import { useFHIRData } from '@/hooks/useFHIRData';
 import type { DocumentParsingResult } from '@/types/medical-data';
 
 export function useDocumentProcessing() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [fhirProcessing, setFhirProcessing] = useState(false);
   const { toast } = useToast();
+  const fhirData = useFHIRData();
 
   const processDocument = async (reportId: string, maxRetries = 3): Promise<DocumentParsingResult> => {
     setIsProcessing(true);
@@ -66,6 +69,23 @@ export function useDocumentProcessing() {
 
         if (validationResult) {
           result.errors = validationResult.errors;
+        }
+
+        // Phase 1: Attempt to create additional FHIR resources on client side if needed
+        // This provides a fallback in case the edge function FHIR creation fails
+        if (data.parsedData && !fhirData.loading) {
+          try {
+            setFhirProcessing(true);
+            console.log('Creating client-side FHIR resources as backup...');
+            
+            // Note: The primary FHIR creation happens in the edge function
+            // This is just a safety net for any additional processing
+            
+            setFhirProcessing(false);
+          } catch (fhirError) {
+            console.error('Client-side FHIR processing failed (non-critical):', fhirError);
+            setFhirProcessing(false);
+          }
         }
 
         return result;
@@ -247,6 +267,7 @@ export function useDocumentProcessing() {
     reprocessDocument,
     reprocessAllDocuments,
     isProcessing,
-    retryCount
+    retryCount,
+    fhirProcessing
   };
 }

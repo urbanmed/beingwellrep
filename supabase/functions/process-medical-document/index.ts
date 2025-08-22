@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { extractText } from 'https://esm.sh/unpdf@0.11.0'
 
+// FHIR converter imports (note: these would need to be available as Deno modules)
+// For now we'll implement basic conversion logic directly
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -875,6 +878,569 @@ const isPDFFile = (fileType: string): boolean => {
   return fileType === 'application/pdf';
 };
 
+// FHIR ID generation function
+const generateFHIRId = (prefix: string = ''): string => {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8);
+  return `${prefix}${timestamp}-${random}`;
+};
+
+// Create FHIR resources from parsed medical data
+const createFHIRResourcesFromParsedData = async (
+  supabaseClient: any,
+  parsedData: any,
+  report: any,
+  reportId: string
+): Promise<void> => {
+  if (!parsedData || !report.user_id) {
+    console.log('Skipping FHIR creation: Missing parsed data or user ID');
+    return;
+  }
+
+  console.log('Creating FHIR resources for report type:', parsedData.reportType);
+
+  // 1. Ensure FHIR Patient exists
+  const patientFhirId = await ensureFHIRPatient(supabaseClient, report.user_id);
+
+  // 2. Create appropriate FHIR resources based on report type
+  switch (parsedData.reportType?.toLowerCase()) {
+    case 'lab':
+    case 'lab_results':
+      await createFHIRObservationsFromLab(supabaseClient, parsedData, patientFhirId, reportId);
+      break;
+
+    case 'prescription':
+    case 'pharmacy':
+      await createFHIRMedicationRequestsFromPrescription(supabaseClient, parsedData, patientFhirId, reportId);
+      break;
+
+    case 'vitals':
+    case 'vital_signs':
+      await createFHIRObservationsFromVitals(supabaseClient, parsedData, patientFhirId, reportId);
+      break;
+
+    case 'radiology':
+    case 'imaging':
+      await createFHIRDiagnosticReportFromRadiology(supabaseClient, parsedData, patientFhirId, reportId);
+      break;
+
+    default:
+      // For general medical documents, create a basic DiagnosticReport
+      await createFHIRDiagnosticReportFromGeneral(supabaseClient, parsedData, patientFhirId, reportId);
+      break;
+  }
+};
+
+// Ensure FHIR Patient exists, create if necessary
+const ensureFHIRPatient = async (supabaseClient: any, userId: string): Promise<string> => {
+  // Check if patient already exists
+  const { data: existingPatient } = await supabaseClient
+    .from('fhir_patients')
+    .select('fhir_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (existingPatient) {
+    return existingPatient.fhir_id;
+  }
+
+  // Get user profile for patient data
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  const patientFhirId = generateFHIRId('patient-');
+  
+  // Create basic FHIR Patient resource
+  const fhirPatient = {
+    resourceType: 'Patient',
+    id: patientFhirId,
+    meta: {
+      lastUpdated: new Date().toISOString(),
+      profile: ['http://hl7.org/fhir/StructureDefinition/Patient']
+    },
+    identifier: [
+      {
+        use: 'official',
+        system: 'http://beingwell.app/patient-id',
+        value: userId
+      }
+    ],
+    active: true
+  };
+
+  // Add profile data if available
+  if (profile) {
+    if (profile.first_name || profile.last_name) {
+      fhirPatient.name = [{
+        use: 'official',
+        family: profile.last_name || '',
+        given: profile.first_name ? [profile.first_name] : []
+      }];
+    }
+
+    if (profile.gender) {
+      fhirPatient.gender = profile.gender.toLowerCase();
+    }
+
+    if (profile.date_of_birth) {
+      fhirPatient.birthDate = profile.date_of_birth;
+    }
+
+    if (profile.phone_number) {
+      fhirPatient.telecom = [{
+        system: 'phone',
+        value: profile.phone_number,
+        use: 'mobile'
+      }];
+    }
+
+    if (profile.abha_id) {
+      fhirPatient.identifier.push({
+        use: 'official',
+        system: 'https://healthid.abdm.gov.in',
+        value: profile.abha_id
+      });
+    }
+  }
+
+  // Insert FHIR Patient into database
+  const { error } = await supabaseClient
+    .from('fhir_patients')
+    .insert({
+      user_id: userId,
+      fhir_id: patientFhirId,
+      resource_data: fhirPatient
+    });
+
+  if (error) {
+    throw new Error(`Failed to create FHIR Patient: ${error.message}`);
+  }
+
+  console.log('Created FHIR Patient:', patientFhirId);
+  return patientFhirId;
+};
+
+// Create FHIR Observations from lab test data
+const createFHIRObservationsFromLab = async (
+  supabaseClient: any,
+  parsedData: any,
+  patientFhirId: string,
+  reportId: string
+): Promise<void> => {
+  if (!parsedData.tests || !Array.isArray(parsedData.tests)) {
+    console.log('No tests found in lab data');
+    return;
+  }
+
+  for (let i = 0; i < parsedData.tests.length; i++) {
+    const test = parsedData.tests[i];
+    const observationId = generateFHIRId('obs-');
+
+    const fhirObservation = {
+      resourceType: 'Observation',
+      id: observationId,
+      meta: {
+        lastUpdated: new Date().toISOString(),
+        profile: ['http://hl7.org/fhir/StructureDefinition/Observation']
+      },
+      status: 'final',
+      category: [{
+        coding: [{
+          system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+          code: 'laboratory',
+          display: 'Laboratory'
+        }]
+      }],
+      code: {
+        text: test.name || 'Unknown Test'
+      },
+      subject: {
+        reference: `Patient/${patientFhirId}`
+      },
+      effectiveDateTime: parsedData.collectionDate || parsedData.reportDate || new Date().toISOString()
+    };
+
+    // Add value
+    if (test.value) {
+      if (test.unit && !isNaN(parseFloat(test.value))) {
+        fhirObservation.valueQuantity = {
+          value: parseFloat(test.value),
+          unit: test.unit,
+          system: 'http://unitsofmeasure.org'
+        };
+      } else {
+        fhirObservation.valueString = test.value;
+      }
+    }
+
+    // Add reference range
+    if (test.referenceRange) {
+      fhirObservation.referenceRange = [{
+        text: test.referenceRange
+      }];
+    }
+
+    // Add interpretation based on status
+    if (test.status) {
+      const interpretationMap = {
+        'normal': { code: 'N', display: 'Normal' },
+        'high': { code: 'H', display: 'High' },
+        'low': { code: 'L', display: 'Low' },
+        'critical': { code: 'HH', display: 'Critical high' }
+      };
+
+      const interpretation = interpretationMap[test.status];
+      if (interpretation) {
+        fhirObservation.interpretation = [{
+          coding: [{
+            system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation',
+            code: interpretation.code,
+            display: interpretation.display
+          }]
+        }];
+      }
+    }
+
+    // Insert into database
+    const { error } = await supabaseClient
+      .from('fhir_observations')
+      .insert({
+        user_id: (await getUserIdFromReport(supabaseClient, reportId)),
+        fhir_id: observationId,
+        patient_fhir_id: patientFhirId,
+        source_report_id: reportId,
+        observation_type: 'lab_result',
+        resource_data: fhirObservation,
+        effective_date_time: fhirObservation.effectiveDateTime,
+        status: 'final'
+      });
+
+    if (error) {
+      console.error('Failed to create FHIR Observation:', error);
+    } else {
+      console.log('Created FHIR Observation:', observationId);
+    }
+  }
+};
+
+// Create FHIR MedicationRequests from prescription data
+const createFHIRMedicationRequestsFromPrescription = async (
+  supabaseClient: any,
+  parsedData: any,
+  patientFhirId: string,
+  reportId: string
+): Promise<void> => {
+  if (!parsedData.medications || !Array.isArray(parsedData.medications)) {
+    console.log('No medications found in prescription data');
+    return;
+  }
+
+  for (let i = 0; i < parsedData.medications.length; i++) {
+    const med = parsedData.medications[i];
+    const medicationRequestId = generateFHIRId('med-req-');
+
+    const fhirMedicationRequest = {
+      resourceType: 'MedicationRequest',
+      id: medicationRequestId,
+      meta: {
+        lastUpdated: new Date().toISOString(),
+        profile: ['http://hl7.org/fhir/StructureDefinition/MedicationRequest']
+      },
+      status: 'active',
+      intent: 'order',
+      medicationCodeableConcept: {
+        text: med.name || 'Unknown Medication'
+      },
+      subject: {
+        reference: `Patient/${patientFhirId}`
+      },
+      authoredOn: parsedData.prescriptionDate || new Date().toISOString()
+    };
+
+    // Add prescriber
+    if (parsedData.prescriber) {
+      fhirMedicationRequest.requester = {
+        display: parsedData.prescriber
+      };
+    }
+
+    // Add dosage instructions
+    if (med.dosage || med.frequency || med.duration || med.instructions) {
+      fhirMedicationRequest.dosageInstruction = [{
+        text: [med.dosage, med.frequency, med.duration, med.instructions]
+          .filter(Boolean)
+          .join(' - ')
+      }];
+    }
+
+    // Insert into database
+    const { error } = await supabaseClient
+      .from('fhir_medication_requests')
+      .insert({
+        user_id: (await getUserIdFromReport(supabaseClient, reportId)),
+        fhir_id: medicationRequestId,
+        patient_fhir_id: patientFhirId,
+        source_report_id: reportId,
+        medication_name: med.name || 'Unknown Medication',
+        resource_data: fhirMedicationRequest,
+        authored_on: fhirMedicationRequest.authoredOn,
+        status: 'active',
+        intent: 'order'
+      });
+
+    if (error) {
+      console.error('Failed to create FHIR MedicationRequest:', error);
+    } else {
+      console.log('Created FHIR MedicationRequest:', medicationRequestId);
+    }
+  }
+};
+
+// Create FHIR Observations from vital signs
+const createFHIRObservationsFromVitals = async (
+  supabaseClient: any,
+  parsedData: any,
+  patientFhirId: string,
+  reportId: string
+): Promise<void> => {
+  if (!parsedData.vitals || !Array.isArray(parsedData.vitals)) {
+    console.log('No vitals found in data');
+    return;
+  }
+
+  for (let i = 0; i < parsedData.vitals.length; i++) {
+    const vital = parsedData.vitals[i];
+    const observationId = generateFHIRId('vital-obs-');
+
+    const fhirObservation = {
+      resourceType: 'Observation',
+      id: observationId,
+      meta: {
+        lastUpdated: new Date().toISOString(),
+        profile: ['http://hl7.org/fhir/StructureDefinition/Observation']
+      },
+      status: 'final',
+      category: [{
+        coding: [{
+          system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+          code: 'vital-signs',
+          display: 'Vital Signs'
+        }]
+      }],
+      code: {
+        text: vital.type?.replace('_', ' ') || 'Vital Sign'
+      },
+      subject: {
+        reference: `Patient/${patientFhirId}`
+      },
+      effectiveDateTime: vital.timestamp || parsedData.recordDate || new Date().toISOString()
+    };
+
+    // Map vital types to LOINC codes
+    const vitalTypeMap = {
+      'heart_rate': { code: '8867-4', display: 'Heart rate', unit: '/min' },
+      'blood_pressure': { code: '85354-9', display: 'Blood pressure panel' },
+      'temperature': { code: '8310-5', display: 'Body temperature', unit: 'Cel' },
+      'respiratory_rate': { code: '9279-1', display: 'Respiratory rate', unit: '/min' },
+      'oxygen_saturation': { code: '2708-6', display: 'Oxygen saturation', unit: '%' }
+    };
+
+    const vitalMapping = vitalTypeMap[vital.type];
+    if (vitalMapping) {
+      fhirObservation.code = {
+        coding: [{
+          system: 'http://loinc.org',
+          code: vitalMapping.code,
+          display: vitalMapping.display
+        }]
+      };
+    }
+
+    // Add value
+    if (vital.value) {
+      const numericValue = parseFloat(vital.value);
+      if (!isNaN(numericValue)) {
+        fhirObservation.valueQuantity = {
+          value: numericValue,
+          unit: vital.unit || vitalMapping?.unit || '',
+          system: 'http://unitsofmeasure.org'
+        };
+      } else {
+        fhirObservation.valueString = vital.value;
+      }
+    }
+
+    // Insert into database
+    const { error } = await supabaseClient
+      .from('fhir_observations')
+      .insert({
+        user_id: (await getUserIdFromReport(supabaseClient, reportId)),
+        fhir_id: observationId,
+        patient_fhir_id: patientFhirId,
+        source_report_id: reportId,
+        observation_type: 'vital_signs',
+        resource_data: fhirObservation,
+        effective_date_time: fhirObservation.effectiveDateTime,
+        status: 'final'
+      });
+
+    if (error) {
+      console.error('Failed to create FHIR Vital Observation:', error);
+    } else {
+      console.log('Created FHIR Vital Observation:', observationId);
+    }
+  }
+};
+
+// Create FHIR DiagnosticReport for general documents
+const createFHIRDiagnosticReportFromGeneral = async (
+  supabaseClient: any,
+  parsedData: any,
+  patientFhirId: string,
+  reportId: string
+): Promise<void> => {
+  const diagnosticReportId = generateFHIRId('diag-report-');
+
+  const fhirDiagnosticReport = {
+    resourceType: 'DiagnosticReport',
+    id: diagnosticReportId,
+    meta: {
+      lastUpdated: new Date().toISOString(),
+      profile: ['http://hl7.org/fhir/StructureDefinition/DiagnosticReport']
+    },
+    status: 'final',
+    category: [{
+      coding: [{
+        system: 'http://terminology.hl7.org/CodeSystem/v2-0074',
+        code: 'GE',
+        display: 'Genetics'
+      }]
+    }],
+    code: {
+      text: parsedData.reportType || 'General Medical Document'
+    },
+    subject: {
+      reference: `Patient/${patientFhirId}`
+    },
+    effectiveDateTime: parsedData.reportDate || parsedData.visitDate || new Date().toISOString()
+  };
+
+  // Add performer if available
+  if (parsedData.provider || parsedData.facility) {
+    fhirDiagnosticReport.performer = [];
+    if (parsedData.provider) {
+      fhirDiagnosticReport.performer.push({ display: parsedData.provider });
+    }
+    if (parsedData.facility) {
+      fhirDiagnosticReport.performer.push({ display: parsedData.facility });
+    }
+  }
+
+  // Insert into database
+  const { error } = await supabaseClient
+    .from('fhir_diagnostic_reports')
+    .insert({
+      user_id: (await getUserIdFromReport(supabaseClient, reportId)),
+      fhir_id: diagnosticReportId,
+      patient_fhir_id: patientFhirId,
+      source_report_id: reportId,
+      report_type: parsedData.reportType || 'general',
+      resource_data: fhirDiagnosticReport,
+      effective_date_time: fhirDiagnosticReport.effectiveDateTime,
+      status: 'final'
+    });
+
+  if (error) {
+    console.error('Failed to create FHIR DiagnosticReport:', error);
+  } else {
+    console.log('Created FHIR DiagnosticReport:', diagnosticReportId);
+  }
+};
+
+// Create FHIR DiagnosticReport from radiology data
+const createFHIRDiagnosticReportFromRadiology = async (
+  supabaseClient: any,
+  parsedData: any,
+  patientFhirId: string,
+  reportId: string
+): Promise<void> => {
+  const diagnosticReportId = generateFHIRId('diag-report-');
+
+  const fhirDiagnosticReport = {
+    resourceType: 'DiagnosticReport',
+    id: diagnosticReportId,
+    meta: {
+      lastUpdated: new Date().toISOString(),
+      profile: ['http://hl7.org/fhir/StructureDefinition/DiagnosticReport']
+    },
+    status: 'final',
+    category: [{
+      coding: [{
+        system: 'http://terminology.hl7.org/CodeSystem/v2-0074',
+        code: 'RAD',
+        display: 'Radiology'
+      }]
+    }],
+    code: {
+      text: parsedData.study?.type || 'Radiology Report'
+    },
+    subject: {
+      reference: `Patient/${patientFhirId}`
+    },
+    effectiveDateTime: parsedData.studyDate || parsedData.reportDate || new Date().toISOString()
+  };
+
+  // Add performer
+  if (parsedData.radiologist || parsedData.facility) {
+    fhirDiagnosticReport.performer = [];
+    if (parsedData.radiologist) {
+      fhirDiagnosticReport.performer.push({ display: parsedData.radiologist });
+    }
+    if (parsedData.facility) {
+      fhirDiagnosticReport.performer.push({ display: parsedData.facility });
+    }
+  }
+
+  // Add conclusion
+  if (parsedData.impression) {
+    fhirDiagnosticReport.conclusion = parsedData.impression;
+  }
+
+  // Insert into database
+  const { error } = await supabaseClient
+    .from('fhir_diagnostic_reports')
+    .insert({
+      user_id: (await getUserIdFromReport(supabaseClient, reportId)),
+      fhir_id: diagnosticReportId,
+      patient_fhir_id: patientFhirId,
+      source_report_id: reportId,
+      report_type: 'radiology',
+      resource_data: fhirDiagnosticReport,
+      effective_date_time: fhirDiagnosticReport.effectiveDateTime,
+      status: 'final'
+    });
+
+  if (error) {
+    console.error('Failed to create FHIR Radiology DiagnosticReport:', error);
+  } else {
+    console.log('Created FHIR Radiology DiagnosticReport:', diagnosticReportId);
+  }
+};
+
+// Helper function to get user ID from report
+const getUserIdFromReport = async (supabaseClient: any, reportId: string): Promise<string> => {
+  const { data: report } = await supabaseClient
+    .from('reports')
+    .select('user_id')
+    .eq('id', reportId)
+    .single();
+  
+  return report?.user_id;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -1101,6 +1667,21 @@ serve(async (req) => {
     }
 
     console.log('Document processing completed successfully')
+    
+    // Phase 1: Create FHIR resources after successful parsing
+    try {
+      await createFHIRResourcesFromParsedData(
+        supabaseClient, 
+        parsedData, 
+        report, 
+        reportId
+      );
+      console.log('FHIR resources created successfully');
+    } catch (fhirError) {
+      // Log FHIR creation error but don't fail the entire processing
+      console.error('FHIR resource creation failed (non-critical):', fhirError);
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
