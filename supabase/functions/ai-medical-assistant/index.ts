@@ -19,6 +19,14 @@ interface ContextDocument {
   confidence: number;
 }
 
+interface FHIRContextData {
+  observations: any[];
+  medications: any[];
+  diagnosticReports: any[];
+  encounters: any[];
+  carePlans: any[];
+}
+
 interface ChatRequest {
   message: string;
   conversation_id: string;
@@ -76,13 +84,14 @@ serve(async (req) => {
 
     console.log(`Processing message from user ${user.id}: ${message}`);
 
-    // Retrieve relevant medical documents using vector similarity or keyword search
+    // Retrieve relevant medical documents and FHIR data
     const contextDocuments = await findRelevantDocuments(supabase, user.id, message);
+    const fhirData = await findRelevantFHIRData(supabase, user.id, message);
     
-    console.log(`Found ${contextDocuments.length} relevant documents`);
+    console.log(`Found ${contextDocuments.length} relevant documents and FHIR data: ${fhirData.observations.length} observations, ${fhirData.medications.length} medications`);
 
-    // Prepare context for AI with enhanced content extraction
-    const contextText = contextDocuments
+    // Prepare enhanced context combining documents and FHIR data
+    const documentContext = contextDocuments
       .map(doc => {
         // Prioritize parsed_data over raw extracted_text for better analysis
         let content = '';
@@ -103,31 +112,45 @@ Physician: ${doc.physician_name || 'N/A'}`;
       })
       .join('\n\n---\n\n');
 
-    // Create enhanced system prompt for comprehensive analysis
-    const systemPrompt = `You are a helpful AI medical assistant specialized in analyzing medical documents, particularly blood test reports and lab results. You have access to the user's medical documents and can provide comprehensive insights based on their health records.
+    // Format FHIR data for AI context
+    const fhirContext = formatFHIRContext(fhirData);
+    
+    // Combine all context
+    const contextText = [documentContext, fhirContext].filter(Boolean).join('\n\n=== STRUCTURED FHIR DATA ===\n\n');
+
+    // Create enhanced FHIR-aware system prompt for comprehensive analysis
+    const systemPrompt = `You are an advanced AI medical assistant with access to both raw medical documents and structured FHIR (Fast Healthcare Interoperability Resources) data. You can analyze longitudinal health trends, correlate medications with lab results, and provide comprehensive insights based on standardized medical data.
+
+ENHANCED CAPABILITIES WITH FHIR DATA:
+- Analyze trends over time using structured FHIR Observations (lab values, vital signs)
+- Correlate medications (FHIR MedicationRequests) with clinical outcomes
+- Track care plan progress and health goals (FHIR CarePlans)
+- Compare current results to historical patterns using structured data
+- Identify medication adherence patterns and potential interactions
+- Provide longitudinal analysis of health trajectories
 
 IMPORTANT GUIDELINES:
-- Always base your responses on the provided medical documents
-- For blood test reports, analyze ALL test panels and sections (thyroid, lipids, iron studies, complete blood count, etc.)
+- Prioritize structured FHIR data when available for trend analysis
+- Always base responses on provided medical documents and FHIR resources
+- For blood test reports, analyze ALL test panels and provide trend analysis when historical FHIR data exists
 - Never provide medical diagnoses or treatment recommendations
 - Suggest consulting healthcare professionals for medical advice
-- Be clear about the limitations of your analysis
-- Reference specific documents and test results when providing information
-- Use clear, non-technical language when possible
-- If no relevant documents are found, explain this to the user
-- When summarizing lab results, include all relevant test panels and highlight any abnormal values
-- Compare values to reference ranges when available
-- Present information in a structured, easy-to-understand format
+- Reference specific documents, dates, and FHIR resources when providing information
+- Use clear, non-technical language while leveraging structured data insights
+- When analyzing trends, specify the time periods and number of data points
+- Highlight significant changes or patterns in FHIR Observations over time
+- Correlate medication changes with subsequent lab result improvements/deteriorations
 
-ANALYSIS APPROACH FOR BLOOD TESTS:
-- Review all test panels comprehensively (don't focus on just one section)
-- Identify normal vs abnormal values
-- Provide context for what different test results mean
-- Highlight trends if multiple reports are available
-- Organize findings by test category (e.g., thyroid function, lipid profile, etc.)
+FHIR-ENHANCED ANALYSIS APPROACH:
+- Review structured FHIR Observations for quantitative trend analysis
+- Correlate FHIR MedicationRequests with clinical outcomes over time  
+- Use FHIR reference ranges and status flags for abnormal value detection
+- Analyze medication adherence patterns from FHIR data
+- Identify care gaps or follow-up needs from FHIR CarePlans
+- Compare current values to personalized baselines from historical FHIR data
 
-Available medical documents:
-${contextText || 'No relevant documents found for this query.'}`;
+Available medical data:
+${contextText || 'No relevant medical data found for this query.'}`;
 
     const userPrompt = `User question: ${message}
 
@@ -201,6 +224,83 @@ Please provide a helpful response based on the available medical documents. If y
     });
   }
 });
+
+async function findRelevantFHIRData(
+  supabase: any,
+  userId: string,
+  query: string
+): Promise<FHIRContextData> {
+  try {
+    const keywords = extractMedicalKeywords(query);
+    const dateRange = extractDateRange(query);
+    
+    console.log(`Searching FHIR data with keywords: ${keywords.join(', ')}, date range: ${dateRange.start} to ${dateRange.end}`);
+
+    // Query FHIR Observations (lab results, vital signs)
+    let observationsQuery = supabase
+      .from('fhir_observations')
+      .select('*')
+      .eq('user_id', userId)
+      .order('effective_date_time', { ascending: false });
+
+    if (dateRange.start) {
+      observationsQuery = observationsQuery.gte('effective_date_time', dateRange.start);
+    }
+    if (dateRange.end) {
+      observationsQuery = observationsQuery.lte('effective_date_time', dateRange.end);
+    }
+
+    // Query FHIR MedicationRequests
+    let medicationsQuery = supabase
+      .from('fhir_medication_requests')
+      .select('*')
+      .eq('user_id', userId)
+      .order('authored_on', { ascending: false });
+
+    if (dateRange.start) {
+      medicationsQuery = medicationsQuery.gte('authored_on', dateRange.start);
+    }
+
+    // Query FHIR DiagnosticReports
+    let reportsQuery = supabase
+      .from('fhir_diagnostic_reports')
+      .select('*')
+      .eq('user_id', userId)
+      .order('effective_date_time', { ascending: false });
+
+    // Execute all queries in parallel
+    const [
+      { data: observations = [] },
+      { data: medications = [] },
+      { data: diagnosticReports = [] },
+      { data: encounters = [] },
+      { data: carePlans = [] }
+    ] = await Promise.all([
+      observationsQuery.limit(20),
+      medicationsQuery.limit(10),
+      reportsQuery.limit(10),
+      supabase.from('fhir_encounters').select('*').eq('user_id', userId).order('period_start', { ascending: false }).limit(5),
+      supabase.from('fhir_care_plans').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(5)
+    ]);
+
+    // Filter FHIR data by keyword relevance
+    const relevantObservations = filterFHIRByKeywords(observations, keywords, 'observation_type');
+    const relevantMedications = filterFHIRByKeywords(medications, keywords, 'medication_name');
+
+    console.log(`Found ${relevantObservations.length} relevant FHIR observations, ${relevantMedications.length} medications`);
+
+    return {
+      observations: relevantObservations.slice(0, 15),
+      medications: relevantMedications.slice(0, 8),
+      diagnosticReports: diagnosticReports.slice(0, 5),
+      encounters: encounters.slice(0, 3),
+      carePlans: carePlans.slice(0, 3)
+    };
+  } catch (error) {
+    console.error('Error finding relevant FHIR data:', error);
+    return { observations: [], medications: [], diagnosticReports: [], encounters: [], carePlans: [] };
+  }
+}
 
 async function findRelevantDocuments(
   supabase: any, 
@@ -302,6 +402,10 @@ async function findRelevantDocuments(
 }
 
 function extractKeywords(query: string): string[] {
+  return extractMedicalKeywords(query);
+}
+
+function extractMedicalKeywords(query: string): string[] {
   // Remove common stop words and extract meaningful keywords
   const stopWords = new Set([
     'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
@@ -317,15 +421,20 @@ function extractKeywords(query: string): string[] {
     .split(/\s+/)
     .filter(word => word.length > 2 && !stopWords.has(word));
 
-  // Add some medical-specific keyword expansions
+  // Enhanced medical-specific keyword expansions with LOINC codes and clinical terms
   const medicalKeywords: { [key: string]: string[] } = {
-    'blood': ['blood', 'hematology', 'hemoglobin', 'hgb', 'hct'],
-    'sugar': ['glucose', 'blood sugar', 'diabetes', 'a1c', 'hemoglobin a1c'],
-    'pressure': ['blood pressure', 'hypertension', 'bp', 'systolic', 'diastolic'],
-    'cholesterol': ['cholesterol', 'lipid', 'hdl', 'ldl', 'triglycerides'],
-    'heart': ['cardiac', 'cardiology', 'heart', 'ecg', 'ekg', 'echo'],
-    'kidney': ['renal', 'kidney', 'creatinine', 'bun', 'gfr'],
-    'liver': ['hepatic', 'liver', 'ast', 'alt', 'bilirubin'],
+    'blood': ['blood', 'hematology', 'hemoglobin', 'hgb', 'hct', 'rbc', 'wbc', 'platelet', 'cbc'],
+    'sugar': ['glucose', 'blood sugar', 'diabetes', 'a1c', 'hemoglobin a1c', 'hba1c', 'fasting glucose', 'random glucose'],
+    'pressure': ['blood pressure', 'hypertension', 'bp', 'systolic', 'diastolic', 'arterial pressure'],
+    'cholesterol': ['cholesterol', 'lipid', 'hdl', 'ldl', 'triglycerides', 'total cholesterol', 'lipid profile'],
+    'heart': ['cardiac', 'cardiology', 'heart', 'ecg', 'ekg', 'echo', 'troponin', 'bnp', 'nt-probnp'],
+    'kidney': ['renal', 'kidney', 'creatinine', 'bun', 'gfr', 'urea', 'urinalysis', 'microalbumin'],
+    'liver': ['hepatic', 'liver', 'ast', 'alt', 'bilirubin', 'alkaline phosphatase', 'ggt', 'liver function'],
+    'thyroid': ['thyroid', 'tsh', 't3', 't4', 'free t4', 'free t3', 'thyroglobulin', 'anti-tpo'],
+    'iron': ['iron', 'ferritin', 'tibc', 'transferrin', 'hemoglobin', 'anemia', 'iron deficiency'],
+    'vitamin': ['vitamin', 'vit d', 'vitamin d', 'b12', 'folate', 'vitamin b12', '25-oh vitamin d'],
+    'inflammation': ['crp', 'c-reactive protein', 'esr', 'sed rate', 'inflammation', 'inflammatory markers'],
+    'infection': ['wbc', 'white blood cell', 'neutrophil', 'lymphocyte', 'infection', 'sepsis', 'procalcitonin']
   };
 
   const expandedKeywords = new Set(words);
@@ -337,6 +446,111 @@ function extractKeywords(query: string): string[] {
   });
 
   return Array.from(expandedKeywords);
+}
+
+function extractDateRange(query: string): { start: string | null; end: string | null } {
+  const now = new Date();
+  let start: Date | null = null;
+  let end: Date | null = null;
+
+  // Temporal pattern matching
+  const patterns = [
+    { regex: /last (\d+) months?/i, months: true },
+    { regex: /past (\d+) months?/i, months: true },
+    { regex: /last (\d+) weeks?/i, weeks: true },
+    { regex: /past (\d+) weeks?/i, weeks: true },
+    { regex: /last (\d+) days?/i, days: true },
+    { regex: /past (\d+) days?/i, days: true },
+    { regex: /last year/i, years: 1 },
+    { regex: /past year/i, years: 1 },
+    { regex: /last 6 months/i, months: 6 },
+    { regex: /past 6 months/i, months: 6 },
+  ];
+
+  for (const pattern of patterns) {
+    const match = query.match(pattern.regex);
+    if (match) {
+      const value = match[1] ? parseInt(match[1]) : (pattern as any).years || (pattern as any).months || 6;
+      start = new Date(now);
+      
+      if ((pattern as any).months || pattern.months) {
+        start.setMonth(start.getMonth() - value);
+      } else if ((pattern as any).weeks || pattern.weeks) {
+        start.setDate(start.getDate() - (value * 7));
+      } else if ((pattern as any).days || pattern.days) {
+        start.setDate(start.getDate() - value);
+      }
+      
+      end = now;
+      break;
+    }
+  }
+
+  return {
+    start: start ? start.toISOString() : null,
+    end: end ? end.toISOString() : null
+  };
+}
+
+function filterFHIRByKeywords(resources: any[], keywords: string[], searchField: string): any[] {
+  if (!keywords.length) return resources;
+  
+  return resources.filter(resource => {
+    const searchText = (resource[searchField] || '').toLowerCase();
+    const resourceData = JSON.stringify(resource.resource_data || {}).toLowerCase();
+    
+    return keywords.some(keyword => 
+      searchText.includes(keyword.toLowerCase()) || 
+      resourceData.includes(keyword.toLowerCase())
+    );
+  });
+}
+
+function formatFHIRContext(fhirData: FHIRContextData): string {
+  let context = '';
+
+  // Format FHIR Observations (lab results, vitals)
+  if (fhirData.observations.length > 0) {
+    context += 'STRUCTURED LAB RESULTS & VITAL SIGNS (FHIR Observations):\n';
+    fhirData.observations.forEach(obs => {
+      const resourceData = obs.resource_data || {};
+      const value = resourceData.valueQuantity || resourceData.valueString || 'N/A';
+      const unit = resourceData.valueQuantity?.unit || '';
+      const referenceRange = resourceData.referenceRange?.[0];
+      const date = obs.effective_date_time ? new Date(obs.effective_date_time).toLocaleDateString() : 'Unknown';
+      
+      context += `- ${obs.observation_type}: ${typeof value === 'object' ? value.value : value} ${unit}`;
+      if (referenceRange) {
+        context += ` (Ref: ${referenceRange.low?.value || ''}-${referenceRange.high?.value || ''})`;
+      }
+      context += ` [${date}]\n`;
+    });
+    context += '\n';
+  }
+
+  // Format FHIR Medications
+  if (fhirData.medications.length > 0) {
+    context += 'CURRENT MEDICATIONS (FHIR MedicationRequests):\n';
+    fhirData.medications.forEach(med => {
+      const resourceData = med.resource_data || {};
+      const dosage = resourceData.dosageInstruction?.[0]?.text || 'Dosage not specified';
+      const date = med.authored_on ? new Date(med.authored_on).toLocaleDateString() : 'Unknown';
+      
+      context += `- ${med.medication_name}: ${dosage} [Prescribed: ${date}]\n`;
+    });
+    context += '\n';
+  }
+
+  // Format Care Plans
+  if (fhirData.carePlans.length > 0) {
+    context += 'ACTIVE CARE PLANS (FHIR CarePlans):\n';
+    fhirData.carePlans.forEach(plan => {
+      context += `- ${plan.title}: ${plan.description || 'No description'} [Status: ${plan.status}]\n`;
+    });
+    context += '\n';
+  }
+
+  return context;
 }
 
 function formatParsedData(parsedData: any, reportType: string): string {
