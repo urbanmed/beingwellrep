@@ -21,9 +21,27 @@ export function useDocumentProcessing() {
       try {
         setRetryCount(attempt);
         
-        // Add timeout for the function call to prevent hanging
+        // Phase 1: Attempt to acquire processing lock
+        console.log(`Attempting to acquire processing lock for report ${reportId} (attempt ${attempt + 1})`);
+        
+        const { data: lockData, error: lockError } = await supabase.rpc('acquire_processing_lock', {
+          report_id_param: reportId
+        });
+
+        if (lockError) {
+          console.error('Lock acquisition error:', lockError);
+          throw new Error('Failed to acquire processing lock');
+        }
+
+        if (!lockData) {
+          throw new Error('Document is already being processed or processing is locked');
+        }
+
+        console.log('✅ Successfully acquired processing lock');
+        
+        // Add extended timeout for complex documents
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Processing timeout - function took too long')), 60000); // 60 second timeout
+          setTimeout(() => reject(new Error('Processing timeout - function took too long')), 90000); // 90 second timeout
         });
         
         const processingPromise = supabase.functions.invoke('process-medical-document', {
@@ -93,17 +111,41 @@ export function useDocumentProcessing() {
       } catch (error) {
         console.error(`Document processing error (attempt ${attempt + 1}):`, error);
         
-        // Check if this is a retryable error
-        const isRetryable = error.message.includes('API error') || 
-                           error.message.includes('timeout') ||
-                           error.message.includes('network') ||
-                           error.message.includes('500') ||
-                           error.message.includes('CPU Time exceeded') ||
-                           error.message.includes('Processing timeout');
+        // Always release the processing lock on error
+        try {
+          await supabase.rpc('release_processing_lock', {
+            report_id_param: reportId,
+            final_status: 'failed'
+          });
+          console.log('🔓 Released processing lock due to error');
+        } catch (lockReleaseError) {
+          console.error('Failed to release processing lock:', lockReleaseError);
+        }
+        
+        // Enhanced error categorization
+        const errorMsg = error.message.toLowerCase();
+        const isRetryable = errorMsg.includes('api error') || 
+                           errorMsg.includes('timeout') ||
+                           errorMsg.includes('network') ||
+                           errorMsg.includes('500') ||
+                           errorMsg.includes('cpu time exceeded') ||
+                           errorMsg.includes('processing timeout') ||
+                           errorMsg.includes('already being processed') ||
+                           errorMsg.includes('temporary');
+        
+        // Update retry count in database
+        await supabase
+          .from('reports')
+          .update({ 
+            retry_count: attempt + 1,
+            last_retry_at: new Date().toISOString(),
+            error_category: isRetryable ? 'temporary' : 'permanent'
+          })
+          .eq('id', reportId);
         
         if (attempt < maxRetries && isRetryable) {
-          const retryDelay = Math.min((attempt + 1) * 3000, 10000); // Exponential backoff, max 10s
-          console.log(`Retrying in ${retryDelay / 1000} seconds...`);
+          const retryDelay = Math.min((attempt + 1) * 3000, 15000); // Exponential backoff, max 15s
+          console.log(`⏳ Retrying in ${retryDelay / 1000} seconds...`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           return attemptProcessing(attempt + 1);
         }
@@ -182,7 +224,7 @@ export function useDocumentProcessing() {
 
   const reprocessDocument = async (reportId: string): Promise<void> => {
     try {
-      // Reset the document status
+      // Enhanced reset with new status fields
       await supabase
         .from('reports')
         .update({
@@ -190,7 +232,14 @@ export function useDocumentProcessing() {
           parsed_data: null,
           extraction_confidence: null,
           parsing_confidence: null,
-          processing_error: null
+          processing_error: null,
+          processing_phase: 'pending',
+          progress_percentage: 0,
+          retry_count: 0,
+          error_category: null,
+          processing_lock: null,
+          processing_started_at: null,
+          lock_expires_at: null
         })
         .eq('id', reportId);
 
@@ -199,7 +248,7 @@ export function useDocumentProcessing() {
 
       toast({
         title: 'Success',
-        description: 'Document reprocessing started',
+        description: 'Document reprocessing started with enhanced tracking',
       });
 
     } catch (error) {

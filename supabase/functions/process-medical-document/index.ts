@@ -26,7 +26,6 @@ For each test/measurement, you MUST determine status by comparing values to refe
 
 Return valid JSON only.`;
 
-// Fetch active custom prompt from database with comprehensive logging
 const getActiveCustomPrompt = async (supabaseClient: any): Promise<string | null> => {
   console.log('🔍 CUSTOM PROMPT DEBUG: Starting custom prompt fetch...');
   
@@ -67,7 +66,6 @@ const getActiveCustomPrompt = async (supabaseClient: any): Promise<string | null
   }
 };
 
-// Enhanced prompts with intelligent naming
 const getPromptForReportType = (reportType: string): string => {
   const baseInstructions = `CRITICAL: Return ONLY valid JSON. No markdown formatting, no code blocks, no explanations.
 
@@ -170,7 +168,6 @@ Required JSON structure:`;
   }
 };
 
-// Transform sections-based data to expected FHIR format
 const transformSectionsToFHIRFormat = (data: any): any => {
   if (!data) return data;
   
@@ -392,7 +389,6 @@ const determineVitalStatus = (type: string, value: string, unit?: string): strin
   }
 };
 
-// Fallback text parsing for when JSON parsing fails
 const extractDataFromTextResponse = (text: string, reportType: string): any => {
   try {
     // Try to find JSON-like content in the text
@@ -506,149 +502,147 @@ const generateFallbackDocumentName = (
 
   const formattedDate = formatDate(reportDate);
 
-  switch (reportType?.toLowerCase()) {
+  switch (reportType.toLowerCase()) {
     case 'prescription':
     case 'pharmacy':
-      if (parsedData?.medications?.length > 0) {
-        const primaryMed = parsedData.medications[0];
-        if (primaryMed.name) {
-          return `Prescription - ${primaryMed.name} - ${formattedDate}`;
-        }
+      const primaryMed = parsedData?.medications?.[0]?.name;
+      if (primaryMed) {
+        return `Prescription - ${primaryMed} - ${formattedDate}`;
       }
       return `Prescription - ${formattedDate}`;
 
-    case 'radiology':
-    case 'imaging':
-    case 'xray':
-    case 'mri':
-    case 'ct':
-      if (parsedData?.study) {
-        const studyType = parsedData.study.type || reportType.toUpperCase();
-        const bodyPart = parsedData.study.bodyPart || '';
-        if (bodyPart) {
-          return `${studyType} - ${bodyPart} - ${formattedDate}`;
-        }
-        return `${studyType} - ${formattedDate}`;
-      }
-      return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Scan - ${formattedDate}`;
-
     case 'vitals':
     case 'vital_signs':
-      if (parsedData?.vitals?.length > 0) {
-        const primaryVital = parsedData.vitals[0];
-        if (primaryVital.type) {
-          const vitalType = primaryVital.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-          return `Vital Signs - ${vitalType} - ${formattedDate}`;
-        }
+      const primaryVital = parsedData?.vitals?.[0]?.type;
+      if (primaryVital) {
+        return `Vital Signs - ${primaryVital.replace('_', ' ')} - ${formattedDate}`;
       }
       return `Vital Signs - ${formattedDate}`;
 
-    default:
-      const provider = parsedData?.provider || parsedData?.prescriber || parsedData?.orderingPhysician;
-      const facility = parsedData?.facility;
-      
+    case 'radiology':
+    case 'imaging':
+      return `Radiology Report - ${formattedDate}`;
+
+    case 'pathology':
+      return `Pathology Report - ${formattedDate}`;
+
+    case 'discharge':
+    case 'discharge_summary':
+      return `Discharge Summary - ${formattedDate}`;
+
+    case 'consultation':
+    case 'visit':
+      const provider = parsedData?.provider || parsedData?.physician;
       if (provider) {
-        return `Medical Record - ${provider} - ${formattedDate}`;
-      } else if (facility) {
-        return `Medical Record - ${facility} - ${formattedDate}`;
+        return `Consultation - ${provider} - ${formattedDate}`;
+      }
+      return `Medical Consultation - ${formattedDate}`;
+
+    default:
+      const facility = parsedData?.facility || parsedData?.provider;
+      if (facility) {
+        return `Medical Report - ${facility} - ${formattedDate}`;
       }
       return `Medical Document - ${formattedDate}`;
   }
 };
 
-// File size limit: 20MB
-const MAX_FILE_SIZE = 20 * 1024 * 1024;
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB limit
 
-// Document processing configuration - Optimized for performance
 const PROCESSING_CONFIG = {
-  MAX_SINGLE_PASS_SIZE: 15000,  // Process documents up to 15k chars in single pass
-  MAX_TRUNCATED_SIZE: 12000,    // Truncate larger documents to this size
-  MAX_TOKENS: 8000,             // Reduced token limit for faster processing
-  MIN_CHUNK_SIZE: 8000,         // Only chunk documents larger than this
-  CHUNK_SIZE: 6000,             // Smaller chunks for faster parallel processing
-  MAX_CHUNKS: 3                 // Limit to max 3 chunks to prevent timeout
+  SMALL_DOC_THRESHOLD: 2000,     // Use single-pass for docs under 2k chars
+  MEDIUM_DOC_THRESHOLD: 8000,    // Use smart truncation for docs 2k-8k chars
+  MAX_CHUNK_SIZE: 4000,          // Max chars per chunk for large docs
+  MAX_OVERLAP: 200,              // Character overlap between chunks
+  MAX_TOKENS: 2000,              // Max tokens for OpenAI
+  TEMPERATURE: 0.1,              // Low temperature for consistent results
+  MAX_RETRIES: 3                 // Max retries for API calls
 };
 
-// Document chunk interface
-interface DocumentChunk {
-  id: number;
-  content: string;
-  startPos: number;
-  endPos: number;
-  sectionHeader?: string;
-}
-
-// Optimized document processing strategy
+// Enhanced document processing with robust strategies
 const processDocumentContent = async (
-  text: string, 
-  reportType: string, 
+  extractedText: string,
+  reportType: string,
   openaiApiKey: string,
-  customPrompt?: string
-): Promise<{ response: string, processingType: string }> => {
-  
-  // Strategy 1: Single pass for smaller documents
-  if (text.length <= PROCESSING_CONFIG.MAX_SINGLE_PASS_SIZE) {
-    console.log(`Document size: ${text.length} chars - processing in single pass`);
-    return await processSingleDocument(text, reportType, openaiApiKey, customPrompt);
+  prompt: string
+): Promise<{ response: string; processingType: string }> => {
+  const textLength = extractedText.length;
+  console.log(`📊 Document size: ${textLength} characters`);
+
+  // Strategy selection based on document size
+  if (textLength <= PROCESSING_CONFIG.SMALL_DOC_THRESHOLD) {
+    console.log('📝 Using single-pass processing for small document');
+    return await processSingleDocument(extractedText, prompt, openaiApiKey);
+  } else if (textLength <= PROCESSING_CONFIG.MEDIUM_DOC_THRESHOLD) {
+    console.log('✂️ Using smart truncation for medium document');
+    const truncatedText = smartTruncateDocument(extractedText, PROCESSING_CONFIG.MEDIUM_DOC_THRESHOLD - 500);
+    return await processSingleDocument(truncatedText, prompt, openaiApiKey);
+  } else {
+    console.log('🔄 Using limited chunking for large document');
+    return await processDocumentWithLimitedChunking(extractedText, prompt, openaiApiKey);
   }
-  
-  // Strategy 2: Smart truncation for moderately large documents
-  if (text.length <= PROCESSING_CONFIG.MAX_TRUNCATED_SIZE * 2) {
-    console.log(`Document size: ${text.length} chars - using smart truncation`);
-    const truncatedText = smartTruncateDocument(text, PROCESSING_CONFIG.MAX_TRUNCATED_SIZE);
-    return await processSingleDocument(truncatedText, reportType, openaiApiKey, customPrompt);
-  }
-  
-  // Strategy 3: Limited chunking for very large documents
-  console.log(`Document size: ${text.length} chars - using limited chunking`);
-  return await processDocumentWithLimitedChunking(text, reportType, openaiApiKey, customPrompt);
 };
 
-// Smart truncation that preserves important medical information
-const smartTruncateDocument = (text: string, maxSize: number): string => {
-  if (text.length <= maxSize) return text;
+// Smart document truncation that preserves key information
+const smartTruncateDocument = (text: string, maxLength: number): string => {
+  if (text.length <= maxLength) return text;
   
-  // Priority patterns to preserve (in order of importance)
-  const prioritySections = [
-    /(?:DEPARTMENT|LAB|TEST|REPORT)[^:]*:[\s\S]*?(?=\n\s*(?:DEPARTMENT|LAB|TEST|REPORT|$))/gi,
-    /(?:RESULT|VALUE|FINDING)[^:]*:[\s\S]*?(?=\n\s*(?:RESULT|VALUE|FINDING|$))/gi,
-    /(?:MEDICATION|PRESCRIPTION|DRUG)[^:]*:[\s\S]*?(?=\n\s*(?:MEDICATION|PRESCRIPTION|DRUG|$))/gi
+  console.log(`Truncating document from ${text.length} to ${maxLength} characters`);
+  
+  // Key sections to prioritize (medical documents often have these)
+  const keyPatterns = [
+    /patient\s*name|patient\s*id|date\s*of\s*birth/i,
+    /test\s*results?|lab\s*results?|laboratory/i,
+    /medication|prescription|drug/i,
+    /vital\s*signs?|blood\s*pressure|temperature|pulse/i,
+    /diagnosis|impression|assessment/i,
+    /normal|abnormal|critical|high|low/i,
+    /reference\s*range|normal\s*range/i
   ];
   
-  let preservedContent = '';
-  let remainingSize = maxSize;
+  // Split into paragraphs/sections
+  const sections = text.split(/\n\s*\n|\r\n\s*\r\n/);
+  const prioritizedSections = [];
+  const regularSections = [];
   
-  // Try to preserve priority sections first
-  for (const pattern of prioritySections) {
-    const matches = text.match(pattern) || [];
-    for (const match of matches) {
-      if (match.length <= remainingSize && !preservedContent.includes(match.substring(0, 50))) {
-        preservedContent += match + '\n\n';
-        remainingSize -= match.length;
+  // Categorize sections by importance
+  sections.forEach(section => {
+    const hasKeyInfo = keyPatterns.some(pattern => pattern.test(section));
+    if (hasKeyInfo) {
+      prioritizedSections.push(section);
+    } else {
+      regularSections.push(section);
+    }
+  });
+  
+  // Rebuild document prioritizing key sections
+  let result = prioritizedSections.join('\n\n');
+  
+  // Add regular sections if space allows
+  for (const section of regularSections) {
+    if ((result + '\n\n' + section).length <= maxLength) {
+      result += '\n\n' + section;
+    } else {
+      // Add partial section if possible
+      const remainingSpace = maxLength - result.length - 10; // Leave some buffer
+      if (remainingSpace > 100) {
+        result += '\n\n' + section.substring(0, remainingSpace) + '...';
       }
+      break;
     }
   }
   
-  // Fill remaining space with beginning of document if we have room
-  if (remainingSize > 500) {
-    const remainingText = text.substring(0, remainingSize);
-    if (!preservedContent.includes(remainingText.substring(0, 50))) {
-      preservedContent = remainingText + '\n\n' + preservedContent;
-    }
-  }
-  
-  return preservedContent.trim().substring(0, maxSize);
+  console.log(`Smart truncation result: ${result.length} characters`);
+  return result;
 };
 
-// Process single document without chunking
+// Process small/medium documents in single API call
 const processSingleDocument = async (
-  text: string, 
-  reportType: string, 
-  openaiApiKey: string,
-  customPrompt?: string
-): Promise<{ response: string, processingType: string }> => {
-  
-  const prompt = customPrompt || getPromptForReportType(reportType);
+  text: string,
+  prompt: string,
+  openaiApiKey: string
+): Promise<{ response: string; processingType: string }> => {
+  console.log('Processing single document chunk');
   
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -660,10 +654,10 @@ const processSingleDocument = async (
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `${prompt}\n\nDocument text:\n${text}` }
+        { role: 'user', content: `${prompt}\n\nDocument content:\n${text}` }
       ],
       max_tokens: PROCESSING_CONFIG.MAX_TOKENS,
-      temperature: 0.1
+      temperature: PROCESSING_CONFIG.TEMPERATURE
     })
   });
 
@@ -673,98 +667,73 @@ const processSingleDocument = async (
   }
 
   const data = await response.json();
-  const aiResponse = data.choices?.[0]?.message?.content || '';
+  const content = data.choices?.[0]?.message?.content || '';
   
-  return { response: aiResponse, processingType: 'single_pass' };
+  if (!content) {
+    throw new Error('Empty response from OpenAI API');
+  }
+
+  return {
+    response: content,
+    processingType: 'single-pass'
+  };
 };
 
-// Limited chunking with sequential processing to avoid timeouts
+// Process very large documents with limited chunking
 const processDocumentWithLimitedChunking = async (
-  text: string, 
-  reportType: string, 
-  openaiApiKey: string,
-  customPrompt?: string
-): Promise<{ response: string, processingType: string }> => {
+  text: string,
+  prompt: string,
+  openaiApiKey: string
+): Promise<{ response: string; processingType: string }> => {
+  console.log('Processing document with limited chunking strategy');
   
-  const chunks = createLimitedChunks(text);
-  console.log(`Processing ${chunks.length} chunks sequentially`);
+  // Create maximum 3 chunks to keep processing manageable
+  const chunks = createLimitedChunks(text, 3);
+  console.log(`Created ${chunks.length} chunks for processing`);
   
-  const chunkResults: any[] = [];
+  const chunkResults = [];
   
-  // Process chunks sequentially to avoid CPU timeout
+  // Process chunks sequentially to avoid rate limits
   for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    console.log(`Processing chunk ${i + 1}/${chunks.length} (${chunk.content.length} chars)`);
+    console.log(`Processing chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)`);
     
     try {
-      const result = await processSingleChunk(chunk, reportType, openaiApiKey, i);
+      const result = await processSingleChunk(chunks[i], prompt, openaiApiKey, i + 1);
       chunkResults.push(result);
-    } catch (error) {
-      console.error(`Error processing chunk ${i}:`, error);
-      chunkResults.push({
-        chunkId: chunk.id,
-        error: error.message,
-        processed: false
-      });
-    }
-  }
-  
-  // Merge results
-  const mergedData = mergeChunkResults(chunkResults, reportType);
-  const response = JSON.stringify(mergedData);
-  
-  return { response, processingType: 'limited_chunking' };
-};
-
-// Create limited number of chunks
-const createLimitedChunks = (text: string): DocumentChunk[] => {
-  const totalLength = text.length;
-  const chunkSize = Math.min(PROCESSING_CONFIG.CHUNK_SIZE, Math.ceil(totalLength / PROCESSING_CONFIG.MAX_CHUNKS));
-  const chunks: DocumentChunk[] = [];
-  
-  let currentPos = 0;
-  let chunkId = 0;
-  
-  while (currentPos < totalLength && chunkId < PROCESSING_CONFIG.MAX_CHUNKS) {
-    const endPos = Math.min(currentPos + chunkSize, totalLength);
-    
-    // Try to break at sentence boundary
-    let actualEndPos = endPos;
-    if (endPos < totalLength) {
-      const sentenceEnd = text.lastIndexOf('.', endPos);
-      if (sentenceEnd > currentPos + chunkSize * 0.7) {
-        actualEndPos = sentenceEnd + 1;
+      
+      // Add delay between requests to respect rate limits
+      if (i < chunks.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
-    }
-    
-    const chunkContent = text.slice(currentPos, actualEndPos).trim();
-    
-    if (chunkContent.length > 0) {
-      chunks.push({
-        id: chunkId++,
-        content: chunkContent,
-        startPos: currentPos,
-        endPos: actualEndPos
+    } catch (error) {
+      console.error(`Error processing chunk ${i + 1}:`, error);
+      // Continue with other chunks even if one fails
+      chunkResults.push({
+        success: false,
+        error: error.message,
+        chunkIndex: i + 1
       });
     }
-    
-    currentPos = actualEndPos;
   }
   
-  console.log(`Created ${chunks.length} limited chunks, max size: ${chunkSize} chars`);
-  return chunks;
+  // Merge results from all chunks
+  const mergedResult = mergeChunkResults(chunkResults);
+  
+  return {
+    response: JSON.stringify(mergedResult),
+    processingType: 'limited-chunking'
+  };
 };
 
-// Process a single chunk
+// Process individual chunk
 const processSingleChunk = async (
-  chunk: DocumentChunk,
-  reportType: string,
+  chunkText: string,
+  prompt: string,
   openaiApiKey: string,
-  index: number
+  chunkIndex: number
 ): Promise<any> => {
-  
-  const prompt = getPromptForReportType(reportType);
-  
+  const chunkPrompt = `${prompt}\n\nThis is chunk ${chunkIndex} of a larger document. Extract any medical data you find and return it in the specified JSON format. If this chunk doesn't contain complete medical information, extract whatever relevant data you can find.\n\nDocument chunk:\n${chunkText}`;
+
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -775,148 +744,152 @@ const processSingleChunk = async (
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `${prompt}\n\nDocument chunk (${index + 1}):\n${chunk.content}` }
+        { role: 'user', content: chunkPrompt }
       ],
       max_tokens: PROCESSING_CONFIG.MAX_TOKENS,
-      temperature: 0.1
+      temperature: PROCESSING_CONFIG.TEMPERATURE
     })
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`OpenAI API error for chunk ${index}: ${response.status} - ${errorText}`);
+    throw new Error(`OpenAI API error for chunk ${chunkIndex}: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
-  const aiResponse = data.choices?.[0]?.message?.content || '';
+  const content = data.choices?.[0]?.message?.content || '';
   
-  // Parse the response
-  let parsedData = null;
   try {
-    let cleanedResponse = aiResponse.trim();
-    if (cleanedResponse.startsWith('```json')) {
-      cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (cleanedResponse.startsWith('```')) {
-      cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
-    parsedData = JSON.parse(cleanedResponse.trim());
+    return JSON.parse(content);
   } catch (parseError) {
-    console.warn(`Failed to parse chunk ${index} response as JSON:`, parseError);
-    parsedData = extractDataFromTextResponse(aiResponse, reportType);
-  }
-
-  return {
-    chunkId: chunk.id,
-    chunkIndex: index,
-    rawResponse: aiResponse,
-    parsedData,
-    processed: true
-  };
-};
-
-// This function has been replaced by the optimized processDocumentContent function above
-
-// This function is no longer needed with the optimized approach
-
-// Merge results from multiple chunks
-const mergeChunkResults = (chunkResults: any[], reportType: string): any => {
-  console.log('Merging results from chunks...');
-  
-  const successfulResults = chunkResults.filter(r => r.processed && r.parsedData);
-  
-  if (successfulResults.length === 0) {
-    console.warn('No successful chunk processing results to merge');
+    console.warn(`Failed to parse JSON from chunk ${chunkIndex}, returning raw content`);
     return {
-      reportType: reportType || 'general',
-      confidence: 0.1,
-      parseError: true,
-      mergeError: 'No chunks processed successfully'
+      success: false,
+      rawContent: content,
+      chunkIndex: chunkIndex,
+      parseError: parseError.message
     };
   }
+};
 
-  // Initialize merged result with first successful result as base
-  const baseResult = successfulResults[0].parsedData;
-  const mergedResult: any = {
-    reportType: baseResult.reportType || reportType,
-    suggestedName: baseResult.suggestedName,
-    patient: baseResult.patient || {},
-    confidence: 0.8,
-    processedChunks: successfulResults.length,
-    totalChunks: chunkResults.length
-  };
-
-  // Merge arrays of medical data
-  const mergeArrays = (fieldName: string) => {
-    const allItems: any[] = [];
-    const seenItems = new Set<string>();
-
-    successfulResults.forEach(result => {
-      const items = result.parsedData[fieldName];
-      if (Array.isArray(items)) {
-        items.forEach(item => {
-          // Create a unique key for deduplication
-          const key = JSON.stringify({
-            name: item.name || item.type || item.title,
-            value: item.value,
-            dosage: item.dosage
-          });
-          
-          if (!seenItems.has(key)) {
-            seenItems.add(key);
-            allItems.push(item);
-          }
-        });
-      }
-    });
-
-    return allItems;
-  };
-
-  // Merge specific field types based on report type
-  switch (reportType?.toLowerCase()) {
-    case 'lab_results':
-    case 'lab':
-      mergedResult.tests = mergeArrays('tests');
-      mergedResult.orderingPhysician = baseResult.orderingPhysician;
-      mergedResult.facility = baseResult.facility;
-      mergedResult.collectionDate = baseResult.collectionDate;
-      mergedResult.reportDate = baseResult.reportDate;
-      break;
-
-    case 'prescription':
-      mergedResult.medications = mergeArrays('medications');
-      mergedResult.prescriber = baseResult.prescriber;
-      mergedResult.pharmacy = baseResult.pharmacy;
-      mergedResult.prescriptionDate = baseResult.prescriptionDate;
-      break;
-
-    case 'vitals':
-      mergedResult.vitals = mergeArrays('vitals');
-      mergedResult.recordedBy = baseResult.recordedBy;
-      mergedResult.facility = baseResult.facility;
-      mergedResult.recordDate = baseResult.recordDate;
-      break;
-
-    default:
-      mergedResult.sections = mergeArrays('sections');
-      mergedResult.provider = baseResult.provider;
-      mergedResult.facility = baseResult.facility;
-      mergedResult.visitDate = baseResult.visitDate;
-      mergedResult.reportDate = baseResult.reportDate;
-  }
-
-  // Use the most complete suggested name found
-  const names = successfulResults
-    .map(r => r.parsedData.suggestedName)
-    .filter(name => name && name.length > 10)
-    .sort((a, b) => b.length - a.length);
+// Create limited number of chunks from large document
+const createLimitedChunks = (text: string, maxChunks: number): string[] => {
+  const chunkSize = Math.ceil(text.length / maxChunks);
+  const chunks = [];
   
-  if (names.length > 0) {
-    mergedResult.suggestedName = names[0];
+  for (let i = 0; i < maxChunks && i * chunkSize < text.length; i++) {
+    const start = i * chunkSize;
+    const end = Math.min(start + chunkSize + PROCESSING_CONFIG.MAX_OVERLAP, text.length);
+    chunks.push(text.substring(start, end));
   }
+  
+  return chunks;
+};
 
-  console.log(`Merged results: ${Object.keys(mergedResult).length} fields`);
-  return enhanceStatusDetermination(mergedResult);
+// Merge results from multiple chunks into single coherent result
+const mergeChunkResults = (chunkResults: any[]): any => {
+  console.log(`Merging results from ${chunkResults.length} chunks`);
+  
+  const successfulResults = chunkResults.filter(result => result.success !== false && !result.error);
+  
+  if (successfulResults.length === 0) {
+    return {
+      reportType: 'general',
+      confidence: 0.3,
+      error: 'Failed to process any chunks successfully',
+      chunkErrors: chunkResults.map(r => r.error).filter(Boolean)
+    };
+  }
+  
+  // Start with the first successful result as base
+  const baseResult = successfulResults[0];
+  
+  // Merge additional data from other chunks
+  successfulResults.slice(1).forEach(result => {
+    // Merge tests
+    if (result.tests && Array.isArray(result.tests)) {
+      baseResult.tests = [...(baseResult.tests || []), ...result.tests];
+    }
+    
+    // Merge medications
+    if (result.medications && Array.isArray(result.medications)) {
+      baseResult.medications = [...(baseResult.medications || []), ...result.medications];
+    }
+    
+    // Merge vitals
+    if (result.vitals && Array.isArray(result.vitals)) {
+      baseResult.vitals = [...(baseResult.vitals || []), ...result.vitals];
+    }
+    
+    // Merge sections
+    if (result.sections && Array.isArray(result.sections)) {
+      baseResult.sections = [...(baseResult.sections || []), ...result.sections];
+    }
+    
+    // Update patient info if missing
+    if (!baseResult.patient && result.patient) {
+      baseResult.patient = result.patient;
+    }
+    
+    // Update facility/provider info if missing  
+    if (!baseResult.facility && result.facility) {
+      baseResult.facility = result.facility;
+    }
+    
+    if (!baseResult.orderingPhysician && result.orderingPhysician) {
+      baseResult.orderingPhysician = result.orderingPhysician;
+    }
+  });
+  
+  // Remove duplicates and calculate average confidence
+  if (baseResult.tests) {
+    baseResult.tests = removeDuplicateTests(baseResult.tests);
+  }
+  
+  if (baseResult.medications) {
+    baseResult.medications = removeDuplicateMedications(baseResult.medications);
+  }
+  
+  const avgConfidence = successfulResults.reduce((sum, r) => sum + (r.confidence || 0.5), 0) / successfulResults.length;
+  baseResult.confidence = avgConfidence;
+  
+  baseResult.processingNote = `Merged from ${successfulResults.length} chunks`;
+  
+  console.log(`Merge complete: ${baseResult.tests?.length || 0} tests, ${baseResult.medications?.length || 0} medications`);
+  
+  return baseResult;
+};
+
+// Remove duplicate tests based on name similarity
+const removeDuplicateTests = (tests: any[]): any[] => {
+  const uniqueTests = [];
+  const seenNames = new Set();
+  
+  tests.forEach(test => {
+    const normalizedName = test.name?.toLowerCase()?.trim();
+    if (normalizedName && !seenNames.has(normalizedName)) {
+      seenNames.add(normalizedName);
+      uniqueTests.push(test);
+    }
+  });
+  
+  return uniqueTests;
+};
+
+// Remove duplicate medications based on name similarity
+const removeDuplicateMedications = (medications: any[]): any[] => {
+  const uniqueMeds = [];
+  const seenNames = new Set();
+  
+  medications.forEach(med => {
+    const normalizedName = med.name?.toLowerCase()?.trim();
+    if (normalizedName && !seenNames.has(normalizedName)) {
+      seenNames.add(normalizedName);
+      uniqueMeds.push(med);
+    }
+  });
+  
+  return uniqueMeds;
 };
 
 const extractTextFromPDF = async (pdfBuffer: ArrayBuffer): Promise<string> => {
@@ -991,7 +964,7 @@ const createFHIRResourcesFromParsedData = async (
   parsedData: any,
   report: any,
   reportId: string
-): Promise<void> => {
+): Promise<{ totalCreated: number }> => {
   if (!parsedData || !report.user_id) {
     throw new Error('Missing parsed data or user ID for FHIR creation');
   }
@@ -999,652 +972,546 @@ const createFHIRResourcesFromParsedData = async (
   console.log('Creating FHIR resources for report type:', parsedData.reportType);
   console.log('Available data keys:', Object.keys(parsedData));
 
+  let totalCreated = 0;
+
   try {
-    // 1. Ensure FHIR Patient exists
-    const patientFhirId = await ensureFHIRPatient(supabaseClient, report.user_id);
+    // Step 1: Ensure FHIR Patient exists
+    console.log('🏥 Step 1: Ensuring FHIR Patient exists...');
+    const patientFhirId = await ensureFHIRPatient(supabaseClient, parsedData.patient || {}, report.user_id);
+    console.log('✅ FHIR Patient ID:', patientFhirId);
 
-    // 2. Create appropriate FHIR resources based on report type
-    const reportType = parsedData.reportType?.toLowerCase();
-    let fhirResourcesCreated = 0;
-    
-    switch (reportType) {
-      case 'lab':
-      case 'lab_results':
-        if (parsedData.tests && parsedData.tests.length > 0) {
-          await createFHIRObservationsFromLab(supabaseClient, parsedData, patientFhirId, reportId);
-          fhirResourcesCreated++;
-          console.log(`Created FHIR observations for ${parsedData.tests.length} lab tests`);
-        } else {
-          console.warn('No lab tests found in parsed data for lab report');
-        }
-        break;
-
-      case 'prescription':
-      case 'pharmacy':
-        if (parsedData.medications && parsedData.medications.length > 0) {
-          await createFHIRMedicationRequestsFromPrescription(supabaseClient, parsedData, patientFhirId, reportId);
-          fhirResourcesCreated++;
-          console.log(`Created FHIR medication requests for ${parsedData.medications.length} medications`);
-        } else {
-          console.warn('No medications found in parsed data for prescription report');
-        }
-        break;
-
-      case 'vitals':
-      case 'vital_signs':
-        if (parsedData.vitals && parsedData.vitals.length > 0) {
-          await createFHIRObservationsFromVitals(supabaseClient, parsedData, patientFhirId, reportId);
-          fhirResourcesCreated++;
-          console.log(`Created FHIR vital observations for ${parsedData.vitals.length} vitals`);
-        } else {
-          console.warn('No vitals found in parsed data for vitals report');
-        }
-        break;
-
-      case 'radiology':
-      case 'imaging':
-        await createFHIRDiagnosticReportFromRadiology(supabaseClient, parsedData, patientFhirId, reportId);
-        fhirResourcesCreated++;
-        console.log('Created FHIR diagnostic report for radiology');
-        break;
-
-      default:
-        // For general medical documents, create a basic DiagnosticReport
-        await createFHIRDiagnosticReportFromGeneral(supabaseClient, parsedData, patientFhirId, reportId);
-        fhirResourcesCreated++;
-        console.log('Created FHIR diagnostic report for general document');
-        
-        // Also check if there are any extractable lab tests or medications in sections
-        if (parsedData.sections && Array.isArray(parsedData.sections) && parsedData.sections.length > 0) {
-          try {
-            // Safe validation for lab data with proper array checking
-            const hasLabData = parsedData.sections.some(s => {
-              if (!s || !s.content) return false;
-              
-              // Handle different content types
-              if (Array.isArray(s.content)) {
-                return s.content.some(c => c && c.name && c.value);
-              } else if (typeof s.content === 'object') {
-                return s.content.name && s.content.value;
-              }
-              return false;
-            });
-
-            // Safe validation for medication data with proper array checking
-            const hasMedData = parsedData.sections.some(s => {
-              if (!s || !s.content) return false;
-              
-              // Handle different content types
-              if (Array.isArray(s.content)) {
-                return s.content.some(c => c && (c.medication || c.name));
-              } else if (typeof s.content === 'object') {
-                return s.content.medication || s.content.name;
-              }
-              return false;
-            });
-            
-            if (hasLabData) {
-              console.log('Found lab-like data in general document sections, creating observations...');
-              // Transform and create lab observations
-              const transformedData = { ...parsedData, reportType: 'lab' };
-              const labData = transformSectionsToFHIRFormat(transformedData);
-              if (labData.tests && labData.tests.length > 0) {
-                await createFHIRObservationsFromLab(supabaseClient, labData, patientFhirId, reportId);
-                fhirResourcesCreated++;
-                console.log(`Created ${labData.tests.length} additional FHIR observations from general document`);
-              }
-            }
-          } catch (sectionError) {
-            console.warn('Error processing sections for additional FHIR resources:', sectionError);
-            // Continue processing - don't fail the entire document for section parsing issues
-          }
-        }
-        break;
+    // Step 2: Create FHIR Observations from lab tests
+    if (parsedData.tests && Array.isArray(parsedData.tests) && parsedData.tests.length > 0) {
+      console.log(`🧪 Step 2: Creating ${parsedData.tests.length} FHIR Observations...`);
+      const observationCount = await createFHIRObservationsFromLab(
+        supabaseClient,
+        parsedData.tests,
+        patientFhirId,
+        reportId,
+        parsedData
+      );
+      totalCreated += observationCount;
+      console.log(`✅ Created ${observationCount} FHIR Observations`);
     }
-    
-    if (fhirResourcesCreated === 0) {
-      console.warn(`No FHIR resources created for report ${reportId} with type ${reportType}`);
-    } else {
-      console.log(`Successfully created ${fhirResourcesCreated} FHIR resource type(s) for report ${reportId}`);
+
+    // Step 3: Create FHIR MedicationRequests from medications
+    if (parsedData.medications && Array.isArray(parsedData.medications) && parsedData.medications.length > 0) {
+      console.log(`💊 Step 3: Creating ${parsedData.medications.length} FHIR MedicationRequests...`);
+      const medicationCount = await createFHIRMedicationRequestsFromPrescription(
+        supabaseClient,
+        parsedData.medications,
+        patientFhirId,
+        reportId,
+        parsedData
+      );
+      totalCreated += medicationCount;
+      console.log(`✅ Created ${medicationCount} FHIR MedicationRequests`);
     }
-    
+
+    // Step 4: Create FHIR Observations from vitals
+    if (parsedData.vitals && Array.isArray(parsedData.vitals) && parsedData.vitals.length > 0) {
+      console.log(`❤️ Step 4: Creating ${parsedData.vitals.length} FHIR Vital Observations...`);
+      const vitalCount = await createFHIRObservationsFromVitals(
+        supabaseClient,
+        parsedData.vitals,
+        patientFhirId,
+        reportId,
+        parsedData
+      );
+      totalCreated += vitalCount;
+      console.log(`✅ Created ${vitalCount} FHIR Vital Observations`);
+    }
+
+    // Step 5: Create FHIR DiagnosticReport
+    console.log('📋 Step 5: Creating FHIR DiagnosticReport...');
+    const diagnosticReportCreated = await createFHIRDiagnosticReportFromParsedData(
+      supabaseClient,
+      parsedData,
+      patientFhirId,
+      reportId,
+      report
+    );
+    totalCreated += diagnosticReportCreated;
+    console.log(`✅ Created ${diagnosticReportCreated} FHIR DiagnosticReport`);
+
+    console.log(`🎉 FHIR resource creation completed! Total created: ${totalCreated}`);
+    return { totalCreated };
+
   } catch (error) {
-    console.error('FHIR resource creation failed:', error);
-    throw new Error(`FHIR creation failed: ${error.message}`);
+    console.error('❌ Error in FHIR resource creation:', error);
+    throw new Error(`FHIR resource creation failed: ${error.message}`);
   }
 };
 
-// Ensure FHIR Patient exists, create if necessary
-const ensureFHIRPatient = async (supabaseClient: any, userId: string): Promise<string> => {
+// Enhanced FHIR Patient creation/retrieval
+const ensureFHIRPatient = async (supabaseClient: any, patientData: any, userId: string): Promise<string> => {
+  console.log('Ensuring FHIR Patient exists for user:', userId);
+  
   // Check if patient already exists
-  const { data: existingPatient } = await supabaseClient
+  const { data: existingPatient, error: fetchError } = await supabaseClient
     .from('fhir_patients')
     .select('fhir_id')
     .eq('user_id', userId)
-    .maybeSingle();
+    .limit(1);
 
-  if (existingPatient) {
-    return existingPatient.fhir_id;
+  if (fetchError) {
+    console.error('Error fetching existing FHIR patient:', fetchError);
   }
 
-  // Get user profile for patient data
-  const { data: profile } = await supabaseClient
-    .from('profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
+  if (existingPatient && existingPatient.length > 0) {
+    console.log('Using existing FHIR Patient:', existingPatient[0].fhir_id);
+    return existingPatient[0].fhir_id;
+  }
 
-  const patientFhirId = generateFHIRId('patient-');
-  
-  // Create basic FHIR Patient resource
+  // Create new FHIR Patient
+  const fhirId = generateFHIRId('patient-');
   const fhirPatient = {
     resourceType: 'Patient',
-    id: patientFhirId,
-    meta: {
-      lastUpdated: new Date().toISOString(),
-      profile: ['http://hl7.org/fhir/StructureDefinition/Patient']
-    },
+    id: fhirId,
     identifier: [
       {
-        use: 'official',
-        system: 'http://beingwell.app/patient-id',
+        use: 'usual',
+        system: 'urn:oid:2.16.840.1.113883.2.1.4.1',
         value: userId
       }
     ],
-    active: true
+    name: patientData.name ? [
+      {
+        use: 'official',
+        text: patientData.name
+      }
+    ] : [],
+    birthDate: patientData.dateOfBirth || null,
+    gender: patientData.gender || 'unknown'
   };
 
-  // Add profile data if available
-  if (profile) {
-    if (profile.first_name || profile.last_name) {
-      fhirPatient.name = [{
-        use: 'official',
-        family: profile.last_name || '',
-        given: profile.first_name ? [profile.first_name] : []
-      }];
-    }
-
-    if (profile.gender) {
-      fhirPatient.gender = profile.gender.toLowerCase();
-    }
-
-    if (profile.date_of_birth) {
-      fhirPatient.birthDate = profile.date_of_birth;
-    }
-
-    if (profile.phone_number) {
-      fhirPatient.telecom = [{
-        system: 'phone',
-        value: profile.phone_number,
-        use: 'mobile'
-      }];
-    }
-
-    if (profile.abha_id) {
-      fhirPatient.identifier.push({
-        use: 'official',
-        system: 'https://healthid.abdm.gov.in',
-        value: profile.abha_id
-      });
-    }
-  }
-
-  // Insert FHIR Patient into database
-  const { error } = await supabaseClient
+  const { error: insertError } = await supabaseClient
     .from('fhir_patients')
     .insert({
       user_id: userId,
-      fhir_id: patientFhirId,
+      fhir_id: fhirId,
       resource_data: fhirPatient
     });
 
-  if (error) {
-    throw new Error(`Failed to create FHIR Patient: ${error.message}`);
+  if (insertError) {
+    console.error('Error creating FHIR patient:', insertError);
+    throw new Error(`Failed to create FHIR patient: ${insertError.message}`);
   }
 
-  console.log('Created FHIR Patient:', patientFhirId);
-  return patientFhirId;
+  console.log('Created new FHIR Patient:', fhirId);
+  return fhirId;
 };
 
 // Create FHIR Observations from lab test data
 const createFHIRObservationsFromLab = async (
   supabaseClient: any,
-  parsedData: any,
+  tests: any[],
   patientFhirId: string,
-  reportId: string
-): Promise<void> => {
-  if (!parsedData.tests || !Array.isArray(parsedData.tests)) {
-    throw new Error(`No tests array found in lab data. Available keys: ${Object.keys(parsedData)}`);
-  }
-  
-  console.log(`Processing ${parsedData.tests.length} lab tests for FHIR creation`);
+  reportId: string,
+  parsedData: any
+): Promise<number> => {
+  let createdCount = 0;
 
-  for (let i = 0; i < parsedData.tests.length; i++) {
-    const test = parsedData.tests[i];
-    const observationId = generateFHIRId('obs-');
+  for (const test of tests) {
+    if (!test.name || !test.value) {
+      console.warn('Skipping test with missing name or value:', test);
+      continue;
+    }
 
-    const fhirObservation = {
-      resourceType: 'Observation',
-      id: observationId,
-      meta: {
-        lastUpdated: new Date().toISOString(),
-        profile: ['http://hl7.org/fhir/StructureDefinition/Observation']
-      },
-      status: 'final',
-      category: [{
-        coding: [{
-          system: 'http://terminology.hl7.org/CodeSystem/observation-category',
-          code: 'laboratory',
-          display: 'Laboratory'
-        }]
-      }],
-      code: {
-        text: test.name || 'Unknown Test'
-      },
-      subject: {
-        reference: `Patient/${patientFhirId}`
-      },
-      effectiveDateTime: parsedData.collectionDate || parsedData.reportDate || new Date().toISOString()
-    };
-
-    // Add value
-    if (test.value) {
-      if (test.unit && !isNaN(parseFloat(test.value))) {
-        fhirObservation.valueQuantity = {
-          value: parseFloat(test.value),
-          unit: test.unit,
+    try {
+      const fhirId = generateFHIRId('obs-lab-');
+      const fhirObservation = {
+        resourceType: 'Observation',
+        id: fhirId,
+        status: 'final',
+        category: [
+          {
+            coding: [
+              {
+                system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+                code: 'laboratory',
+                display: 'Laboratory'
+              }
+            ]
+          }
+        ],
+        code: {
+          text: test.name
+        },
+        subject: {
+          reference: `Patient/${patientFhirId}`
+        },
+        effectiveDateTime: parsedData.collectionDate || parsedData.reportDate || new Date().toISOString(),
+        valueQuantity: {
+          value: parseFloat(test.value.toString().replace(/[^\d.-]/g, '')) || 0,
+          unit: test.unit || '',
           system: 'http://unitsofmeasure.org'
-        };
-      } else {
-        fhirObservation.valueString = test.value;
-      }
-    }
-
-    // Add reference range
-    if (test.referenceRange) {
-      fhirObservation.referenceRange = [{
-        text: test.referenceRange
-      }];
-    }
-
-    // Add interpretation based on status
-    if (test.status) {
-      const interpretationMap = {
-        'normal': { code: 'N', display: 'Normal' },
-        'high': { code: 'H', display: 'High' },
-        'low': { code: 'L', display: 'Low' },
-        'critical': { code: 'HH', display: 'Critical high' }
+        },
+        referenceRange: test.referenceRange ? [
+          {
+            text: test.referenceRange
+          }
+        ] : [],
+        interpretation: test.status ? [
+          {
+            coding: [
+              {
+                system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation',
+                code: mapStatusToHL7(test.status),
+                display: test.status
+              }
+            ]
+          }
+        ] : []
       };
 
-      const interpretation = interpretationMap[test.status];
-      if (interpretation) {
-        fhirObservation.interpretation = [{
-          coding: [{
-            system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation',
-            code: interpretation.code,
-            display: interpretation.display
-          }]
-        }];
+      const { error } = await supabaseClient
+        .from('fhir_observations')
+        .insert({
+          user_id: reportId, // This should be user_id from the report
+          fhir_id: fhirId,
+          patient_fhir_id: patientFhirId,
+          source_report_id: reportId,
+          observation_type: 'lab_result',
+          resource_data: fhirObservation,
+          effective_date_time: parsedData.collectionDate || parsedData.reportDate || new Date().toISOString()
+        });
+
+      if (error) {
+        console.error(`Error creating FHIR observation for test ${test.name}:`, error);
+      } else {
+        createdCount++;
+        console.log(`✅ Created FHIR Observation: ${test.name}`);
       }
-    }
-
-    // Insert into database
-    const { error } = await supabaseClient
-      .from('fhir_observations')
-      .insert({
-        user_id: (await getUserIdFromReport(supabaseClient, reportId)),
-        fhir_id: observationId,
-        patient_fhir_id: patientFhirId,
-        source_report_id: reportId,
-        observation_type: 'lab_result',
-        resource_data: fhirObservation,
-        effective_date_time: fhirObservation.effectiveDateTime,
-        status: 'final'
-      });
-
-    if (error) {
-      console.error('Failed to create FHIR Observation:', error);
-      throw new Error(`FHIR Observation creation failed: ${error.message}`);
-    } else {
-      console.log('Created FHIR Observation:', observationId);
+    } catch (error) {
+      console.error(`Error processing test ${test.name}:`, error);
     }
   }
+
+  return createdCount;
 };
 
 // Create FHIR MedicationRequests from prescription data
 const createFHIRMedicationRequestsFromPrescription = async (
   supabaseClient: any,
-  parsedData: any,
+  medications: any[],
   patientFhirId: string,
-  reportId: string
-): Promise<void> => {
-  if (!parsedData.medications || !Array.isArray(parsedData.medications)) {
-    throw new Error(`No medications array found in prescription data. Available keys: ${Object.keys(parsedData)}`);
-  }
-  
-  console.log(`Processing ${parsedData.medications.length} medications for FHIR creation`);
+  reportId: string,
+  parsedData: any
+): Promise<number> => {
+  let createdCount = 0;
 
-  for (let i = 0; i < parsedData.medications.length; i++) {
-    const med = parsedData.medications[i];
-    const medicationRequestId = generateFHIRId('med-req-');
-
-    const fhirMedicationRequest = {
-      resourceType: 'MedicationRequest',
-      id: medicationRequestId,
-      meta: {
-        lastUpdated: new Date().toISOString(),
-        profile: ['http://hl7.org/fhir/StructureDefinition/MedicationRequest']
-      },
-      status: 'active',
-      intent: 'order',
-      medicationCodeableConcept: {
-        text: med.name || 'Unknown Medication'
-      },
-      subject: {
-        reference: `Patient/${patientFhirId}`
-      },
-      authoredOn: parsedData.prescriptionDate || new Date().toISOString()
-    };
-
-    // Add prescriber
-    if (parsedData.prescriber) {
-      fhirMedicationRequest.requester = {
-        display: parsedData.prescriber
-      };
+  for (const medication of medications) {
+    if (!medication.name) {
+      console.warn('Skipping medication with missing name:', medication);
+      continue;
     }
 
-    // Add dosage instructions
-    if (med.dosage || med.frequency || med.duration || med.instructions) {
-      fhirMedicationRequest.dosageInstruction = [{
-        text: [med.dosage, med.frequency, med.duration, med.instructions]
-          .filter(Boolean)
-          .join(' - ')
-      }];
-    }
-
-    // Insert into database
-    const { error } = await supabaseClient
-      .from('fhir_medication_requests')
-      .insert({
-        user_id: (await getUserIdFromReport(supabaseClient, reportId)),
-        fhir_id: medicationRequestId,
-        patient_fhir_id: patientFhirId,
-        source_report_id: reportId,
-        medication_name: med.name || 'Unknown Medication',
-        resource_data: fhirMedicationRequest,
-        authored_on: fhirMedicationRequest.authoredOn,
+    try {
+      const fhirId = generateFHIRId('medreq-');
+      const fhirMedicationRequest = {
+        resourceType: 'MedicationRequest',
+        id: fhirId,
         status: 'active',
-        intent: 'order'
-      });
+        intent: 'order',
+        medicationCodeableConcept: {
+          text: medication.name
+        },
+        subject: {
+          reference: `Patient/${patientFhirId}`
+        },
+        authoredOn: parsedData.prescriptionDate || new Date().toISOString(),
+        dosageInstruction: [
+          {
+            text: `${medication.dosage || ''} ${medication.frequency || ''}`.trim() || medication.instructions || 'As directed',
+            timing: medication.frequency ? {
+              repeat: {
+                frequency: extractFrequencyNumber(medication.frequency) || 1,
+                period: 1,
+                periodUnit: 'd'
+              }
+            } : undefined
+          }
+        ],
+        dispenseRequest: medication.quantity ? {
+          quantity: {
+            value: parseInt(medication.quantity.toString().replace(/[^\d]/g, '')) || 0,
+            unit: 'tablet'
+          }
+        } : undefined
+      };
 
-    if (error) {
-      console.error('Failed to create FHIR MedicationRequest:', error);
-      throw new Error(`FHIR MedicationRequest creation failed: ${error.message}`);
-    } else {
-      console.log('Created FHIR MedicationRequest:', medicationRequestId);
+      // Get user_id from the report
+      const { data: reportData } = await supabaseClient
+        .from('reports')
+        .select('user_id')
+        .eq('id', reportId)
+        .single();
+
+      const { error } = await supabaseClient
+        .from('fhir_medication_requests')
+        .insert({
+          user_id: reportData?.user_id,
+          fhir_id: fhirId,
+          patient_fhir_id: patientFhirId,
+          source_report_id: reportId,
+          medication_name: medication.name,
+          resource_data: fhirMedicationRequest,
+          authored_on: parsedData.prescriptionDate || new Date().toISOString()
+        });
+
+      if (error) {
+        console.error(`Error creating FHIR medication request for ${medication.name}:`, error);
+      } else {
+        createdCount++;
+        console.log(`✅ Created FHIR MedicationRequest: ${medication.name}`);
+      }
+    } catch (error) {
+      console.error(`Error processing medication ${medication.name}:`, error);
     }
   }
+
+  return createdCount;
 };
 
-// Create FHIR Observations from vital signs
+// Create FHIR Observations from vital signs data
 const createFHIRObservationsFromVitals = async (
   supabaseClient: any,
-  parsedData: any,
+  vitals: any[],
   patientFhirId: string,
-  reportId: string
-): Promise<void> => {
-  if (!parsedData.vitals || !Array.isArray(parsedData.vitals)) {
-    console.log('No vitals found in data');
-    return;
+  reportId: string,
+  parsedData: any
+): Promise<number> => {
+  let createdCount = 0;
+
+  for (const vital of vitals) {
+    if (!vital.type || !vital.value) {
+      console.warn('Skipping vital with missing type or value:', vital);
+      continue;
+    }
+
+    try {
+      const fhirId = generateFHIRId('obs-vital-');
+      const fhirObservation = {
+        resourceType: 'Observation',
+        id: fhirId,
+        status: 'final',
+        category: [
+          {
+            coding: [
+              {
+                system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+                code: 'vital-signs',
+                display: 'Vital Signs'
+              }
+            ]
+          }
+        ],
+        code: {
+          text: vital.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+        },
+        subject: {
+          reference: `Patient/${patientFhirId}`
+        },
+        effectiveDateTime: vital.timestamp || parsedData.recordDate || new Date().toISOString(),
+        valueQuantity: {
+          value: parseFloat(vital.value.toString().replace(/[^\d.-]/g, '')) || 0,
+          unit: vital.unit || '',
+          system: 'http://unitsofmeasure.org'
+        },
+        interpretation: vital.status ? [
+          {
+            coding: [
+              {
+                system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation',
+                code: mapStatusToHL7(vital.status),
+                display: vital.status
+              }
+            ]
+          }
+        ] : []
+      };
+
+      // Get user_id from the report
+      const { data: reportData } = await supabaseClient
+        .from('reports')
+        .select('user_id')
+        .eq('id', reportId)
+        .single();
+
+      const { error } = await supabaseClient
+        .from('fhir_observations')
+        .insert({
+          user_id: reportData?.user_id,
+          fhir_id: fhirId,
+          patient_fhir_id: patientFhirId,
+          source_report_id: reportId,
+          observation_type: 'vital_signs',
+          resource_data: fhirObservation,
+          effective_date_time: vital.timestamp || parsedData.recordDate || new Date().toISOString()
+        });
+
+      if (error) {
+        console.error(`Error creating FHIR observation for vital ${vital.type}:`, error);
+      } else {
+        createdCount++;
+        console.log(`✅ Created FHIR Vital Observation: ${vital.type}`);
+      }
+    } catch (error) {
+      console.error(`Error processing vital ${vital.type}:`, error);
+    }
   }
 
-  for (let i = 0; i < parsedData.vitals.length; i++) {
-    const vital = parsedData.vitals[i];
-    const observationId = generateFHIRId('vital-obs-');
+  return createdCount;
+};
 
-    const fhirObservation = {
-      resourceType: 'Observation',
-      id: observationId,
-      meta: {
-        lastUpdated: new Date().toISOString(),
-        profile: ['http://hl7.org/fhir/StructureDefinition/Observation']
-      },
+// Create FHIR DiagnosticReport from parsed data
+const createFHIRDiagnosticReportFromParsedData = async (
+  supabaseClient: any,
+  parsedData: any,
+  patientFhirId: string,
+  reportId: string,
+  report: any
+): Promise<number> => {
+  try {
+    const fhirId = generateFHIRId('diag-');
+    const fhirDiagnosticReport = {
+      resourceType: 'DiagnosticReport',
+      id: fhirId,
       status: 'final',
-      category: [{
-        coding: [{
-          system: 'http://terminology.hl7.org/CodeSystem/observation-category',
-          code: 'vital-signs',
-          display: 'Vital Signs'
-        }]
-      }],
+      category: [
+        {
+          coding: [
+            {
+              system: 'http://terminology.hl7.org/CodeSystem/v2-0074',
+              code: getReportCategoryCode(parsedData.reportType || 'general'),
+              display: parsedData.reportType || 'General'
+            }
+          ]
+        }
+      ],
       code: {
-        text: vital.type?.replace('_', ' ') || 'Vital Sign'
+        text: report.title || `${parsedData.reportType || 'Medical'} Report`
       },
       subject: {
         reference: `Patient/${patientFhirId}`
       },
-      effectiveDateTime: vital.timestamp || parsedData.recordDate || new Date().toISOString()
+      effectiveDateTime: parsedData.reportDate || parsedData.collectionDate || report.report_date || new Date().toISOString(),
+      issued: new Date().toISOString(),
+      performer: parsedData.orderingPhysician || parsedData.prescriber || parsedData.provider ? [
+        {
+          display: parsedData.orderingPhysician || parsedData.prescriber || parsedData.provider
+        }
+      ] : [],
+      conclusion: generateReportConclusion(parsedData)
     };
 
-    // Map vital types to LOINC codes
-    const vitalTypeMap = {
-      'heart_rate': { code: '8867-4', display: 'Heart rate', unit: '/min' },
-      'blood_pressure': { code: '85354-9', display: 'Blood pressure panel' },
-      'temperature': { code: '8310-5', display: 'Body temperature', unit: 'Cel' },
-      'respiratory_rate': { code: '9279-1', display: 'Respiratory rate', unit: '/min' },
-      'oxygen_saturation': { code: '2708-6', display: 'Oxygen saturation', unit: '%' }
-    };
-
-    const vitalMapping = vitalTypeMap[vital.type];
-    if (vitalMapping) {
-      fhirObservation.code = {
-        coding: [{
-          system: 'http://loinc.org',
-          code: vitalMapping.code,
-          display: vitalMapping.display
-        }]
-      };
-    }
-
-    // Add value
-    if (vital.value) {
-      const numericValue = parseFloat(vital.value);
-      if (!isNaN(numericValue)) {
-        fhirObservation.valueQuantity = {
-          value: numericValue,
-          unit: vital.unit || vitalMapping?.unit || '',
-          system: 'http://unitsofmeasure.org'
-        };
-      } else {
-        fhirObservation.valueString = vital.value;
-      }
-    }
-
-    // Insert into database
     const { error } = await supabaseClient
-      .from('fhir_observations')
+      .from('fhir_diagnostic_reports')
       .insert({
-        user_id: (await getUserIdFromReport(supabaseClient, reportId)),
-        fhir_id: observationId,
+        user_id: report.user_id,
+        fhir_id: fhirId,
         patient_fhir_id: patientFhirId,
         source_report_id: reportId,
-        observation_type: 'vital_signs',
-        resource_data: fhirObservation,
-        effective_date_time: fhirObservation.effectiveDateTime,
-        status: 'final'
+        report_type: parsedData.reportType || 'general',
+        resource_data: fhirDiagnosticReport,
+        effective_date_time: parsedData.reportDate || parsedData.collectionDate || report.report_date || new Date().toISOString()
       });
 
     if (error) {
-      console.error('Failed to create FHIR Vital Observation:', error);
+      console.error('Error creating FHIR diagnostic report:', error);
+      return 0;
     } else {
-      console.log('Created FHIR Vital Observation:', observationId);
+      console.log(`✅ Created FHIR DiagnosticReport: ${fhirId}`);
+      return 1;
     }
+  } catch (error) {
+    console.error('Error processing diagnostic report:', error);
+    return 0;
   }
 };
 
-// Create FHIR DiagnosticReport for general documents
-const createFHIRDiagnosticReportFromGeneral = async (
-  supabaseClient: any,
-  parsedData: any,
-  patientFhirId: string,
-  reportId: string
-): Promise<void> => {
-  const diagnosticReportId = generateFHIRId('diag-report-');
-
-  const fhirDiagnosticReport = {
-    resourceType: 'DiagnosticReport',
-    id: diagnosticReportId,
-    meta: {
-      lastUpdated: new Date().toISOString(),
-      profile: ['http://hl7.org/fhir/StructureDefinition/DiagnosticReport']
-    },
-    status: 'final',
-    category: [{
-      coding: [{
-        system: 'http://terminology.hl7.org/CodeSystem/v2-0074',
-        code: 'GE',
-        display: 'Genetics'
-      }]
-    }],
-    code: {
-      text: parsedData.reportType || 'General Medical Document'
-    },
-    subject: {
-      reference: `Patient/${patientFhirId}`
-    },
-    effectiveDateTime: parsedData.reportDate || parsedData.visitDate || new Date().toISOString()
-  };
-
-  // Add performer if available
-  if (parsedData.provider || parsedData.facility) {
-    fhirDiagnosticReport.performer = [];
-    if (parsedData.provider) {
-      fhirDiagnosticReport.performer.push({ display: parsedData.provider });
-    }
-    if (parsedData.facility) {
-      fhirDiagnosticReport.performer.push({ display: parsedData.facility });
-    }
-  }
-
-  // Insert into database
-  const { error } = await supabaseClient
-    .from('fhir_diagnostic_reports')
-    .insert({
-      user_id: (await getUserIdFromReport(supabaseClient, reportId)),
-      fhir_id: diagnosticReportId,
-      patient_fhir_id: patientFhirId,
-      source_report_id: reportId,
-      report_type: parsedData.reportType || 'general',
-      resource_data: fhirDiagnosticReport,
-      effective_date_time: fhirDiagnosticReport.effectiveDateTime,
-      status: 'final'
-    });
-
-  if (error) {
-    console.error('Failed to create FHIR DiagnosticReport:', error);
-  } else {
-    console.log('Created FHIR DiagnosticReport:', diagnosticReportId);
+// Helper functions
+const mapStatusToHL7 = (status: string): string => {
+  switch (status.toLowerCase()) {
+    case 'high': return 'H';
+    case 'low': return 'L';
+    case 'critical': return 'HH';
+    case 'normal': return 'N';
+    default: return 'N';
   }
 };
 
-// Create FHIR DiagnosticReport from radiology data
-const createFHIRDiagnosticReportFromRadiology = async (
-  supabaseClient: any,
-  parsedData: any,
-  patientFhirId: string,
-  reportId: string
-): Promise<void> => {
-  const diagnosticReportId = generateFHIRId('diag-report-');
+const extractFrequencyNumber = (frequency: string): number => {
+  if (!frequency) return 1;
+  const match = frequency.match(/(\d+)/);
+  return match ? parseInt(match[1]) : 1;
+};
 
-  const fhirDiagnosticReport = {
-    resourceType: 'DiagnosticReport',
-    id: diagnosticReportId,
-    meta: {
-      lastUpdated: new Date().toISOString(),
-      profile: ['http://hl7.org/fhir/StructureDefinition/DiagnosticReport']
-    },
-    status: 'final',
-    category: [{
-      coding: [{
-        system: 'http://terminology.hl7.org/CodeSystem/v2-0074',
-        code: 'RAD',
-        display: 'Radiology'
-      }]
-    }],
-    code: {
-      text: parsedData.study?.type || 'Radiology Report'
-    },
-    subject: {
-      reference: `Patient/${patientFhirId}`
-    },
-    effectiveDateTime: parsedData.studyDate || parsedData.reportDate || new Date().toISOString()
-  };
-
-  // Add performer
-  if (parsedData.radiologist || parsedData.facility) {
-    fhirDiagnosticReport.performer = [];
-    if (parsedData.radiologist) {
-      fhirDiagnosticReport.performer.push({ display: parsedData.radiologist });
-    }
-    if (parsedData.facility) {
-      fhirDiagnosticReport.performer.push({ display: parsedData.facility });
-    }
-  }
-
-  // Add conclusion
-  if (parsedData.impression) {
-    fhirDiagnosticReport.conclusion = parsedData.impression;
-  }
-
-  // Insert into database
-  const { error } = await supabaseClient
-    .from('fhir_diagnostic_reports')
-    .insert({
-      user_id: (await getUserIdFromReport(supabaseClient, reportId)),
-      fhir_id: diagnosticReportId,
-      patient_fhir_id: patientFhirId,
-      source_report_id: reportId,
-      report_type: 'radiology',
-      resource_data: fhirDiagnosticReport,
-      effective_date_time: fhirDiagnosticReport.effectiveDateTime,
-      status: 'final'
-    });
-
-  if (error) {
-    console.error('Failed to create FHIR Radiology DiagnosticReport:', error);
-  } else {
-    console.log('Created FHIR Radiology DiagnosticReport:', diagnosticReportId);
+const getReportCategoryCode = (reportType: string): string => {
+  switch (reportType.toLowerCase()) {
+    case 'lab': return 'LAB';
+    case 'prescription': return 'PHM';
+    case 'vitals': return 'VTL';
+    case 'radiology': return 'RAD';
+    case 'pathology': return 'PAT';
+    default: return 'OTH';
   }
 };
 
-// Helper function to get user ID from report
-const getUserIdFromReport = async (supabaseClient: any, reportId: string): Promise<string> => {
-  const { data: report } = await supabaseClient
-    .from('reports')
-    .select('user_id')
-    .eq('id', reportId)
-    .single();
+const generateReportConclusion = (parsedData: any): string => {
+  const parts = [];
   
-  return report?.user_id;
+  if (parsedData.tests && parsedData.tests.length > 0) {
+    const abnormalTests = parsedData.tests.filter(t => t.status && t.status !== 'normal');
+    if (abnormalTests.length > 0) {
+      parts.push(`${abnormalTests.length} abnormal test result(s) found.`);
+    } else {
+      parts.push('All test results within normal limits.');
+    }
+  }
+  
+  if (parsedData.medications && parsedData.medications.length > 0) {
+    parts.push(`${parsedData.medications.length} medication(s) prescribed.`);
+  }
+  
+  if (parsedData.vitals && parsedData.vitals.length > 0) {
+    const abnormalVitals = parsedData.vitals.filter(v => v.status && v.status !== 'normal');
+    if (abnormalVitals.length > 0) {
+      parts.push(`${abnormalVitals.length} abnormal vital sign(s) recorded.`);
+    }
+  }
+  
+  return parts.join(' ') || 'Medical report processed successfully.';
 };
 
+// Enhanced serve function with processing lock integration
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   let reportId: string | null = null
+  let supabaseClient: any = null
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-    )
-
     const requestBody = await req.json()
     reportId = requestBody.reportId
-    console.log('Processing medical document for report:', reportId)
+    console.log('🔄 Starting enhanced processing for report:', reportId)
+    
+    // Initialize Supabase client with service role for database functions
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    supabaseClient = createClient(supabaseUrl, supabaseServiceKey)
+    
+    // Phase 1: Update status to extracting_text
+    await supabaseClient
+      .from('reports')
+      .update({
+        processing_phase: 'extracting_text',
+        progress_percentage: 10
+      })
+      .eq('id', reportId)
 
     // Get the report details
     const { data: report, error: reportError } = await supabaseClient
@@ -1657,10 +1524,13 @@ serve(async (req) => {
       throw new Error('Report not found')
     }
 
-    // Update status to processing
+    // Phase 2: Update status to classifying_type
     await supabaseClient
       .from('reports')
-      .update({ parsing_status: 'processing' })
+      .update({
+        processing_phase: 'classifying_type',
+        progress_percentage: 20
+      })
       .eq('id', reportId)
 
     // Download file from storage
@@ -1685,6 +1555,15 @@ serve(async (req) => {
     if (!openaiApiKey) {
       throw new Error('OpenAI API key not configured')
     }
+
+    // Phase 3: Update status to extracting_text
+    await supabaseClient
+      .from('reports')
+      .update({
+        processing_phase: 'extracting_text',
+        progress_percentage: 30
+      })
+      .eq('id', reportId)
 
     // Try to get custom prompt first, fallback to default prompts
     console.log('🔍 CUSTOM PROMPT DEBUG: Attempting to fetch custom prompt...');
@@ -1712,6 +1591,15 @@ serve(async (req) => {
       if (!extractedText.trim()) {
         throw new Error('Unable to extract text from PDF. Please ensure the PDF contains readable text or try uploading it as an image instead.');
       } else {
+        // Phase 4: Update status to parsing_data  
+        await supabaseClient
+          .from('reports')
+          .update({
+            processing_phase: 'parsing_data',
+            progress_percentage: 50
+          })
+          .eq('id', reportId)
+        
         // Use optimized document processing
         console.log('Using extracted text for optimized processing');
         
@@ -1723,6 +1611,15 @@ serve(async (req) => {
     } else if (isImageFile(report.file_type)) {
       // Handle image files with vision API
       console.log('Processing image file with vision API')
+      
+      // Phase 4: Update status to parsing_data  
+      await supabaseClient
+        .from('reports')
+        .update({
+          processing_phase: 'parsing_data',
+          progress_percentage: 50
+        })
+        .eq('id', reportId)
       
       const arrayBuffer = await fileData.arrayBuffer()
       const bytes = new Uint8Array(arrayBuffer)
@@ -1806,6 +1703,26 @@ serve(async (req) => {
       console.log('Fallback parsing result:', parsedData);
     }
 
+    // Enhanced document type classification
+    let enhancedReportType = parsedData?.reportType || 'general'
+    if (enhancedReportType === 'custom' || enhancedReportType === 'general') {
+      // Improve classification based on content analysis
+      const textLower = aiResponse.toLowerCase()
+      const testCount = (parsedData?.tests || []).length
+      const medCount = (parsedData?.medications || []).length
+      const vitalCount = (parsedData?.vitals || []).length
+      
+      if (testCount >= 2 || textLower.includes('hemoglobin') || textLower.includes('glucose') || textLower.includes('creatinine')) {
+        enhancedReportType = 'lab'
+      } else if (medCount >= 1 || textLower.includes('prescription') || textLower.includes('pharmacy')) {
+        enhancedReportType = 'prescription'
+      } else if (vitalCount >= 1 || textLower.includes('blood pressure') || textLower.includes('temperature')) {
+        enhancedReportType = 'vitals'
+      }
+      
+      console.log(`📋 Enhanced classification: ${parsedData?.reportType} → ${enhancedReportType}`)
+    }
+
     // Generate intelligent document name with CBP detection
     let finalDocumentName = suggestedName
     if (!finalDocumentName) {
@@ -1822,20 +1739,30 @@ serve(async (req) => {
         .substring(0, 200) // Limit length
     }
 
+    // Phase 5: Update status to creating_fhir_resources
+    await supabaseClient
+      .from('reports')
+      .update({
+        processing_phase: 'creating_fhir_resources',
+        progress_percentage: 70
+      })
+      .eq('id', reportId)
+
     // Update report with results including the intelligent name
     const updateFields: any = {
-      parsing_status: 'completed',
       extracted_text: aiResponse,
       parsed_data: parsedData,
       parsing_confidence: confidence,
       parsing_model: 'gpt-4o-mini',
       processing_error: null,
-      report_type: reportType  // Ensure report type is updated (will be "custom" if using custom prompt)
+      report_type: enhancedReportType,
+      physician_name: parsedData?.orderingPhysician || parsedData?.prescriber || parsedData?.provider || report.physician_name,
+      facility_name: parsedData?.facility || parsedData?.pharmacy || report.facility_name,
+      progress_percentage: 80
     }
     
-    console.log('🔍 CUSTOM PROMPT DEBUG: Updating report with fields:', {
-      report_type: reportType,
-      parsing_status: 'completed',
+    console.log('🔍 Enhanced processing DEBUG: Updating report with fields:', {
+      report_type: enhancedReportType,
       has_parsed_data: !!parsedData,
       confidence: confidence
     });
@@ -1856,54 +1783,121 @@ serve(async (req) => {
 
     console.log('Document processing completed successfully')
     
-    // Phase 1: Create FHIR resources after successful parsing - CRITICAL STEP
+    // Phase 6: Create FHIR resources after successful parsing - CRITICAL STEP
     console.log('Starting FHIR resource creation...');
-    await createFHIRResourcesFromParsedData(
-      supabaseClient, 
-      parsedData, 
-      report, 
-      reportId
-    );
-    console.log('FHIR resources created successfully');
     
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        parsedData,
-        confidence,
-        processingTime: Date.now()
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    try {
+      const fhirResult = await createFHIRResourcesFromParsedData(
+        supabaseClient, 
+        parsedData, 
+        report, 
+        reportId
+      );
+      
+      console.log(`✅ FHIR processing complete. Created ${fhirResult.totalCreated} resources.`);
+      
+      // Phase 7: Mark as completed
+      await supabaseClient
+        .from('reports')
+        .update({
+          parsing_status: 'completed',
+          processing_phase: 'completed',
+          progress_percentage: 100
+        })
+        .eq('id', reportId)
+      
+      // Release processing lock
+      await supabaseClient.rpc('release_processing_lock', {
+        report_id_param: reportId,
+        final_status: 'completed'
+      })
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          parsedData: parsedData,
+          confidence: confidence,
+          extractedText: aiResponse.substring(0, 500) + '...',
+          processingTime: Date.now(),
+          fhirResourcesCreated: fhirResult.totalCreated
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+      
+    } catch (fhirError) {
+      console.error('❌ FHIR creation failed but parsing succeeded:', fhirError)
+      
+      // Mark parsing as completed even if FHIR fails (partial success)
+      await supabaseClient
+        .from('reports')
+        .update({
+          parsing_status: 'completed',
+          processing_phase: 'completed',
+          progress_percentage: 90, // Not 100% due to FHIR failure
+          processing_error: `FHIR creation failed: ${fhirError.message}`
+        })
+        .eq('id', reportId)
+      
+      // Release processing lock
+      await supabaseClient.rpc('release_processing_lock', {
+        report_id_param: reportId,
+        final_status: 'completed'
+      })
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          parsedData: parsedData,
+          confidence: confidence,
+          extractedText: aiResponse.substring(0, 500) + '...',
+          processingTime: Date.now(),
+          fhirResourcesCreated: 0,
+          warning: 'Document parsed successfully but FHIR creation failed'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
 
   } catch (error) {
-    console.error('Document processing error:', error)
+    console.error('❌ Enhanced processing error:', error)
     
-    if (reportId) {
+    // Always attempt to release lock and update error state
+    if (reportId && supabaseClient) {
       try {
-        const supabaseClient = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-          { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-        )
-        
         await supabaseClient
           .from('reports')
           .update({
             parsing_status: 'failed',
-            processing_error: error.message
+            processing_phase: 'failed',
+            processing_error: error.message,
+            error_category: error.message.includes('timeout') ? 'temporary' : 'permanent'
           })
           .eq('id', reportId)
-      } catch (updateError) {
-        console.error('Failed to update error status:', updateError)
+          
+        await supabaseClient.rpc('release_processing_lock', {
+          report_id_param: reportId,
+          final_status: 'failed'
+        })
+        
+        console.log('🔓 Released processing lock due to error')
+      } catch (cleanupError) {
+        console.error('Failed to cleanup after error:', cleanupError)
       }
     }
-
+    
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { 
+      JSON.stringify({
+        success: false,
+        error: error.message,
+        details: error.toString()
+      }),
+      {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
   }
