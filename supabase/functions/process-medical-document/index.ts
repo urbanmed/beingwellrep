@@ -1579,13 +1579,14 @@ serve(async (req) => {
       prompt = getPromptForReportType(report.report_type);
     }
     let aiResponse: string = ''
+    let extractedText: string = '' // Make extractedText available in broader scope
 
     if (isPDFFile(report.file_type)) {
       // Handle PDF files with text extraction
       console.log('Processing PDF file with text extraction')
       
       const arrayBuffer = await fileData.arrayBuffer()
-      let extractedText = await extractTextFromPDF(arrayBuffer)
+      extractedText = await extractTextFromPDF(arrayBuffer)
       
       // If text extraction fails or returns empty, throw an error
       if (!extractedText.trim()) {
@@ -1759,9 +1760,13 @@ serve(async (req) => {
     // Enhanced field-by-field update with data safeguards
     console.log('Starting enhanced database update with validation...');
     
-    // Phase 1: Validate and prepare data
-    const extractedTextSafe = typeof aiResponse === 'string' ? 
-      (aiResponse.length > 50000 ? aiResponse.substring(0, 50000) + '...[truncated]' : aiResponse) : '';
+    // Phase 1: Validate and prepare data (FIXED: Use original extractedText, not aiResponse)
+    console.log(`📊 Text lengths - Original PDF: ${extractedText?.length || 0}, AI Response: ${aiResponse?.length || 0}`);
+    
+    // Use original extracted text for database storage (with size limit for database)
+    const extractedTextSafe = extractedText && extractedText.length > 0 ? 
+      (extractedText.length > 50000 ? extractedText.substring(0, 50000) + '...[truncated due to size]' : extractedText) : 
+      (aiResponse || ''); // Fallback to aiResponse only if no original text available
       
     let parsedDataSafe = null;
     try {
@@ -1802,6 +1807,12 @@ serve(async (req) => {
         name: 'Extracted text',
         fields: {
           extracted_text: extractedTextSafe
+        },
+        validation: () => {
+          if (!extractedTextSafe || extractedTextSafe.length < 50) {
+            console.warn('⚠️ Suspiciously short extracted text:', extractedTextSafe?.length || 0, 'characters');
+          }
+          return true;
         }
       },
       {
@@ -1824,6 +1835,12 @@ serve(async (req) => {
     for (const step of updateSteps) {
       try {
         console.log(`📝 Updating: ${step.name}`);
+        
+        // Run validation if available
+        if (step.validation && !step.validation()) {
+          console.warn(`⚠️ Validation failed for ${step.name}, but continuing with update`);
+        }
+        
         const { error: stepError } = await supabaseClient
           .from('reports')
           .update(step.fields)
@@ -1847,6 +1864,17 @@ serve(async (req) => {
         }
         
         console.log(`✅ Successfully updated: ${step.name}`);
+        
+        // Add monitoring for extraction completeness
+        if (step.name === 'Extracted text') {
+          const textLength = extractedTextSafe?.length || 0;
+          const originalLength = extractedText?.length || 0;
+          console.log(`📊 Text extraction metrics - Original: ${originalLength}, Stored: ${textLength}, Efficiency: ${originalLength > 0 ? Math.round((textLength / originalLength) * 100) : 0}%`);
+          
+          if (originalLength > 0 && textLength < originalLength * 0.5) {
+            console.warn('⚠️ Significant text truncation detected - may indicate incomplete extraction');
+          }
+        }
       } catch (stepError) {
         console.error(`❌ Critical error in ${step.name}:`, stepError);
         throw stepError;
