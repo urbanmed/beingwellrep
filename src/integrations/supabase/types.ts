@@ -487,6 +487,341 @@ export type Database = {
         }
         Relationships: []
       }
+      fhir_care_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          fhir_id: string
+          id: string
+          intent: string
+          patient_fhir_id: string
+          period_end: string | null
+          period_start: string | null
+          resource_data: Json
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          fhir_id: string
+          id?: string
+          intent?: string
+          patient_fhir_id: string
+          period_end?: string | null
+          period_start?: string | null
+          resource_data: Json
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          fhir_id?: string
+          id?: string
+          intent?: string
+          patient_fhir_id?: string
+          period_end?: string | null
+          period_start?: string | null
+          resource_data?: Json
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fhir_care_plans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      fhir_diagnostic_reports: {
+        Row: {
+          created_at: string
+          effective_date_time: string | null
+          fhir_id: string
+          id: string
+          patient_fhir_id: string
+          report_type: string
+          resource_data: Json
+          source_report_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          effective_date_time?: string | null
+          fhir_id: string
+          id?: string
+          patient_fhir_id: string
+          report_type: string
+          resource_data: Json
+          source_report_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          effective_date_time?: string | null
+          fhir_id?: string
+          id?: string
+          patient_fhir_id?: string
+          report_type?: string
+          resource_data?: Json
+          source_report_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fhir_diagnostic_reports_source_report_id_fkey"
+            columns: ["source_report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fhir_diagnostic_reports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      fhir_encounters: {
+        Row: {
+          created_at: string
+          encounter_type: string
+          fhir_id: string
+          id: string
+          patient_fhir_id: string
+          period_end: string | null
+          period_start: string | null
+          resource_data: Json
+          source_note_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          encounter_type?: string
+          fhir_id: string
+          id?: string
+          patient_fhir_id: string
+          period_end?: string | null
+          period_start?: string | null
+          resource_data: Json
+          source_note_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          encounter_type?: string
+          fhir_id?: string
+          id?: string
+          patient_fhir_id?: string
+          period_end?: string | null
+          period_start?: string | null
+          resource_data?: Json
+          source_note_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fhir_encounters_source_note_id_fkey"
+            columns: ["source_note_id"]
+            isOneToOne: false
+            referencedRelation: "doctor_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fhir_encounters_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      fhir_medication_requests: {
+        Row: {
+          authored_on: string | null
+          created_at: string
+          fhir_id: string
+          id: string
+          intent: string
+          medication_name: string
+          patient_fhir_id: string
+          resource_data: Json
+          source_prescription_id: string | null
+          source_report_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          authored_on?: string | null
+          created_at?: string
+          fhir_id: string
+          id?: string
+          intent?: string
+          medication_name: string
+          patient_fhir_id: string
+          resource_data: Json
+          source_prescription_id?: string | null
+          source_report_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          authored_on?: string | null
+          created_at?: string
+          fhir_id?: string
+          id?: string
+          intent?: string
+          medication_name?: string
+          patient_fhir_id?: string
+          resource_data?: Json
+          source_prescription_id?: string | null
+          source_report_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fhir_medication_requests_source_prescription_id_fkey"
+            columns: ["source_prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fhir_medication_requests_source_report_id_fkey"
+            columns: ["source_report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fhir_medication_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      fhir_observations: {
+        Row: {
+          created_at: string
+          effective_date_time: string | null
+          fhir_id: string
+          id: string
+          observation_type: string
+          patient_fhir_id: string
+          resource_data: Json
+          source_report_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          effective_date_time?: string | null
+          fhir_id: string
+          id?: string
+          observation_type: string
+          patient_fhir_id: string
+          resource_data: Json
+          source_report_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          effective_date_time?: string | null
+          fhir_id?: string
+          id?: string
+          observation_type?: string
+          patient_fhir_id?: string
+          resource_data?: Json
+          source_report_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fhir_observations_source_report_id_fkey"
+            columns: ["source_report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fhir_observations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      fhir_patients: {
+        Row: {
+          created_at: string
+          fhir_id: string
+          id: string
+          resource_data: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fhir_id: string
+          id?: string
+          resource_data: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fhir_id?: string
+          id?: string
+          resource_data?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fhir_patients_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       health_insights: {
         Row: {
           action_items: string[] | null
@@ -902,6 +1237,12 @@ export type Database = {
       }
       profiles: {
         Row: {
+          abha_consent_date: string | null
+          abha_consent_given: boolean | null
+          abha_id: string | null
+          abha_last_sync: string | null
+          abha_linked_at: string | null
+          abha_sync_status: string | null
           accessibility_needs: string[] | null
           address: string | null
           avatar_url: string | null
@@ -931,6 +1272,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          abha_consent_date?: string | null
+          abha_consent_given?: boolean | null
+          abha_id?: string | null
+          abha_last_sync?: string | null
+          abha_linked_at?: string | null
+          abha_sync_status?: string | null
           accessibility_needs?: string[] | null
           address?: string | null
           avatar_url?: string | null
@@ -960,6 +1307,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          abha_consent_date?: string | null
+          abha_consent_given?: boolean | null
+          abha_id?: string | null
+          abha_last_sync?: string | null
+          abha_linked_at?: string | null
+          abha_sync_status?: string | null
           accessibility_needs?: string[] | null
           address?: string | null
           avatar_url?: string | null
