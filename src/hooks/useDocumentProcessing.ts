@@ -53,7 +53,17 @@ export function useDocumentProcessing() {
         if (error) throw error;
 
         if (!data.success) {
-          throw new Error(data.error || 'Document processing failed');
+          // Enhanced error handling with more specific messages
+          const errorMessage = data.error || 'Document processing failed';
+          
+          // Check if it's a recoverable error
+          if (errorMessage.includes('Data issue in') || errorMessage.includes('truncated')) {
+            console.warn('⚠️ Recoverable processing issue:', errorMessage);
+            // Still throw error but with different handling
+            throw new Error(`Processing completed with warnings: ${errorMessage}`);
+          }
+          
+          throw new Error(errorMessage);
         }
 
       // Validate the parsed data if available

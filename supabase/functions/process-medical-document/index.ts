@@ -1748,37 +1748,101 @@ serve(async (req) => {
       })
       .eq('id', reportId)
 
-    // Update report with results including the intelligent name
-    const updateFields: any = {
-      extracted_text: aiResponse,
-      parsed_data: parsedData,
-      parsing_confidence: confidence,
-      parsing_model: 'gpt-4o-mini',
-      processing_error: null,
-      report_type: enhancedReportType,
-      physician_name: parsedData?.orderingPhysician || parsedData?.prescriber || parsedData?.provider || report.physician_name,
-      facility_name: parsedData?.facility || parsedData?.pharmacy || report.facility_name,
-      progress_percentage: 80
-    }
+    // Enhanced field-by-field update with data safeguards
+    console.log('Starting enhanced database update with validation...');
     
-    console.log('🔍 Enhanced processing DEBUG: Updating report with fields:', {
-      report_type: enhancedReportType,
-      has_parsed_data: !!parsedData,
-      confidence: confidence
-    });
-
-    // Only update title if we have a meaningful name
-    if (finalDocumentName && finalDocumentName !== 'Processing...') {
-      updateFields.title = finalDocumentName
+    // Phase 1: Validate and prepare data
+    const extractedTextSafe = typeof aiResponse === 'string' ? 
+      (aiResponse.length > 50000 ? aiResponse.substring(0, 50000) + '...[truncated]' : aiResponse) : '';
+      
+    let parsedDataSafe = null;
+    try {
+      // Validate JSON structure and size
+      const jsonString = JSON.stringify(parsedData);
+      if (jsonString.length > 1000000) { // 1MB limit
+        console.warn('⚠️ Parsed data too large, creating summary version');
+        parsedDataSafe = {
+          reportType: parsedData?.reportType || 'unknown',
+          summary: 'Data truncated due to size - processing completed successfully',
+          originalSize: jsonString.length
+        };
+      } else {
+        parsedDataSafe = parsedData;
+      }
+    } catch (jsonError) {
+      console.error('❌ JSON validation failed:', jsonError);
+      parsedDataSafe = {
+        reportType: enhancedReportType,
+        error: 'Invalid JSON structure detected',
+        rawDataAvailable: false
+      };
     }
 
-    const { error: updateError } = await supabaseClient
-      .from('reports')
-      .update(updateFields)
-      .eq('id', reportId)
+    // Phase 2: Update fields one by one with error handling
+    const updateSteps = [
+      {
+        name: 'Basic parsing results',
+        fields: {
+          parsing_confidence: confidence,
+          parsing_model: 'gpt-4o-mini',
+          processing_error: null,
+          report_type: enhancedReportType,
+          progress_percentage: 60
+        }
+      },
+      {
+        name: 'Extracted text',
+        fields: {
+          extracted_text: extractedTextSafe
+        }
+      },
+      {
+        name: 'Parsed data',
+        fields: {
+          parsed_data: parsedDataSafe
+        }
+      },
+      {
+        name: 'Document metadata',
+        fields: {
+          physician_name: parsedData?.orderingPhysician || parsedData?.prescriber || parsedData?.provider || report.physician_name,
+          facility_name: parsedData?.facility || parsedData?.pharmacy || report.facility_name,
+          title: finalDocumentName && finalDocumentName !== 'Processing...' ? finalDocumentName : report.title,
+          progress_percentage: 80
+        }
+      }
+    ];
 
-    if (updateError) {
-      throw new Error('Failed to update report with parsing results')
+    for (const step of updateSteps) {
+      try {
+        console.log(`📝 Updating: ${step.name}`);
+        const { error: stepError } = await supabaseClient
+          .from('reports')
+          .update(step.fields)
+          .eq('id', reportId);
+
+        if (stepError) {
+          console.error(`❌ Database error in ${step.name}:`, {
+            code: stepError.code,
+            message: stepError.message,
+            details: stepError.details,
+            hint: stepError.hint
+          });
+          
+          // Try to continue with other fields unless it's a critical error
+          if (stepError.code === '22001' || stepError.code === '22P02') {
+            console.warn(`⚠️ Data issue in ${step.name}, skipping this update`);
+            continue;
+          }
+          
+          throw new Error(`Database update failed at ${step.name}: ${stepError.message} (Code: ${stepError.code})`);
+        }
+        
+        console.log(`✅ Successfully updated: ${step.name}`);
+      } catch (stepError) {
+        console.error(`❌ Critical error in ${step.name}:`, stepError);
+        throw stepError;
+      }
     }
 
     console.log('Document processing completed successfully')
