@@ -187,18 +187,25 @@ const transformSectionsToFHIRFormat = (data: any): any => {
       // Extract lab tests from sections
       data.tests = [];
       data.sections.forEach(section => {
-        if (section.content && Array.isArray(section.content)) {
-          section.content.forEach(item => {
-            if (item.name && item.value) {
-              data.tests.push({
-                name: item.name,
-                value: item.value,
-                unit: item.unit || '',
-                referenceRange: item.referenceRange || item.normalRange || '',
-                status: item.status || 'normal'
-              });
-            }
-          });
+        if (!section || !section.content) return;
+        
+        // Handle different content structures
+        const processContent = (content: any) => {
+          if (content.name && content.value) {
+            data.tests.push({
+              name: content.name,
+              value: content.value,
+              unit: content.unit || '',
+              referenceRange: content.referenceRange || content.normalRange || '',
+              status: content.status || 'normal'
+            });
+          }
+        };
+
+        if (Array.isArray(section.content)) {
+          section.content.forEach(processContent);
+        } else if (typeof section.content === 'object') {
+          processContent(section.content);
         }
       });
       console.log(`Transformed ${data.tests.length} lab tests from sections`);
@@ -208,18 +215,25 @@ const transformSectionsToFHIRFormat = (data: any): any => {
       // Extract medications from sections
       data.medications = [];
       data.sections.forEach(section => {
-        if (section.content && Array.isArray(section.content)) {
-          section.content.forEach(item => {
-            if (item.medication || item.name) {
-              data.medications.push({
-                name: item.medication || item.name,
-                dosage: item.dosage || item.dose || '',
-                frequency: item.frequency || '',
-                duration: item.duration || '',
-                instructions: item.instructions || ''
-              });
-            }
-          });
+        if (!section || !section.content) return;
+        
+        // Handle different content structures
+        const processContent = (content: any) => {
+          if (content.medication || content.name) {
+            data.medications.push({
+              name: content.medication || content.name,
+              dosage: content.dosage || content.dose || '',
+              frequency: content.frequency || '',
+              duration: content.duration || '',
+              instructions: content.instructions || ''
+            });
+          }
+        };
+
+        if (Array.isArray(section.content)) {
+          section.content.forEach(processContent);
+        } else if (typeof section.content === 'object') {
+          processContent(section.content);
         }
       });
       console.log(`Transformed ${data.medications.length} medications from sections`);
@@ -229,17 +243,24 @@ const transformSectionsToFHIRFormat = (data: any): any => {
       // Extract vitals from sections
       data.vitals = [];
       data.sections.forEach(section => {
-        if (section.content && Array.isArray(section.content)) {
-          section.content.forEach(item => {
-            if (item.type && item.value) {
-              data.vitals.push({
-                type: item.type,
-                value: item.value,
-                unit: item.unit || '',
-                timestamp: item.timestamp || data.recordDate || new Date().toISOString()
-              });
-            }
-          });
+        if (!section || !section.content) return;
+        
+        // Handle different content structures
+        const processContent = (content: any) => {
+          if (content.type && content.value) {
+            data.vitals.push({
+              type: content.type,
+              value: content.value,
+              unit: content.unit || '',
+              timestamp: content.timestamp || data.recordDate || new Date().toISOString()
+            });
+          }
+        };
+
+        if (Array.isArray(section.content)) {
+          section.content.forEach(processContent);
+        } else if (typeof section.content === 'object') {
+          processContent(section.content);
         }
       });
       console.log(`Transformed ${data.vitals.length} vitals from sections`);
@@ -1034,22 +1055,48 @@ const createFHIRResourcesFromParsedData = async (
         console.log('Created FHIR diagnostic report for general document');
         
         // Also check if there are any extractable lab tests or medications in sections
-        if (parsedData.sections && parsedData.sections.length > 0) {
-          const hasLabData = parsedData.sections.some(s => 
-            s.content && s.content.some(c => c.name && c.value));
-          const hasMedData = parsedData.sections.some(s => 
-            s.content && s.content.some(c => c.medication || c.name));
-          
-          if (hasLabData) {
-            console.log('Found lab-like data in general document sections, creating observations...');
-            // Transform and create lab observations
-            const transformedData = { ...parsedData, reportType: 'lab' };
-            const labData = transformSectionsToFHIRFormat(transformedData);
-            if (labData.tests && labData.tests.length > 0) {
-              await createFHIRObservationsFromLab(supabaseClient, labData, patientFhirId, reportId);
-              fhirResourcesCreated++;
-              console.log(`Created ${labData.tests.length} additional FHIR observations from general document`);
+        if (parsedData.sections && Array.isArray(parsedData.sections) && parsedData.sections.length > 0) {
+          try {
+            // Safe validation for lab data with proper array checking
+            const hasLabData = parsedData.sections.some(s => {
+              if (!s || !s.content) return false;
+              
+              // Handle different content types
+              if (Array.isArray(s.content)) {
+                return s.content.some(c => c && c.name && c.value);
+              } else if (typeof s.content === 'object') {
+                return s.content.name && s.content.value;
+              }
+              return false;
+            });
+
+            // Safe validation for medication data with proper array checking
+            const hasMedData = parsedData.sections.some(s => {
+              if (!s || !s.content) return false;
+              
+              // Handle different content types
+              if (Array.isArray(s.content)) {
+                return s.content.some(c => c && (c.medication || c.name));
+              } else if (typeof s.content === 'object') {
+                return s.content.medication || s.content.name;
+              }
+              return false;
+            });
+            
+            if (hasLabData) {
+              console.log('Found lab-like data in general document sections, creating observations...');
+              // Transform and create lab observations
+              const transformedData = { ...parsedData, reportType: 'lab' };
+              const labData = transformSectionsToFHIRFormat(transformedData);
+              if (labData.tests && labData.tests.length > 0) {
+                await createFHIRObservationsFromLab(supabaseClient, labData, patientFhirId, reportId);
+                fhirResourcesCreated++;
+                console.log(`Created ${labData.tests.length} additional FHIR observations from general document`);
+              }
             }
+          } catch (sectionError) {
+            console.warn('Error processing sections for additional FHIR resources:', sectionError);
+            // Continue processing - don't fail the entire document for section parsing issues
           }
         }
         break;
