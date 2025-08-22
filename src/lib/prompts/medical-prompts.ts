@@ -9,7 +9,26 @@ CRITICAL: You must also generate an intelligent document name based on the conte
 
 The document name must be included in your JSON response under the "suggestedName" field.`;
 
-export const LAB_RESULTS_PROMPT = `Extract structured data from this lab results document with proper hierarchical organization.
+export const LAB_RESULTS_PROMPT = `Extract ALL structured data from this lab results document with comprehensive medical analysis.
+
+CRITICAL: YOU MUST FIND AND EXTRACT ALL TEST RESULTS - DO NOT MISS ANY!
+
+MANDATORY TEST CATEGORIES TO SEARCH FOR:
+- Complete Blood Count/Picture (CBC/CBP): WBC, RBC, Hemoglobin, Hematocrit, Platelets, MCV, MCH, MCHC, RDW
+- Lipid Profile: Total Cholesterol, HDL, LDL, Triglycerides, VLDL, Cholesterol ratios
+- Electrolytes/Serum: Sodium, Potassium, Chloride, CO2, Anion Gap
+- Kidney Function: BUN, Creatinine, eGFR, BUN/Creatinine ratio
+- Liver Function: ALT, AST, ALP, Bilirubin, GGT, Albumin, Total Protein
+- Metabolic Panel: Glucose, A1C, Fasting glucose
+- Thyroid Function: TSH, T3, T4, Free T3, Free T4
+- Cardiac Markers: Troponin, CK-MB, LDH
+- Inflammatory Markers: ESR, CRP, hs-CRP
+- Vitamins/Minerals: B12, D3, Folate, Iron, TIBC, Ferritin, Calcium, Phosphorus, Magnesium
+- Hormones: Insulin, Cortisol, Testosterone, Estradiol
+- Coagulation: PT, PTT, INR
+- Urinalysis: Protein, Glucose, Ketones, Blood, Specific gravity, Microscopy
+- Immunology: ANA, RF, Anti-CCP
+- Tumor Markers: PSA, CEA, CA 19-9, CA 125
 
 CRITICAL NAMING RULES:
 - For COMPREHENSIVE panels (CBC, CBP, CMP, BMP, Lipid Panel, etc.) with 4+ related tests, name after the PANEL
@@ -18,6 +37,14 @@ CRITICAL NAMING RULES:
 - If 4+ blood-related tests are present, it's likely a CBP/CBC regardless of individual test names
 - For single/few tests: Use the specific test name
 - Prioritize test QUANTITY, medical comprehensiveness, and clinical panel recognition over individual mentions
+
+DOCUMENT SCANNING INSTRUCTIONS:
+- Scan the ENTIRE document from beginning to end
+- Look for test results in tables, lists, and narrative text
+- Check for multiple test sections/departments (e.g., Clinical Chemistry, Hematology, Immunology)
+- Extract tests even if they appear in different formats or sections
+- Pay attention to reference ranges, units, and status indicators
+- Don't skip any test results - capture everything you can find
 
 Return JSON in this exact format:
 

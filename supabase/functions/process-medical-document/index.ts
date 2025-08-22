@@ -725,14 +725,40 @@ const processDocumentWithLimitedChunking = async (
   };
 };
 
-// Process individual chunk
+// Process individual chunk with comprehensive medical scanning
 const processSingleChunk = async (
   chunkText: string,
   prompt: string,
   openaiApiKey: string,
   chunkIndex: number
 ): Promise<any> => {
-  const chunkPrompt = `${prompt}\n\nThis is chunk ${chunkIndex} of a larger document. Extract any medical data you find and return it in the specified JSON format. If this chunk doesn't contain complete medical information, extract whatever relevant data you can find.\n\nDocument chunk:\n${chunkText}`;
+  const enhancedChunkPrompt = `${prompt}
+
+🚨 CRITICAL COMPREHENSIVE SCANNING INSTRUCTIONS FOR CHUNK ${chunkIndex} 🚨
+
+You are processing chunk ${chunkIndex} of a larger medical document. This chunk may contain CRITICAL LAB RESULTS that must not be missed.
+
+MANDATORY ACTIONS FOR THIS CHUNK:
+1. Scan for ALL test results in this chunk - don't miss any!
+2. Look specifically for these common test categories:
+   - Complete Blood Count (CBC/CBP): WBC, RBC, Hemoglobin, Hematocrit, Platelets
+   - Lipid Profile: Cholesterol, HDL, LDL, Triglycerides
+   - Electrolytes: Sodium, Potassium, Chloride
+   - Kidney Function: BUN, Creatinine, eGFR
+   - Liver Function: ALT, AST, ALP, Bilirubin
+   - Thyroid: TSH, T3, T4
+   - Glucose/Diabetes: Fasting glucose, A1C
+   - Vitamins: B12, D3, Folate
+   - Iron studies: Iron, TIBC, Ferritin
+   - Any other lab values with reference ranges
+
+3. Extract patient demographics if present
+4. Capture facility/physician information if available
+5. Note collection dates, report dates
+6. Include reference ranges and status (normal/abnormal/high/low)
+
+CHUNK CONTENT TO ANALYZE:
+${chunkText}`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -772,15 +798,23 @@ const processSingleChunk = async (
   }
 };
 
-// Create limited number of chunks from large document
+// Create optimized chunks for comprehensive medical document processing
 const createLimitedChunks = (text: string, maxChunks: number): string[] => {
-  const chunkSize = Math.ceil(text.length / maxChunks);
+  // For medical documents, increase chunk count for better coverage
+  const optimalChunks = Math.min(maxChunks * 2, 6); // Allow up to 6 chunks for better coverage
+  const chunkSize = Math.ceil(text.length / optimalChunks);
   const chunks = [];
   
-  for (let i = 0; i < maxChunks && i * chunkSize < text.length; i++) {
+  console.log(`Creating ${optimalChunks} chunks from ${text.length} characters (${chunkSize} chars per chunk)`);
+  
+  for (let i = 0; i < optimalChunks && i * chunkSize < text.length; i++) {
     const start = i * chunkSize;
     const end = Math.min(start + chunkSize + PROCESSING_CONFIG.MAX_OVERLAP, text.length);
-    chunks.push(text.substring(start, end));
+    const chunk = text.substring(start, end);
+    
+    // Add chunk boundaries logging
+    console.log(`Chunk ${i + 1}: ${start}-${end} (${chunk.length} chars)`);
+    chunks.push(chunk);
   }
   
   return chunks;
@@ -855,6 +889,13 @@ const mergeChunkResults = (chunkResults: any[]): any => {
   
   baseResult.processingNote = `Merged from ${successfulResults.length} chunks`;
   
+  // Add completeness validation
+  const completenessCheck = validateLabResultsCompleteness(baseResult);
+  if (completenessCheck.warnings.length > 0) {
+    baseResult.completenessWarnings = completenessCheck.warnings;
+    console.log('⚠️ Completeness warnings:', completenessCheck.warnings);
+  }
+  
   console.log(`Merge complete: ${baseResult.tests?.length || 0} tests, ${baseResult.medications?.length || 0} medications`);
   
   return baseResult;
@@ -890,6 +931,47 @@ const removeDuplicateMedications = (medications: any[]): any[] => {
   });
   
   return uniqueMeds;
+};
+
+// Validate completeness of lab results extraction
+const validateLabResultsCompleteness = (parsedData: any): { isComplete: boolean; warnings: string[] } => {
+  const warnings: string[] = [];
+  
+  if (parsedData.reportType === 'lab' && parsedData.tests) {
+    const testNames = parsedData.tests.map(t => t.name?.toLowerCase() || '').join(' ');
+    
+    // Check for common missing test categories
+    const expectedCategories = [
+      { category: 'Lipid Profile', keywords: ['cholesterol', 'hdl', 'ldl', 'triglyceride'], found: false },
+      { category: 'Electrolytes', keywords: ['sodium', 'potassium', 'chloride'], found: false },
+      { category: 'Kidney Function', keywords: ['bun', 'creatinine', 'egfr'], found: false },
+      { category: 'Liver Function', keywords: ['alt', 'ast', 'alp', 'bilirubin'], found: false },
+      { category: 'Complete Blood Count', keywords: ['wbc', 'rbc', 'hemoglobin', 'hematocrit', 'platelet'], found: false },
+      { category: 'Thyroid Function', keywords: ['tsh', 't3', 't4'], found: false }
+    ];
+    
+    // Check which categories are present
+    expectedCategories.forEach(category => {
+      category.found = category.keywords.some(keyword => testNames.includes(keyword));
+    });
+    
+    // Generate warnings for missing categories
+    const missingCategories = expectedCategories.filter(cat => !cat.found).map(cat => cat.category);
+    if (missingCategories.length > 0) {
+      warnings.push(`Potentially missing test categories: ${missingCategories.join(', ')}`);
+    }
+    
+    // Warn if test count seems low for document size
+    const testCount = parsedData.tests.length;
+    if (testCount < 5) {
+      warnings.push(`Low test count (${testCount}) - document may contain more tests`);
+    }
+  }
+  
+  return {
+    isComplete: warnings.length === 0,
+    warnings
+  };
 };
 
 const extractTextFromPDF = async (pdfBuffer: ArrayBuffer): Promise<string> => {
