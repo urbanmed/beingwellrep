@@ -1347,6 +1347,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          error_category: string | null
           extracted_text: string | null
           extraction_confidence: number | null
           facility_name: string | null
@@ -1357,6 +1358,9 @@ export type Database = {
           file_url: string | null
           id: string
           is_critical: boolean | null
+          last_retry_at: string | null
+          lock_expires_at: string | null
+          max_retries: number | null
           notes: string | null
           parsed_data: Json | null
           parsing_confidence: number | null
@@ -1364,8 +1368,13 @@ export type Database = {
           parsing_status: string | null
           physician_name: string | null
           processing_error: string | null
+          processing_lock: string | null
+          processing_phase: string | null
+          processing_started_at: string | null
+          progress_percentage: number | null
           report_date: string
           report_type: string | null
+          retry_count: number | null
           tags: string[] | null
           title: string | null
           updated_at: string
@@ -1374,6 +1383,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          error_category?: string | null
           extracted_text?: string | null
           extraction_confidence?: number | null
           facility_name?: string | null
@@ -1384,6 +1394,9 @@ export type Database = {
           file_url?: string | null
           id?: string
           is_critical?: boolean | null
+          last_retry_at?: string | null
+          lock_expires_at?: string | null
+          max_retries?: number | null
           notes?: string | null
           parsed_data?: Json | null
           parsing_confidence?: number | null
@@ -1391,8 +1404,13 @@ export type Database = {
           parsing_status?: string | null
           physician_name?: string | null
           processing_error?: string | null
+          processing_lock?: string | null
+          processing_phase?: string | null
+          processing_started_at?: string | null
+          progress_percentage?: number | null
           report_date: string
           report_type?: string | null
+          retry_count?: number | null
           tags?: string[] | null
           title?: string | null
           updated_at?: string
@@ -1401,6 +1419,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          error_category?: string | null
           extracted_text?: string | null
           extraction_confidence?: number | null
           facility_name?: string | null
@@ -1411,6 +1430,9 @@ export type Database = {
           file_url?: string | null
           id?: string
           is_critical?: boolean | null
+          last_retry_at?: string | null
+          lock_expires_at?: string | null
+          max_retries?: number | null
           notes?: string | null
           parsed_data?: Json | null
           parsing_confidence?: number | null
@@ -1418,8 +1440,13 @@ export type Database = {
           parsing_status?: string | null
           physician_name?: string | null
           processing_error?: string | null
+          processing_lock?: string | null
+          processing_phase?: string | null
+          processing_started_at?: string | null
+          progress_percentage?: number | null
           report_date?: string
           report_type?: string | null
+          retry_count?: number | null
           tags?: string[] | null
           title?: string | null
           updated_at?: string
@@ -1730,6 +1757,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      acquire_processing_lock: {
+        Args: { report_id_param: string }
+        Returns: boolean
+      }
+      cleanup_expired_processing_locks: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1740,6 +1775,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      release_processing_lock: {
+        Args: { final_status?: string; report_id_param: string }
+        Returns: undefined
       }
     }
     Enums: {
