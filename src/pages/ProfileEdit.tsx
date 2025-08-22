@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ProfilePhotoUpload } from "@/components/profile/ProfilePhotoUpload";
+import { ABHASection } from "@/components/profile/ABHASection";
 import { cn } from "@/lib/utils";
 import { FloatingUploadButton } from "@/components/vault/FloatingUploadButton";
 
@@ -200,11 +201,12 @@ export default function ProfileEdit() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="medical">Medical</TabsTrigger>
                 <TabsTrigger value="emergency">Emergency</TabsTrigger>
                 <TabsTrigger value="privacy">Privacy</TabsTrigger>
+                <TabsTrigger value="health-id">Health ID</TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="space-y-6">
@@ -738,6 +740,10 @@ export default function ProfileEdit() {
                     />
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="health-id" className="space-y-6">
+                <ABHASection />
               </TabsContent>
             </Tabs>
 
