@@ -1703,7 +1703,9 @@ serve(async (req) => {
       console.log('Fallback parsing result:', parsedData);
     }
 
-    // Enhanced document type classification
+    // Enhanced document type classification with validation
+    const VALID_REPORT_TYPES = ['lab_results', 'prescription', 'radiology', 'vitals', 'discharge_summary', 'consultation', 'general', 'custom'];
+    
     let enhancedReportType = parsedData?.reportType || 'general'
     if (enhancedReportType === 'custom' || enhancedReportType === 'general') {
       // Improve classification based on content analysis
@@ -1713,7 +1715,7 @@ serve(async (req) => {
       const vitalCount = (parsedData?.vitals || []).length
       
       if (testCount >= 2 || textLower.includes('hemoglobin') || textLower.includes('glucose') || textLower.includes('creatinine')) {
-        enhancedReportType = 'lab'
+        enhancedReportType = 'lab_results'  // Fixed: was 'lab', now 'lab_results'
       } else if (medCount >= 1 || textLower.includes('prescription') || textLower.includes('pharmacy')) {
         enhancedReportType = 'prescription'
       } else if (vitalCount >= 1 || textLower.includes('blood pressure') || textLower.includes('temperature')) {
@@ -1721,6 +1723,12 @@ serve(async (req) => {
       }
       
       console.log(`📋 Enhanced classification: ${parsedData?.reportType} → ${enhancedReportType}`)
+    }
+
+    // Validate report type against database constraints
+    if (!VALID_REPORT_TYPES.includes(enhancedReportType)) {
+      console.warn(`⚠️ Invalid report type "${enhancedReportType}", falling back to 'general'`);
+      enhancedReportType = 'general';
     }
 
     // Generate intelligent document name with CBP detection
