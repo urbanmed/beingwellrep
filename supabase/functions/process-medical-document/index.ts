@@ -170,6 +170,85 @@ Required JSON structure:`;
   }
 };
 
+// Transform sections-based data to expected FHIR format
+const transformSectionsToFHIRFormat = (data: any): any => {
+  if (!data) return data;
+  
+  // If data already has the expected format, return as-is
+  if (data.tests || data.medications || data.vitals) {
+    return enhanceStatusDetermination(data);
+  }
+  
+  // Transform sections to expected format based on report type
+  if (data.sections && Array.isArray(data.sections)) {
+    const reportType = data.reportType?.toLowerCase();
+    
+    if (reportType === 'lab' || reportType === 'lab_results') {
+      // Extract lab tests from sections
+      data.tests = [];
+      data.sections.forEach(section => {
+        if (section.content && Array.isArray(section.content)) {
+          section.content.forEach(item => {
+            if (item.name && item.value) {
+              data.tests.push({
+                name: item.name,
+                value: item.value,
+                unit: item.unit || '',
+                referenceRange: item.referenceRange || item.normalRange || '',
+                status: item.status || 'normal'
+              });
+            }
+          });
+        }
+      });
+      console.log(`Transformed ${data.tests.length} lab tests from sections`);
+    }
+    
+    if (reportType === 'prescription' || reportType === 'pharmacy') {
+      // Extract medications from sections
+      data.medications = [];
+      data.sections.forEach(section => {
+        if (section.content && Array.isArray(section.content)) {
+          section.content.forEach(item => {
+            if (item.medication || item.name) {
+              data.medications.push({
+                name: item.medication || item.name,
+                dosage: item.dosage || item.dose || '',
+                frequency: item.frequency || '',
+                duration: item.duration || '',
+                instructions: item.instructions || ''
+              });
+            }
+          });
+        }
+      });
+      console.log(`Transformed ${data.medications.length} medications from sections`);
+    }
+    
+    if (reportType === 'vitals' || reportType === 'vital_signs') {
+      // Extract vitals from sections
+      data.vitals = [];
+      data.sections.forEach(section => {
+        if (section.content && Array.isArray(section.content)) {
+          section.content.forEach(item => {
+            if (item.type && item.value) {
+              data.vitals.push({
+                type: item.type,
+                value: item.value,
+                unit: item.unit || '',
+                timestamp: item.timestamp || data.recordDate || new Date().toISOString()
+              });
+            }
+          });
+        }
+      });
+      console.log(`Transformed ${data.vitals.length} vitals from sections`);
+    }
+  }
+  
+  return enhanceStatusDetermination(data);
+};
+
 // Enhanced status determination logic
 const enhanceStatusDetermination = (data: any): any => {
   if (!data) return data;
@@ -893,41 +972,98 @@ const createFHIRResourcesFromParsedData = async (
   reportId: string
 ): Promise<void> => {
   if (!parsedData || !report.user_id) {
-    console.log('Skipping FHIR creation: Missing parsed data or user ID');
-    return;
+    throw new Error('Missing parsed data or user ID for FHIR creation');
   }
 
   console.log('Creating FHIR resources for report type:', parsedData.reportType);
+  console.log('Available data keys:', Object.keys(parsedData));
 
-  // 1. Ensure FHIR Patient exists
-  const patientFhirId = await ensureFHIRPatient(supabaseClient, report.user_id);
+  try {
+    // 1. Ensure FHIR Patient exists
+    const patientFhirId = await ensureFHIRPatient(supabaseClient, report.user_id);
 
-  // 2. Create appropriate FHIR resources based on report type
-  switch (parsedData.reportType?.toLowerCase()) {
-    case 'lab':
-    case 'lab_results':
-      await createFHIRObservationsFromLab(supabaseClient, parsedData, patientFhirId, reportId);
-      break;
+    // 2. Create appropriate FHIR resources based on report type
+    const reportType = parsedData.reportType?.toLowerCase();
+    let fhirResourcesCreated = 0;
+    
+    switch (reportType) {
+      case 'lab':
+      case 'lab_results':
+        if (parsedData.tests && parsedData.tests.length > 0) {
+          await createFHIRObservationsFromLab(supabaseClient, parsedData, patientFhirId, reportId);
+          fhirResourcesCreated++;
+          console.log(`Created FHIR observations for ${parsedData.tests.length} lab tests`);
+        } else {
+          console.warn('No lab tests found in parsed data for lab report');
+        }
+        break;
 
-    case 'prescription':
-    case 'pharmacy':
-      await createFHIRMedicationRequestsFromPrescription(supabaseClient, parsedData, patientFhirId, reportId);
-      break;
+      case 'prescription':
+      case 'pharmacy':
+        if (parsedData.medications && parsedData.medications.length > 0) {
+          await createFHIRMedicationRequestsFromPrescription(supabaseClient, parsedData, patientFhirId, reportId);
+          fhirResourcesCreated++;
+          console.log(`Created FHIR medication requests for ${parsedData.medications.length} medications`);
+        } else {
+          console.warn('No medications found in parsed data for prescription report');
+        }
+        break;
 
-    case 'vitals':
-    case 'vital_signs':
-      await createFHIRObservationsFromVitals(supabaseClient, parsedData, patientFhirId, reportId);
-      break;
+      case 'vitals':
+      case 'vital_signs':
+        if (parsedData.vitals && parsedData.vitals.length > 0) {
+          await createFHIRObservationsFromVitals(supabaseClient, parsedData, patientFhirId, reportId);
+          fhirResourcesCreated++;
+          console.log(`Created FHIR vital observations for ${parsedData.vitals.length} vitals`);
+        } else {
+          console.warn('No vitals found in parsed data for vitals report');
+        }
+        break;
 
-    case 'radiology':
-    case 'imaging':
-      await createFHIRDiagnosticReportFromRadiology(supabaseClient, parsedData, patientFhirId, reportId);
-      break;
+      case 'radiology':
+      case 'imaging':
+        await createFHIRDiagnosticReportFromRadiology(supabaseClient, parsedData, patientFhirId, reportId);
+        fhirResourcesCreated++;
+        console.log('Created FHIR diagnostic report for radiology');
+        break;
 
-    default:
-      // For general medical documents, create a basic DiagnosticReport
-      await createFHIRDiagnosticReportFromGeneral(supabaseClient, parsedData, patientFhirId, reportId);
-      break;
+      default:
+        // For general medical documents, create a basic DiagnosticReport
+        await createFHIRDiagnosticReportFromGeneral(supabaseClient, parsedData, patientFhirId, reportId);
+        fhirResourcesCreated++;
+        console.log('Created FHIR diagnostic report for general document');
+        
+        // Also check if there are any extractable lab tests or medications in sections
+        if (parsedData.sections && parsedData.sections.length > 0) {
+          const hasLabData = parsedData.sections.some(s => 
+            s.content && s.content.some(c => c.name && c.value));
+          const hasMedData = parsedData.sections.some(s => 
+            s.content && s.content.some(c => c.medication || c.name));
+          
+          if (hasLabData) {
+            console.log('Found lab-like data in general document sections, creating observations...');
+            // Transform and create lab observations
+            const transformedData = { ...parsedData, reportType: 'lab' };
+            const labData = transformSectionsToFHIRFormat(transformedData);
+            if (labData.tests && labData.tests.length > 0) {
+              await createFHIRObservationsFromLab(supabaseClient, labData, patientFhirId, reportId);
+              fhirResourcesCreated++;
+              console.log(`Created ${labData.tests.length} additional FHIR observations from general document`);
+            }
+          }
+        }
+        break;
+    }
+    
+    if (fhirResourcesCreated === 0) {
+      console.warn(`No FHIR resources created for report ${reportId} with type ${reportType}`);
+    } else {
+      console.log(`Successfully created ${fhirResourcesCreated} FHIR resource type(s) for report ${reportId}`);
+    }
+    
+  } catch (error) {
+    console.error('FHIR resource creation failed:', error);
+    throw new Error(`FHIR creation failed: ${error.message}`);
   }
 };
 
@@ -1031,9 +1167,10 @@ const createFHIRObservationsFromLab = async (
   reportId: string
 ): Promise<void> => {
   if (!parsedData.tests || !Array.isArray(parsedData.tests)) {
-    console.log('No tests found in lab data');
-    return;
+    throw new Error(`No tests array found in lab data. Available keys: ${Object.keys(parsedData)}`);
   }
+  
+  console.log(`Processing ${parsedData.tests.length} lab tests for FHIR creation`);
 
   for (let i = 0; i < parsedData.tests.length; i++) {
     const test = parsedData.tests[i];
@@ -1120,6 +1257,7 @@ const createFHIRObservationsFromLab = async (
 
     if (error) {
       console.error('Failed to create FHIR Observation:', error);
+      throw new Error(`FHIR Observation creation failed: ${error.message}`);
     } else {
       console.log('Created FHIR Observation:', observationId);
     }
@@ -1134,9 +1272,10 @@ const createFHIRMedicationRequestsFromPrescription = async (
   reportId: string
 ): Promise<void> => {
   if (!parsedData.medications || !Array.isArray(parsedData.medications)) {
-    console.log('No medications found in prescription data');
-    return;
+    throw new Error(`No medications array found in prescription data. Available keys: ${Object.keys(parsedData)}`);
   }
+  
+  console.log(`Processing ${parsedData.medications.length} medications for FHIR creation`);
 
   for (let i = 0; i < parsedData.medications.length; i++) {
     const med = parsedData.medications[i];
@@ -1193,6 +1332,7 @@ const createFHIRMedicationRequestsFromPrescription = async (
 
     if (error) {
       console.error('Failed to create FHIR MedicationRequest:', error);
+      throw new Error(`FHIR MedicationRequest creation failed: ${error.message}`);
     } else {
       console.log('Created FHIR MedicationRequest:', medicationRequestId);
     }
@@ -1606,8 +1746,8 @@ serve(async (req) => {
       confidence = parsedData.confidence || 0.8;
       suggestedName = parsedData.suggestedName;
       
-      // Enhance status determination if missing
-      parsedData = enhanceStatusDetermination(parsedData);
+      // Transform sections to FHIR format and enhance status determination
+      parsedData = transformSectionsToFHIRFormat(parsedData);
       
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
@@ -1615,6 +1755,7 @@ serve(async (req) => {
       
       // Try to extract meaningful data from the text response
       parsedData = extractDataFromTextResponse(aiResponse, report.report_type);
+      parsedData = transformSectionsToFHIRFormat(parsedData);
       console.log('Fallback parsing result:', parsedData);
     }
 
@@ -1668,19 +1809,15 @@ serve(async (req) => {
 
     console.log('Document processing completed successfully')
     
-    // Phase 1: Create FHIR resources after successful parsing
-    try {
-      await createFHIRResourcesFromParsedData(
-        supabaseClient, 
-        parsedData, 
-        report, 
-        reportId
-      );
-      console.log('FHIR resources created successfully');
-    } catch (fhirError) {
-      // Log FHIR creation error but don't fail the entire processing
-      console.error('FHIR resource creation failed (non-critical):', fhirError);
-    }
+    // Phase 1: Create FHIR resources after successful parsing - CRITICAL STEP
+    console.log('Starting FHIR resource creation...');
+    await createFHIRResourcesFromParsedData(
+      supabaseClient, 
+      parsedData, 
+      report, 
+      reportId
+    );
+    console.log('FHIR resources created successfully');
     
     return new Response(
       JSON.stringify({ 
