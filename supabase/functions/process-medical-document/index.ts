@@ -770,7 +770,7 @@ ${chunkText}`;
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: chunkPrompt }
+        { role: 'user', content: enhancedChunkPrompt }
       ],
       max_tokens: PROCESSING_CONFIG.MAX_TOKENS,
       temperature: PROCESSING_CONFIG.TEMPERATURE
