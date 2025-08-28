@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { extractText } from 'https://esm.sh/unpdf@0.11.0'
+import { mergeAWSAndLLMResults } from '../../../src/lib/utils/aws-llm-merger.ts'
 
 // FHIR converter imports (note: these would need to be available as Deno modules)
 // For now we'll implement basic conversion logic directly
@@ -1567,7 +1567,7 @@ const generateReportConclusion = (parsedData: any): string => {
   return parts.join(' ') || 'Medical report processed successfully.';
 };
 
-// Enhanced serve function with processing lock integration
+// Enhanced serve function with hybrid AWS+LLM processing
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -1578,6 +1578,238 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json()
+    reportId = requestBody.reportId
+
+    if (!reportId) {
+      throw new Error('Report ID is required')
+    }
+
+    console.log(`🔄 Starting hybrid AWS+LLM processing for report ID: ${reportId}`)
+
+    supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    )
+
+    // Get the report from the database
+    const { data: report, error: reportError } = await supabaseClient
+      .from('reports')
+      .select('*')
+      .eq('id', reportId)
+      .single()
+
+    if (reportError || !report) {
+      console.error('Report fetch error:', reportError)
+      throw new Error('Report not found')
+    }
+
+    console.log(`Report found: ${report.title}, Type: ${report.report_type || 'unknown'}`)
+
+    let structuredData = null;
+    
+    // Phase 1: Enhanced OCR with structured data extraction
+    if (!report.extracted_text) {
+      console.log('📄 Phase 1: Enhanced OCR with AWS Textract...')
+      
+      try {
+        const { data: ocrData, error: ocrError } = await supabaseClient.functions.invoke('ocr-document', {
+          body: {
+            filePath: report.file_url?.split('/').pop() || report.file_name,
+            language: 'en',
+            enhanceText: true
+          }
+        })
+
+        if (ocrError) {
+          console.error('OCR Error:', ocrError)
+          throw new Error(`OCR failed: ${ocrError.message}`)
+        }
+
+        if (!ocrData?.success || !ocrData?.extractedText) {
+          throw new Error('OCR did not return valid text')
+        }
+
+        // Store structured data from OCR (tables, forms)
+        structuredData = {
+          tables: ocrData.tables || [],
+          forms: ocrData.forms || [],
+          metadata: ocrData.metadata || {}
+        }
+
+        // Update report with extracted text
+        await supabaseClient
+          .from('reports')
+          .update({
+            extracted_text: ocrData.extractedText,
+            extraction_confidence: ocrData.confidence || 0.8,
+            progress_percentage: 25,
+            processing_phase: 'ocr_completed'
+          })
+          .eq('id', reportId)
+
+        report.extracted_text = ocrData.extractedText
+        report.extraction_confidence = ocrData.confidence || 0.8
+        console.log(`✅ Phase 1 complete: OCR extracted ${ocrData.extractedText.length} characters, ${structuredData.tables.length} tables, ${structuredData.forms.length} forms`)
+        
+      } catch (ocrError) {
+        console.error('OCR processing failed:', ocrError)
+        throw new Error(`Unable to extract text: ${ocrError.message}`)
+      }
+    }
+
+    if (!report.extracted_text || report.extracted_text.trim().length < 10) {
+      throw new Error('No readable text content found in the document')
+    }
+
+    // Phase 2: AWS Comprehend Medical entity extraction
+    console.log('🧬 Phase 2: AWS Comprehend Medical entity extraction...')
+    
+    let awsEntities = []
+    let awsRelationships = []
+    let validatedEntities = []
+    
+    try {
+      // Extract medical entities using AWS Comprehend Medical
+      const { data: comprehendData, error: comprehendError } = await supabaseClient.functions.invoke('aws-comprehend-medical', {
+        body: {
+          text: report.extracted_text,
+          language: 'en'
+        }
+      })
+
+      if (comprehendError) {
+        console.warn('⚠️ AWS Comprehend Medical failed, continuing with LLM-only:', comprehendError.message)
+      } else if (comprehendData?.success) {
+        awsEntities = comprehendData.entities || []
+        awsRelationships = comprehendData.relationships || []
+        
+        console.log(`✅ AWS Comprehend Medical extracted ${awsEntities.length} entities and ${awsRelationships.length} relationships`)
+        
+        // Phase 3: Medical terminology validation
+        console.log('🔬 Phase 3: Medical terminology validation...')
+        
+        if (awsEntities.length > 0) {
+          const { data: validationData, error: validationError } = await supabaseClient.functions.invoke('validate-medical-terminology', {
+            body: {
+              entities: awsEntities,
+              validationOptions: {
+                includeAlternatives: true,
+                strictValidation: false
+              }
+            }
+          })
+          if (validationError) {
+            console.warn('⚠️ Terminology validation failed:', validationError.message)
+            validatedEntities = awsEntities // Use raw entities
+          } else if (validationData?.success) {
+            validatedEntities = validationData.results || []
+            console.log(`✅ Validated ${validatedEntities.length} medical entities`)
+          }
+        }
+      }
+      
+      await supabaseClient
+        .from('reports')
+        .update({ 
+          progress_percentage: 50,
+          processing_phase: 'aws_processing_completed'
+        })
+        .eq('id', reportId)
+        
+    } catch (awsError) {
+      console.warn('⚠️ AWS processing failed, continuing with LLM-only approach:', awsError.message)
+    }
+
+    // Phase 4: LLM Enhancement and contextual understanding
+    console.log('🤖 Phase 4: LLM Enhancement and gap filling...')
+    
+    // Get OpenAI API key
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!openaiApiKey) {
+      throw new Error('OpenAI API key not configured')
+    }
+    
+    // Try to get custom prompt first, fallback to default prompts
+    console.log('🔍 CUSTOM PROMPT DEBUG: Attempting to fetch custom prompt...')
+    let prompt = await getActiveCustomPrompt(supabaseClient)
+    let reportType = report.report_type
+    
+    if (prompt) {
+      console.log('✅ CUSTOM PROMPT DEBUG: Using active custom prompt for document processing')
+      reportType = 'custom'
+    } else {
+      console.log('⚠️ CUSTOM PROMPT DEBUG: No custom prompt found, using default prompt for report type:', report.report_type)
+      prompt = getPromptForReportType(report.report_type)
+    }
+
+    // Enhance prompt with AWS entity context if available
+    if (validatedEntities.length > 0) {
+      const entityContext = validatedEntities.map(e => `- ${e.text} (${e.category}, confidence: ${e.confidence})`).join('\n')
+      prompt = `${prompt}
+
+IMPORTANT: AWS Comprehend Medical has already identified these medical entities:
+${entityContext}
+
+Use these pre-extracted entities as a foundation and enhance them with additional context, relationships, and any missed entities. Prioritize these AWS-identified entities in your response.`
+    }
+
+    let aiResponse: string = ''
+    let extractedText: string = report.extracted_text
+
+    await supabaseClient
+      .from('reports')
+      .update({
+        processing_phase: 'llm_enhancement',
+        progress_percentage: 65
+      })
+      .eq('id', reportId)
+
+    // Process document content with enhanced prompt
+    const processingResult = await processDocumentContent(extractedText, reportType, openaiApiKey, prompt)
+    aiResponse = processingResult.response
+    
+    console.log(`LLM processing completed using: ${processingResult.processingType}`)
+
+    // Phase 5: Intelligent Result Merging
+    console.log('🔀 Phase 5: Intelligent result merging...')
+    
+    let parsedData: any = null
+    let confidence = 0.8
+    
+    try {
+      // Parse LLM response
+      const llmData = extractDataFromTextResponse(aiResponse, reportType)
+      
+      // Merge AWS and LLM results with intelligent prioritization
+      if (validatedEntities.length > 0 && llmData) {
+        console.log('🤝 Merging AWS entities with LLM contextual data...')
+        
+        // Create hybrid parsed data prioritizing AWS medical entities
+        parsedData = mergeAWSAndLLMResults(validatedEntities, awsRelationships, llmData, structuredData)
+        
+        // Calculate combined confidence score
+        const awsConfidence = validatedEntities.reduce((sum, e) => sum + (e.confidence || 0.8), 0) / Math.max(validatedEntities.length, 1)
+        const llmConfidence = llmData.confidence || 0.8
+        confidence = (awsConfidence * 0.7) + (llmConfidence * 0.3) // Weight AWS higher
+        
+        console.log(`✅ Hybrid processing complete: AWS confidence ${awsConfidence.toFixed(2)}, LLM confidence ${llmConfidence.toFixed(2)}, Combined ${confidence.toFixed(2)}`)
+      } else {
+        // Fallback to LLM-only results
+        parsedData = llmData
+        confidence = llmData?.confidence || 0.8
+        console.log('📝 Using LLM-only results (AWS processing not available)')
+      }
+      
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', parseError)
+      parsedData = {
+        reportType: reportType || 'general',
+        rawResponse: aiResponse,
+        extractedAt: new Date().toISOString(),
+        confidence: 0.3,
+        parseError: true
+      }
+    }
     reportId = requestBody.reportId
     console.log('🔄 Starting enhanced processing for report:', reportId)
     

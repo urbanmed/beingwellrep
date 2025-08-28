@@ -17,10 +17,22 @@ interface OCRResponse {
   extractedText?: string;
   confidence?: number;
   error?: string;
+  tables?: Array<{
+    headers: string[];
+    rows: string[][];
+    confidence?: number;
+  }>;
+  forms?: Array<{
+    key: string;
+    value: string;
+    confidence?: number;
+  }>;
   metadata?: {
     pageCount?: number;
     detectedLanguage?: string;
     processingTime?: number;
+    extractionMethod?: string;
+    structuredDataFound?: boolean;
   };
 }
 
@@ -202,43 +214,89 @@ serve(async (req) => {
     let extractedText = '';
     let confidence = 0;
     let metadata = {};
+    let tables: any[] = [];
+    let forms: any[] = [];
 
     try {
-      if (isPDF) {
-        // For PDFs, try direct text extraction first
-        console.log('PDF detected, attempting direct text extraction...');
-        try {
-          extractedText = await extractPDFText(fileBuffer);
-          if (extractedText.trim().length > 50) {
-            // Good text extraction, use it
-            confidence = 0.9;
-            metadata = {
-              detectedLanguage: language,
-              pageCount: 1,
-              textLength: extractedText.length,
-              extractionMethod: 'direct_pdf'
+      // Phase 1: Try AWS Textract (Enhanced OCR with structured data)
+      console.log('Starting hybrid OCR pipeline with AWS Textract...');
+      try {
+        const { data: textractData, error: textractError } = await supabaseClient.functions.invoke('aws-textract-document', {
+          body: { filePath, language }
+        });
+
+        if (textractError) throw textractError;
+
+        if (textractData?.success) {
+          extractedText = textractData.extractedText || '';
+          confidence = textractData.confidence || 0.8;
+          tables = textractData.tables || [];
+          forms = textractData.forms || [];
+          
+          metadata = {
+            detectedLanguage: language,
+            pageCount: 1,
+            textLength: extractedText.length,
+            extractionMethod: 'aws_textract',
+            structuredDataFound: (tables.length > 0 || forms.length > 0)
+          };
+          
+          console.log('✅ AWS Textract processing successful:', {
+            textLength: extractedText.length,
+            tablesFound: tables.length,
+            formsFound: forms.length
+          });
+        } else {
+          throw new Error('Textract processing failed');
+        }
+      } catch (textractError) {
+        console.log('⚠️ AWS Textract failed, falling back to secondary methods:', textractError.message);
+        
+        // Phase 2: Fallback to Google Vision or PDF extraction
+        if (isPDF) {
+          // For PDFs, try direct text extraction first
+          console.log('PDF detected, attempting direct text extraction...');
+          try {
+            extractedText = await extractPDFText(fileBuffer);
+            if (extractedText.trim().length > 50) {
+              confidence = 0.9;
+              metadata = {
+                detectedLanguage: language,
+                pageCount: 1,
+                textLength: extractedText.length,
+                extractionMethod: 'direct_pdf',
+                structuredDataFound: false
+              };
+              console.log('Direct PDF text extraction successful');
+            } else {
+              throw new Error('Poor quality text extraction, will use OCR');
+            }
+          } catch (pdfError) {
+            console.log('Direct PDF extraction failed, falling back to Google Vision OCR...');
+            const ocrResult = await processWithGoogleVision(fileBuffer, fileName, language);
+            extractedText = ocrResult.text;
+            confidence = ocrResult.confidence;
+            metadata = { 
+              ...ocrResult.metadata, 
+              extractionMethod: 'google_vision_ocr',
+              structuredDataFound: false
             };
-            console.log('Direct PDF text extraction successful');
-          } else {
-            throw new Error('Poor quality text extraction, will use OCR');
           }
-        } catch (pdfError) {
-          console.log('Direct PDF extraction failed, falling back to Google Vision OCR...');
+        } else {
+          // For images, use Google Vision OCR
+          console.log('Image detected, using Google Vision OCR...');
           const ocrResult = await processWithGoogleVision(fileBuffer, fileName, language);
           extractedText = ocrResult.text;
           confidence = ocrResult.confidence;
-          metadata = { ...ocrResult.metadata, extractionMethod: 'google_vision_ocr' };
+          metadata = { 
+            ...ocrResult.metadata, 
+            extractionMethod: 'google_vision_ocr',
+            structuredDataFound: false
+          };
         }
-      } else {
-        // For images, use Google Vision OCR
-        console.log('Image detected, using Google Vision OCR...');
-        const ocrResult = await processWithGoogleVision(fileBuffer, fileName, language);
-        extractedText = ocrResult.text;
-        confidence = ocrResult.confidence;
-        metadata = { ...ocrResult.metadata, extractionMethod: 'google_vision_ocr' };
       }
     } catch (ocrError) {
-      console.error('OCR processing failed:', ocrError);
+      console.error('All OCR methods failed:', ocrError);
       throw new Error(`OCR processing failed: ${ocrError.message}`);
     }
 
@@ -258,6 +316,8 @@ serve(async (req) => {
       success: true,
       extractedText,
       confidence,
+      tables,
+      forms,
       metadata: {
         ...metadata,
         processingTime
