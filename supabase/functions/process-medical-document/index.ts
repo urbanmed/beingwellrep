@@ -1902,481 +1902,110 @@ serve(async (req) => {
       prompt = getPromptForReportType(report.report_type)
     }
 
-    // Enhance prompt with AWS entity context if available
-    if (validatedEntities.length > 0) {
-      const entityContext = validatedEntities.map(e => `- ${e.text} (${e.category}, confidence: ${e.confidence})`).join('\n')
-      prompt = `${prompt}
-
-IMPORTANT: AWS Comprehend Medical has already identified these medical entities:
-${entityContext}
-
-Use these pre-extracted entities as a foundation and enhance them with additional context, relationships, and any missed entities. Prioritize these AWS-identified entities in your response.`
-    }
-
-    let aiResponse: string = ''
-    let extractedText: string = report.extracted_text
-
-    await supabaseClient
-      .from('reports')
-      .update({
-        processing_phase: 'llm_enhancement',
-        progress_percentage: 65
-      })
-      .eq('id', reportId)
-
-    // Process document content with enhanced prompt
-    const processingResult = await processDocumentContent(extractedText, reportType, openaiApiKey, prompt)
-    aiResponse = processingResult.response
+    // Phase 5: Intelligent merging of AWS and LLM results
+    console.log('🔗 Phase 5: Intelligent merging of AWS and LLM results...')
     
-    console.log(`LLM processing completed using: ${processingResult.processingType}`)
-
-    // Phase 5: Intelligent Result Merging
-    console.log('🔀 Phase 5: Intelligent result merging...')
-    
-    let parsedData: any = null
-    let confidence = 0.8
-    
-    try {
-      // Parse LLM response
-      const llmData = extractDataFromTextResponse(aiResponse, reportType)
-      
-      // Merge AWS and LLM results with intelligent prioritization
-      if (validatedEntities.length > 0 && llmData) {
-        console.log('🤝 Merging AWS entities with LLM contextual data...')
-        
-        // Create hybrid parsed data prioritizing AWS medical entities
-        parsedData = mergeAWSAndLLMResultsInline(validatedEntities, awsRelationships, llmData, structuredData)
-        
-        // Calculate combined confidence score
-        const awsConfidence = validatedEntities.reduce((sum, e) => sum + (e.confidence || 0.8), 0) / Math.max(validatedEntities.length, 1)
-        const llmConfidence = llmData.confidence || 0.8
-        confidence = (awsConfidence * 0.7) + (llmConfidence * 0.3) // Weight AWS higher
-        
-        console.log(`✅ Hybrid processing complete: AWS confidence ${awsConfidence.toFixed(2)}, LLM confidence ${llmConfidence.toFixed(2)}, Combined ${confidence.toFixed(2)}`)
-      } else {
-        // Fallback to LLM-only results
-        parsedData = llmData
-        confidence = llmData?.confidence || 0.8
-        console.log('📝 Using LLM-only results (AWS processing not available)')
-      }
-      
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError)
-      parsedData = {
-        reportType: reportType || 'general',
-        rawResponse: aiResponse,
-        extractedAt: new Date().toISOString(),
-        confidence: 0.3,
-        parseError: true
-      }
-    }
-    reportId = requestBody.reportId
-    console.log('🔄 Starting enhanced processing for report:', reportId)
-    
-    // Initialize Supabase client with service role for database functions
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    supabaseClient = createClient(supabaseUrl, supabaseServiceKey)
-    
-    // Phase 1: Update status to extracting_text
-    await supabaseClient
-      .from('reports')
-      .update({
-        processing_phase: 'extracting_text',
-        progress_percentage: 10
-      })
-      .eq('id', reportId)
-
-    // Get the report details
-    const { data: report, error: reportError } = await supabaseClient
-      .from('reports')
-      .select('*')
-      .eq('id', reportId)
-      .single()
-
-    if (reportError || !report) {
-      throw new Error('Report not found')
-    }
-
-    // Phase 2: Update status to classifying_type
-    await supabaseClient
-      .from('reports')
-      .update({
-        processing_phase: 'classifying_type',
-        progress_percentage: 20
-      })
-      .eq('id', reportId)
-
-    // Download file from storage
-    const { data: fileData, error: downloadError } = await supabaseClient.storage
-      .from('medical-documents')
-      .download(report.file_url)
-
-    if (downloadError || !fileData) {
-      throw new Error('Failed to download file')
-    }
-
-    // Check file size
-    const fileSize = fileData.size
-    if (fileSize > MAX_FILE_SIZE) {
-      throw new Error(`File size (${Math.round(fileSize / 1024 / 1024)}MB) exceeds maximum limit of 20MB`)
-    }
-
-    console.log(`Processing file of size: ${fileSize} bytes, type: ${report.file_type}`)
-
-    // Get OpenAI API key
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured')
-    }
-
-    // Phase 3: Update status to extracting_text
-    await supabaseClient
-      .from('reports')
-      .update({
-        processing_phase: 'extracting_text',
-        progress_percentage: 30
-      })
-      .eq('id', reportId)
-
-    // Try to get custom prompt first, fallback to default prompts
-    console.log('🔍 CUSTOM PROMPT DEBUG: Attempting to fetch custom prompt...');
-    let prompt = await getActiveCustomPrompt(supabaseClient);
-    let reportType = report.report_type;
-    
-    if (prompt) {
-      console.log('✅ CUSTOM PROMPT DEBUG: Using active custom prompt for document processing');
-      // When using custom prompt, set report type to "custom" to trigger custom viewer
-      reportType = 'custom';
-    } else {
-      console.log('⚠️ CUSTOM PROMPT DEBUG: No custom prompt found, using default prompt for report type:', report.report_type);
-      prompt = getPromptForReportType(report.report_type);
-    }
-    let aiResponse: string = ''
-    let extractedText: string = '' // Make extractedText available in broader scope
-
-    if (isPDFFile(report.file_type)) {
-      // Handle PDF files with text extraction
-      console.log('Processing PDF file with text extraction')
-      
-      const arrayBuffer = await fileData.arrayBuffer()
-      extractedText = await extractTextFromPDF(arrayBuffer)
-      
-      // If text extraction fails or returns empty, throw an error
-      if (!extractedText.trim()) {
-        throw new Error('Unable to extract text from PDF. Please ensure the PDF contains readable text or try uploading it as an image instead.');
-      } else {
-        // Phase 4: Update status to parsing_data  
-        await supabaseClient
-          .from('reports')
-          .update({
-            processing_phase: 'parsing_data',
-            progress_percentage: 50
-          })
-          .eq('id', reportId)
-        
-        // Use optimized document processing
-        console.log('Using extracted text for optimized processing');
-        
-        const processingResult = await processDocumentContent(extractedText, report.report_type, openaiApiKey, prompt);
-        aiResponse = processingResult.response;
-        
-        console.log(`Document processing completed using: ${processingResult.processingType}`);
-      }
-    } else if (isImageFile(report.file_type)) {
-      // Handle image files with vision API
-      console.log('Processing image file with vision API')
-      
-      // Phase 4: Update status to parsing_data  
-      await supabaseClient
-        .from('reports')
-        .update({
-          processing_phase: 'parsing_data',
-          progress_percentage: 50
-        })
-        .eq('id', reportId)
-      
-      const arrayBuffer = await fileData.arrayBuffer()
-      const bytes = new Uint8Array(arrayBuffer)
-      const base64 = btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))
-
-      const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { 
-              role: 'user', 
-              content: [
-                { type: 'text', text: prompt },
-                { 
-                  type: 'image_url', 
-                  image_url: { url: `data:${report.file_type};base64,${base64}` }
-                }
-              ]
-            }
-          ],
-          max_tokens: PROCESSING_CONFIG.MAX_TOKENS,
-          temperature: 0.1
-        })
-      })
-
-      if (!visionResponse.ok) {
-        const errorText = await visionResponse.text()
-        throw new Error(`OpenAI Vision API error: ${visionResponse.status} - ${errorText}`)
-      }
-
-      const visionData = await visionResponse.json()
-      aiResponse = visionData.choices?.[0]?.message?.content || ''
-    } else {
-      throw new Error(`Unsupported file type: ${report.file_type}`)
-    }
-
-    if (!aiResponse) {
-      throw new Error('No response from AI model')
-    }
-
+    // Process LLM data and merge with AWS results
     let parsedData = null
     let confidence = 0.8
-    let suggestedName = null
-
-    try {
-      // Clean the response to remove potential markdown formatting
-      let cleanedResponse = aiResponse.trim();
-      
-      // Remove markdown code blocks if present
-      if (cleanedResponse.startsWith('```json')) {
-        cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (cleanedResponse.startsWith('```')) {
-        cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
-      }
-      
-      // Remove any leading/trailing whitespace again
-      cleanedResponse = cleanedResponse.trim();
-      
-      console.log('Attempting to parse cleaned response:', cleanedResponse.substring(0, 200) + '...');
-      
-      parsedData = JSON.parse(cleanedResponse);
-      confidence = parsedData.confidence || 0.8;
-      suggestedName = parsedData.suggestedName;
-      
-      // Transform sections to FHIR format and enhance status determination
-      parsedData = transformSectionsToFHIRFormat(parsedData);
-      
-    } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', parseError);
-      console.log('Raw AI response:', aiResponse);
-      
-      // Try to extract meaningful data from the text response
-      parsedData = extractDataFromTextResponse(aiResponse, report.report_type);
-      parsedData = transformSectionsToFHIRFormat(parsedData);
-      console.log('Fallback parsing result:', parsedData);
-    }
-
-    // Enhanced document type classification with validation
-    const VALID_REPORT_TYPES = ['lab_results', 'prescription', 'radiology', 'vitals', 'discharge_summary', 'consultation', 'general', 'custom'];
     
-    let enhancedReportType = parsedData?.reportType || 'general'
-    if (enhancedReportType === 'custom' || enhancedReportType === 'general') {
-      // Improve classification based on content analysis
-      const textLower = aiResponse.toLowerCase()
-      const testCount = (parsedData?.tests || []).length
-      const medCount = (parsedData?.medications || []).length
-      const vitalCount = (parsedData?.vitals || []).length
+    try {
+      // LLM processing with AI
+      const processingResult = await processDocumentContent(report.extracted_text, reportType, openaiApiKey, prompt)
+      const aiResponse = processingResult.response
       
-      if (testCount >= 2 || textLower.includes('hemoglobin') || textLower.includes('glucose') || textLower.includes('creatinine')) {
-        enhancedReportType = 'lab_results'  // Fixed: was 'lab', now 'lab_results'
-      } else if (medCount >= 1 || textLower.includes('prescription') || textLower.includes('pharmacy')) {
-        enhancedReportType = 'prescription'
-      } else if (vitalCount >= 1 || textLower.includes('blood pressure') || textLower.includes('temperature')) {
-        enhancedReportType = 'vitals'
+      console.log(`LLM processing completed using: ${processingResult.processingType}`)
+      
+      // Parse LLM response
+      let llmData = null
+      try {
+        // Try to parse as JSON first
+        llmData = JSON.parse(aiResponse)
+      } catch (parseError) {
+        console.warn('⚠️ LLM response is not valid JSON, attempting text extraction')
+        llmData = extractDataFromTextResponse(aiResponse)
       }
       
-      console.log(`📋 Enhanced classification: ${parsedData?.reportType} → ${enhancedReportType}`)
+      if (!llmData || typeof llmData !== 'object') {
+        console.warn('⚠️ LLM processing failed to produce structured data')
+        llmData = { reportType: reportType, error: 'LLM parsing failed' }
+      }
+      
+      // Intelligent merging of AWS and LLM results
+      if (validatedEntities.length > 0 || awsEntities.length > 0) {
+        console.log(`🔗 Merging ${awsEntities.length} AWS entities with LLM data...`)
+        parsedData = mergeAWSAndLLMResultsInline(
+          awsEntities,
+          awsRelationships,
+          llmData,
+          structuredData
+        )
+        confidence = calculateHybridConfidenceInline(awsEntities, llmData)
+        console.log(`✅ Hybrid processing complete with confidence: ${confidence.toFixed(2)}`)
+      } else {
+        console.log('📝 Using LLM-only results (no AWS entities available)')
+        parsedData = transformSectionsToFHIRFormat(llmData)
+        confidence = 0.75 // Slightly lower confidence for LLM-only
+      }
+      
+      // Ensure parsedData has required structure
+      if (!parsedData || typeof parsedData !== 'object') {
+        throw new Error('Failed to generate structured data from document')
+      }
+      
+      await supabaseClient
+        .from('reports')
+        .update({ 
+          progress_percentage: 75,
+          processing_phase: 'llm_enhancement_completed'
+        })
+        .eq('id', reportId)
+        
+    } catch (llmError) {
+      console.error('❌ LLM processing failed:', llmError)
+      throw new Error(`LLM processing failed: ${llmError.message}`)
     }
 
-    // Validate report type against database constraints
-    if (!VALID_REPORT_TYPES.includes(enhancedReportType)) {
-      console.warn(`⚠️ Invalid report type "${enhancedReportType}", falling back to 'general'`);
-      enhancedReportType = 'general';
-    }
-
-    // Generate intelligent document name with CBP detection
-    let finalDocumentName = suggestedName
-    if (!finalDocumentName) {
-      // Use intelligent naming that can detect CBP and other comprehensive panels
-      finalDocumentName = generateIntelligentDocumentName(parsedData, report.report_date)
-    }
-
-    // Clean up the suggested name (remove invalid characters, limit length)
-    if (finalDocumentName) {
-      finalDocumentName = finalDocumentName
-        .replace(/[<>:"/\\|?*]/g, '-') // Replace invalid file chars
-        .replace(/\s+/g, ' ') // Normalize whitespace
-        .trim()
-        .substring(0, 200) // Limit length
-    }
-
-    // Phase 5: Update status to creating_fhir_resources
+    // Phase 6: Final processing and storage
+    console.log('💾 Phase 6: Final processing and storage...')
+    
+    // Store parsed data and update report status
     await supabaseClient
       .from('reports')
       .update({
-        processing_phase: 'creating_fhir_resources',
-        progress_percentage: 70
+        parsed_data: parsedData,
+        confidence: confidence,
+        parsing_status: 'completed',
+        processing_phase: 'parsing_completed',
+        progress_percentage: 85
       })
       .eq('id', reportId)
 
-    // Enhanced field-by-field update with data safeguards
-    console.log('Starting enhanced database update with validation...');
+    console.log(`✅ Hybrid processing pipeline completed successfully for report ${reportId}`)
+
+    // Phase 7: Create FHIR resources if parsing succeeded  
+    console.log('🏥 Phase 7: Creating FHIR resources...')
     
-    // Phase 1: Validate and prepare data (FIXED: Use original extractedText, not aiResponse)
-    console.log(`📊 Text lengths - Original PDF: ${extractedText?.length || 0}, AI Response: ${aiResponse?.length || 0}`);
-    
-    // Use original extracted text for database storage (with size limit for database)
-    const extractedTextSafe = extractedText && extractedText.length > 0 ? 
-      (extractedText.length > 50000 ? extractedText.substring(0, 50000) + '...[truncated due to size]' : extractedText) : 
-      (aiResponse || ''); // Fallback to aiResponse only if no original text available
-      
-    let parsedDataSafe = null;
-    try {
-      // Validate JSON structure and size
-      const jsonString = JSON.stringify(parsedData);
-      if (jsonString.length > 1000000) { // 1MB limit
-        console.warn('⚠️ Parsed data too large, creating summary version');
-        parsedDataSafe = {
-          reportType: parsedData?.reportType || 'unknown',
-          summary: 'Data truncated due to size - processing completed successfully',
-          originalSize: jsonString.length
-        };
-      } else {
-        parsedDataSafe = parsedData;
-      }
-    } catch (jsonError) {
-      console.error('❌ JSON validation failed:', jsonError);
-      parsedDataSafe = {
-        reportType: enhancedReportType,
-        error: 'Invalid JSON structure detected',
-        rawDataAvailable: false
-      };
-    }
-
-    // Phase 2: Update fields one by one with error handling
-    const updateSteps = [
-      {
-        name: 'Basic parsing results',
-        fields: {
-          parsing_confidence: confidence,
-          parsing_model: 'gpt-4o-mini',
-          processing_error: null,
-          report_type: enhancedReportType,
-          progress_percentage: 60
-        }
-      },
-      {
-        name: 'Extracted text',
-        fields: {
-          extracted_text: extractedTextSafe
-        },
-        validation: () => {
-          if (!extractedTextSafe || extractedTextSafe.length < 50) {
-            console.warn('⚠️ Suspiciously short extracted text:', extractedTextSafe?.length || 0, 'characters');
-          }
-          return true;
-        }
-      },
-      {
-        name: 'Parsed data',
-        fields: {
-          parsed_data: parsedDataSafe
-        }
-      },
-      {
-        name: 'Document metadata',
-        fields: {
-          physician_name: parsedData?.orderingPhysician || parsedData?.prescriber || parsedData?.provider || report.physician_name,
-          facility_name: parsedData?.facility || parsedData?.pharmacy || report.facility_name,
-          title: finalDocumentName && finalDocumentName !== 'Processing...' ? finalDocumentName : report.title,
-          progress_percentage: 80
-        }
-      }
-    ];
-
-    for (const step of updateSteps) {
-      try {
-        console.log(`📝 Updating: ${step.name}`);
-        
-        // Run validation if available
-        if (step.validation && !step.validation()) {
-          console.warn(`⚠️ Validation failed for ${step.name}, but continuing with update`);
-        }
-        
-        const { error: stepError } = await supabaseClient
-          .from('reports')
-          .update(step.fields)
-          .eq('id', reportId);
-
-        if (stepError) {
-          console.error(`❌ Database error in ${step.name}:`, {
-            code: stepError.code,
-            message: stepError.message,
-            details: stepError.details,
-            hint: stepError.hint
-          });
-          
-          // Try to continue with other fields unless it's a critical error
-          if (stepError.code === '22001' || stepError.code === '22P02') {
-            console.warn(`⚠️ Data issue in ${step.name}, skipping this update`);
-            continue;
-          }
-          
-          throw new Error(`Database update failed at ${step.name}: ${stepError.message} (Code: ${stepError.code})`);
-        }
-        
-        console.log(`✅ Successfully updated: ${step.name}`);
-        
-        // Add monitoring for extraction completeness
-        if (step.name === 'Extracted text') {
-          const textLength = extractedTextSafe?.length || 0;
-          const originalLength = extractedText?.length || 0;
-          console.log(`📊 Text extraction metrics - Original: ${originalLength}, Stored: ${textLength}, Efficiency: ${originalLength > 0 ? Math.round((textLength / originalLength) * 100) : 0}%`);
-          
-          if (originalLength > 0 && textLength < originalLength * 0.5) {
-            console.warn('⚠️ Significant text truncation detected - may indicate incomplete extraction');
-          }
-        }
-      } catch (stepError) {
-        console.error(`❌ Critical error in ${step.name}:`, stepError);
-        throw stepError;
-      }
-    }
-
-    console.log('Document processing completed successfully')
-    
-    // Phase 6: Create FHIR resources after successful parsing - CRITICAL STEP
-    console.log('Starting FHIR resource creation...');
+    let fhirResourcesCreated = 0
     
     try {
       const fhirResult = await createFHIRResourcesFromParsedData(
-        supabaseClient, 
         parsedData, 
-        report, 
-        reportId
-      );
+        report,
+        supabaseClient
+      )
       
-      console.log(`✅ FHIR processing complete. Created ${fhirResult.totalCreated} resources.`);
+      fhirResourcesCreated = fhirResult.resourcesCreated || 0
       
-      // Phase 7: Mark as completed
+      console.log(`✅ Created ${fhirResourcesCreated} FHIR resources`)
+      
+      // Final status update
       await supabaseClient
         .from('reports')
         .update({
-          parsing_status: 'completed',
           processing_phase: 'completed',
-          progress_percentage: 100
+          progress_percentage: 100,
+          fhir_resources_created: fhirResourcesCreated
         })
         .eq('id', reportId)
       
@@ -2385,15 +2014,18 @@ Use these pre-extracted entities as a foundation and enhance them with additiona
         report_id_param: reportId,
         final_status: 'completed'
       })
-
+      
       return new Response(
         JSON.stringify({
           success: true,
-          parsedData: parsedData,
+          data: parsedData,
           confidence: confidence,
-          extractedText: aiResponse.substring(0, 500) + '...',
+          model: 'hybrid-aws-llm',
           processingTime: Date.now(),
-          fhirResourcesCreated: fhirResult.totalCreated
+          pipeline: ['aws_textract', 'aws_comprehend_medical', 'terminology_validation', 'llm_enhancement', 'intelligent_merge'],
+          awsEntitiesCount: awsEntities.length,
+          awsRelationshipsCount: awsRelationships.length,
+          fhirResourcesCreated: fhirResourcesCreated
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -2423,10 +2055,13 @@ Use these pre-extracted entities as a foundation and enhance them with additiona
       return new Response(
         JSON.stringify({
           success: true,
-          parsedData: parsedData,
+          data: parsedData,
           confidence: confidence,
-          extractedText: aiResponse.substring(0, 500) + '...',
+          model: 'hybrid-aws-llm',
           processingTime: Date.now(),
+          pipeline: ['aws_textract', 'aws_comprehend_medical', 'terminology_validation', 'llm_enhancement', 'intelligent_merge'],
+          awsEntitiesCount: awsEntities.length,
+          awsRelationshipsCount: awsRelationships.length,
           fhirResourcesCreated: 0,
           warning: 'Document parsed successfully but FHIR creation failed'
         }),
