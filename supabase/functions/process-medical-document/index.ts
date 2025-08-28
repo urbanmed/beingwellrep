@@ -1774,7 +1774,7 @@ serve(async (req) => {
       try {
         const { data: ocrData, error: ocrError } = await supabaseClient.functions.invoke('ocr-document', {
           body: {
-            filePath: report.file_url?.split('/').pop() || report.file_name,
+            filePath: report.file_url || report.file_name,
             language: 'en',
             enhanceText: true
           }
