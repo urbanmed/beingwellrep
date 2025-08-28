@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { mergeAWSAndLLMResults } from '../../../src/lib/utils/aws-llm-merger.ts'
+import { extractText } from 'https://esm.sh/unpdf@0.11.0'
 
 // FHIR converter imports (note: these would need to be available as Deno modules)
 // For now we'll implement basic conversion logic directly
@@ -1567,6 +1567,166 @@ const generateReportConclusion = (parsedData: any): string => {
   return parts.join(' ') || 'Medical report processed successfully.';
 };
 
+// Inline AWS+LLM result merger (moved from external import)
+function mergeAWSAndLLMResultsInline(awsEntities: any[], awsRelationships: any[], llmData: any, structuredData: any) {
+  console.log('🔀 Starting inline AWS+LLM result merging...')
+  
+  const merged = {
+    ...llmData,
+    hybrid: true,
+    awsEntitiesCount: awsEntities.length,
+    awsRelationshipsCount: awsRelationships.length,
+    processingPipeline: ['aws_textract', 'aws_comprehend_medical', 'terminology_validation', 'llm_enhancement'],
+    confidence: calculateHybridConfidenceInline(awsEntities, llmData)
+  }
+
+  // Extract and categorize AWS entities
+  const categorizedEntities = categorizeAWSEntitiesInline(awsEntities)
+  
+  // Merge based on report type
+  const reportType = llmData?.reportType?.toLowerCase() || 'general'
+  
+  switch (reportType) {
+    case 'lab':
+    case 'lab_results':
+      return mergeLabResultsInline(merged, categorizedEntities, structuredData, llmData)
+    case 'prescription':
+    case 'pharmacy':
+      return mergePrescriptionsInline(merged, categorizedEntities, llmData)
+    case 'vitals':
+    case 'vital_signs':
+      return mergeVitalsInline(merged, categorizedEntities, llmData)
+    default:
+      return mergeGeneralInline(merged, categorizedEntities, llmData)
+  }
+}
+
+function categorizeAWSEntitiesInline(entities: any[]) {
+  const categorized = {
+    medications: entities.filter(e => ['GENERIC_NAME', 'BRAND_NAME', 'MEDICATION'].includes(e.type)),
+    conditions: entities.filter(e => ['DX_NAME', 'MEDICAL_CONDITION'].includes(e.type)),
+    testNames: entities.filter(e => ['TEST_NAME', 'PROCEDURE_NAME'].includes(e.type)),
+    testValues: entities.filter(e => ['TEST_VALUE', 'TEST_UNIT'].includes(e.type)),
+    anatomy: entities.filter(e => e.category === 'ANATOMY'),
+    dosages: entities.filter(e => ['DOSAGE', 'STRENGTH'].includes(e.type)),
+    frequencies: entities.filter(e => ['FREQUENCY', 'DURATION'].includes(e.type)),
+    providers: entities.filter(e => e.category === 'PROTECTED_HEALTH_INFORMATION' && e.type === 'NAME'),
+    dates: entities.filter(e => e.type === 'DATE'),
+    all: entities
+  }
+  
+  console.log(`📊 Categorized ${entities.length} AWS entities:`, {
+    medications: categorized.medications.length,
+    conditions: categorized.conditions.length,
+    testNames: categorized.testNames.length,
+    testValues: categorized.testValues.length
+  })
+  
+  return categorized
+}
+
+function mergeLabResultsInline(merged: any, categorized: any, structuredData: any, llmData: any) {
+  console.log('🧪 Merging lab results with AWS entities...')
+  
+  const tests = [...(llmData.tests || [])]
+  
+  // Add AWS tests, avoiding duplicates
+  categorized.testNames.forEach((testName: any) => {
+    const nearbyValues = categorized.testValues.filter((val: any) => 
+      Math.abs((val.beginOffset || 0) - (testName.beginOffset || 0)) < 200
+    )
+    
+    nearbyValues.forEach((val: any) => {
+      const existingTest = tests.find((t: any) => 
+        t.name?.toLowerCase().includes(testName.text.toLowerCase()) ||
+        testName.text.toLowerCase().includes(t.name?.toLowerCase() || '')
+      )
+      
+      if (!existingTest) {
+        tests.push({
+          name: testName.text,
+          value: val.text,
+          unit: '',
+          awsSource: true,
+          awsConfidence: (testName.confidence + val.confidence) / 2,
+          status: 'normal'
+        })
+      }
+    })
+  })
+  
+  merged.tests = tests
+  merged.awsEnhanced = true
+  
+  console.log(`✅ Lab merge complete: ${tests.length} total tests`)
+  return merged
+}
+
+function mergePrescriptionsInline(merged: any, categorized: any, llmData: any) {
+  console.log('💊 Merging prescriptions with AWS entities...')
+  
+  const medications = [...(llmData.medications || [])]
+  
+  categorized.medications.forEach((med: any) => {
+    const existingMed = medications.find((m: any) => 
+      m.name?.toLowerCase().includes(med.text.toLowerCase()) ||
+      med.text.toLowerCase().includes(m.name?.toLowerCase() || '')
+    )
+    
+    if (!existingMed) {
+      medications.push({
+        name: med.text,
+        awsSource: true,
+        awsConfidence: med.confidence
+      })
+    }
+  })
+  
+  merged.medications = medications
+  merged.awsEnhanced = true
+  
+  console.log(`✅ Prescription merge complete: ${medications.length} total medications`)
+  return merged
+}
+
+function mergeVitalsInline(merged: any, categorized: any, llmData: any) {
+  console.log('🩺 Merging vitals with AWS entities...')
+  
+  const vitals = [...(llmData.vitals || [])]
+  merged.vitals = vitals
+  merged.awsEnhanced = true
+  
+  console.log(`✅ Vitals merge complete: ${vitals.length} total vitals`)
+  return merged
+}
+
+function mergeGeneralInline(merged: any, categorized: any, llmData: any) {
+  console.log('📋 Merging general medical data with AWS entities...')
+  
+  merged.awsEntities = {
+    medications: categorized.medications.map((e: any) => ({ name: e.text, confidence: e.confidence })),
+    conditions: categorized.conditions.map((e: any) => ({ name: e.text, confidence: e.confidence })),
+    procedures: categorized.testNames.map((e: any) => ({ name: e.text, confidence: e.confidence })),
+    providers: categorized.providers.map((e: any) => ({ name: e.text, confidence: e.confidence }))
+  }
+  
+  merged.awsEnhanced = true
+  
+  console.log(`✅ General merge complete with ${categorized.all.length} AWS entities`)
+  return merged
+}
+
+function calculateHybridConfidenceInline(awsEntities: any[], llmData: any): number {
+  if (awsEntities.length === 0) {
+    return llmData?.confidence || 0.8
+  }
+  
+  const awsConfidence = awsEntities.reduce((sum, e) => sum + e.confidence, 0) / awsEntities.length
+  const llmConfidence = llmData?.confidence || 0.8
+  
+  return (awsConfidence * 0.7) + (llmConfidence * 0.3)
+}
+
 // Enhanced serve function with hybrid AWS+LLM processing
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -1785,7 +1945,7 @@ Use these pre-extracted entities as a foundation and enhance them with additiona
         console.log('🤝 Merging AWS entities with LLM contextual data...')
         
         // Create hybrid parsed data prioritizing AWS medical entities
-        parsedData = mergeAWSAndLLMResults(validatedEntities, awsRelationships, llmData, structuredData)
+        parsedData = mergeAWSAndLLMResultsInline(validatedEntities, awsRelationships, llmData, structuredData)
         
         // Calculate combined confidence score
         const awsConfidence = validatedEntities.reduce((sum, e) => sum + (e.confidence || 0.8), 0) / Math.max(validatedEntities.length, 1)
