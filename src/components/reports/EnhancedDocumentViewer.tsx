@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Eye, BarChart3, Target } from "lucide-react";
+import { FileText, Eye, BarChart3, Target, RefreshCw } from "lucide-react";
 import { CustomStructuredDataViewer } from "./CustomStructuredDataViewer";
 import { SimpleDocumentViewer } from "./SimpleDocumentViewer";
 import { FHIRDataViewer } from "./FHIRDataViewer";
+import { useHybridDocumentProcessing } from "@/hooks/useHybridDocumentProcessing";
+import { useToast } from "@/hooks/use-toast";
 
 interface EnhancedDocumentViewerProps {
   report: {
@@ -27,6 +29,24 @@ interface EnhancedDocumentViewerProps {
 
 export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) {
   const [activeTab, setActiveTab] = useState("structured");
+  const { reprocessDocument, isProcessing } = useHybridDocumentProcessing();
+  const { toast } = useToast();
+
+  const handleReprocess = async () => {
+    try {
+      await reprocessDocument(report.id);
+      toast({
+        title: "Document Reprocessing Started",
+        description: "The document is being reprocessed. Please refresh the page after a few moments to see the updated results.",
+      });
+    } catch (error) {
+      toast({
+        title: "Reprocessing Failed",
+        description: "Unable to reprocess the document. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Enhanced detection for structured data
   const hasStructuredData = report.parsed_data && (
@@ -83,6 +103,18 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
                 )}
               </div>
             </div>
+            {(report.parsing_status === 'failed' || (!hasStructuredData && report.parsing_status === 'completed')) && (
+              <Button 
+                onClick={handleReprocess}
+                disabled={isProcessing}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isProcessing ? 'animate-spin' : ''}`} />
+                {isProcessing ? 'Reprocessing...' : 'Reprocess'}
+              </Button>
+            )}
           </div>
         </CardHeader>
       </Card>
@@ -116,12 +148,12 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
                 <div className="text-muted-foreground space-y-2">
                   <BarChart3 className="h-12 w-12 mx-auto opacity-50" />
                   <p className="font-medium">No structured data available</p>
-                  <p className="text-sm">
-                    {report.parsing_status === 'processing' 
-                      ? 'Document is still being processed. Please check back in a few moments.'
-                      : 'This document may be image-only or require manual review.'
-                    }
-                  </p>
+                   <p className="text-sm">
+                     {report.parsing_status === 'processing' 
+                       ? 'Document is still being processed. Please check back in a few moments.'
+                       : 'This document may be image-only or require manual review. Try reprocessing using the button above.'
+                     }
+                   </p>
                 </div>
               </CardContent>
             </Card>
