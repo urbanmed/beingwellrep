@@ -117,6 +117,9 @@ export type ParsedMedicalData =
   | VitalSignsData 
   | GeneralMedicalData;
 
+// Re-export enhanced types
+export * from './aws-medical-data';
+
 export interface DocumentParsingResult {
   success: boolean;
   data?: ParsedMedicalData;
@@ -125,4 +128,10 @@ export interface DocumentParsingResult {
   model: string;
   errors?: string[];
   processingTime?: number;
+  // Enhanced with AWS processing pipeline status
+  awsProcessing?: {
+    textract?: { status: string; confidence?: number };
+    comprehendMedical?: { status: string; confidence?: number };
+    terminology?: { status: string; validationRate?: number };
+  };
 }
