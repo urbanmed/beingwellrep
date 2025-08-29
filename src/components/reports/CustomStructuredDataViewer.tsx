@@ -30,6 +30,7 @@ interface CustomStructuredDataViewerProps {
       hospitalLabInformation?: string;
       labTestResults?: string;
     };
+    extracted_text?: string; // Raw extracted text for fallback parsing
     confidence?: number;
   } | null;
 }
@@ -57,7 +58,7 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
   let displayData = parsedData;
   
   if (parsedData.extractedData && (!parsedData.sections || parsedData.sections.length === 0)) {
-    const convertedData = convertMarkdownToStructured(parsedData.extractedData);
+    const convertedData = convertMarkdownToStructured(parsedData.extractedData, parsedData.extracted_text);
     displayData = {
       ...parsedData,
       patient: convertedData.patient || parsedData.patient,

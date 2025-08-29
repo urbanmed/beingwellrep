@@ -386,10 +386,10 @@ function extractTestResults(text: string): TestResult[] {
   // Enhanced test result extraction patterns for specific lab report format
   const specificPatterns = [
     // Pattern 1: "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
-    /([A-Za-z][A-Za-z\s,]+?)\s*Method\s*:\s*([^:]+?)\s*:\s*([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*?)\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi,
+    /([A-Za-z][A-Za-z\s,]+?)\s*Method\s*:\s*([^:]+?)\s*:\s*([\d\.<>\/=]+)\s*mg\/d?\s*L\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi,
     
     // Pattern 2: "Fasting Plasma Glucose Method : Hexokinase : 76 mg/d L Normal : 70 - 100"
-    /([A-Za-z][A-Za-z\s,]+?)\s*Method\s*:\s*([^:]+?)\s*:\s*([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*?)\s*(?:Normal|Reference|Ref)?\s*:?\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi,
+    /([A-Za-z][A-Za-z\s,]+?)\s*Method\s*:\s*([^:]+?)\s*:\s*([\d\.<>\/=]+)\s*mg\/d?\s*L\s*(?:Normal|Reference|Ref)?\s*:?\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi,
     
     // Pattern 3: Simple "Test Name : Value Unit Range" format
     /(?:^|\n)\s*([A-Za-z][A-Za-z\s,]+?)\s*:\s*([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*?)\s+([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gm,
@@ -420,8 +420,8 @@ function extractTestResults(text: string): TestResult[] {
         // Format: "Test Method : Method : Result Units Range"
         testName = match[1]?.trim().replace(/\s+/g, ' ');
         result = match[3]?.trim();
-        units = match[4]?.trim().replace(/\s+/g, ' ');
-        referenceRange = match[5]?.trim();
+        units = 'mg/dL'; // Fixed units for this pattern
+        referenceRange = match[4]?.trim();
       } else {
         // Format: "Test : Result Units Range"
         testName = match[1]?.trim().replace(/\s+/g, ' ');

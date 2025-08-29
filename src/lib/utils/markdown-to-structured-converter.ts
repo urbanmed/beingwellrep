@@ -30,7 +30,7 @@ export function convertMarkdownToStructured(extractedData: {
   patientInformation?: unknown;
   hospitalLabInformation?: unknown;
   labTestResults?: unknown;
-}): StructuredData {
+}, rawExtractedText?: string): StructuredData {
   const result: StructuredData = {
     patientInformation: {},
     facilityInformation: {},
@@ -87,16 +87,28 @@ export function convertMarkdownToStructured(extractedData: {
       }
     }
 
-    // Fallback: Use universal parser if direct parsing didn't work
-    if (result.sections.length === 0) {
+    // Fallback: Use universal parser if direct parsing didn't work or if labTestResults indicates no extraction
+    const noTestResults = typeof extractedData.labTestResults === 'string' && 
+                          extractedData.labTestResults.toLowerCase().includes('no test results extracted');
+    
+    if (result.sections.length === 0 || noTestResults) {
       console.log('🔄 Fallback to universal parser...');
-      const combinedContent = [
-        extractedData.patientInformation,
-        extractedData.hospitalLabInformation,
-        extractedData.labTestResults
-      ].filter(Boolean).join('\n\n');
+      
+      // Use raw extracted text if available and structured extraction failed
+      let contentToParse = '';
+      if (rawExtractedText && noTestResults) {
+        console.log('📄 Using raw extracted_text for parsing (length:', rawExtractedText.length, ')');
+        contentToParse = rawExtractedText;
+      } else {
+        // Fallback to combining extractedData fields
+        contentToParse = [
+          extractedData.patientInformation,
+          extractedData.hospitalLabInformation,
+          extractedData.labTestResults
+        ].filter(Boolean).join('\n\n');
+      }
 
-      const universalData = parseUniversalMedicalDocument(combinedContent);
+      const universalData = parseUniversalMedicalDocument(contentToParse);
       
       // Map universal data to display structure
       result.patient = {
