@@ -67,6 +67,8 @@ const getActiveCustomPrompt = async (supabaseClient: any): Promise<string | null
 };
 
 const enhancedMedicalExtractor = (extractedText: string) => {
+  console.log('🔧 Enhanced medical extractor processing text length:', extractedText.length);
+  
   // Enhanced medical text parser for lab reports
   const lines = extractedText.split('\n').map(line => line.trim()).filter(Boolean);
   
@@ -92,31 +94,69 @@ const enhancedMedicalExtractor = (extractedText: string) => {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
-    // Patient name extraction
-    if (line.includes('Mr.') || line.includes('Mrs.') || line.includes('Ms.') || line.includes('Patient:')) {
-      const nameMatch = line.match(/(?:Mr\.|Mrs\.|Ms\.|Patient:)\s*([A-Z\s]+)/i);
-      if (nameMatch) patientInfo.name = nameMatch[1].trim();
+    // Patient name extraction - improved patterns
+    if (line.match(/(?:Mr\.|Mrs\.|Ms\.|Patient:|Name:)\s*([A-Z][A-Z\s]+)/i)) {
+      const nameMatch = line.match(/(?:Mr\.|Mrs\.|Ms\.|Patient:|Name:)\s*([A-Z][A-Z\s]+)/i);
+      if (nameMatch && nameMatch[1]) {
+        patientInfo.name = nameMatch[1].trim();
+        console.log('📝 Found patient name:', patientInfo.name);
+      }
     }
     
-    // Age and gender extraction
-    if (line.match(/Age.*?(\d+).*?(Male|Female|M|F)/i)) {
+    // Age and gender extraction - improved patterns
+    if (line.match(/(\d+)\s*Y\(s\)\s*\/\s*(Male|Female|M|F)/i)) {
+      const ageGenderMatch = line.match(/(\d+)\s*Y\(s\)\s*\/\s*(Male|Female|M|F)/i);
+      if (ageGenderMatch) {
+        patientInfo.age = ageGenderMatch[1];
+        patientInfo.gender = ageGenderMatch[2];
+        console.log('📝 Found age/gender:', patientInfo.age, patientInfo.gender);
+      }
+    } else if (line.match(/Age.*?(\d+).*?(Male|Female|M|F)/i)) {
       const ageGenderMatch = line.match(/Age.*?(\d+).*?(Male|Female|M|F)/i);
       if (ageGenderMatch) {
         patientInfo.age = ageGenderMatch[1];
         patientInfo.gender = ageGenderMatch[2];
+        console.log('📝 Found age/gender (alt):', patientInfo.age, patientInfo.gender);
+      }
+    }
+    
+    // Facility name extraction
+    if (line.match(/(Hospital|Clinic|Laboratory|Medical|Health|Diagnostics)/i) && 
+        !line.match(/(Patient|Age|Date|Time|Test|Result|Reference)/i) &&
+        line.length > 10 && line.length < 100) {
+      if (!facilityInfo.name && !line.match(/^\d/)) {
+        facilityInfo.name = line.trim();
+        console.log('📝 Found facility:', facilityInfo.name);
       }
     }
     
     // Test result extraction - enhanced pattern matching
-    const testMatch = line.match(/^([A-Za-z\s\(\)]+?)\s+([0-9.,]+)\s*([a-zA-Z/%]+)?\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)?/);
-    if (testMatch && !line.includes('Page') && !line.includes('Date') && !line.includes('Time')) {
+    // Pattern 1: "Test Name  Value  Unit  Range"
+    const testMatch1 = line.match(/^([A-Za-z][A-Za-z\s\(\)\.,-]+?)\s+([0-9.,<>]+)\s*([a-zA-Z\/%]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)?/);
+    
+    // Pattern 2: "Test Name: Value Unit (Range)"
+    const testMatch2 = line.match(/^([A-Za-z][A-Za-z\s\(\)\.,-]+?):\s*([0-9.,<>]+)\s*([a-zA-Z\/%]*)\s*(?:\(([0-9.,-]+\s*[-–]\s*[0-9.,]+)\))?/);
+    
+    const testMatch = testMatch1 || testMatch2;
+    
+    if (testMatch && 
+        !line.includes('Page') && 
+        !line.includes('Date') && 
+        !line.includes('Time') &&
+        !line.includes('Dr.') &&
+        !line.includes('Consultant') &&
+        !line.includes('DEPARTMENT') &&
+        !line.match(/^\d+$/) && // Skip pure numbers
+        !line.match(/^[A-Z\s]+$/) // Skip header lines
+       ) {
+      
       const [, testName, value, unit, range] = testMatch;
       
-      if (testName && value && testName.length > 2) {
-        const numericValue = parseFloat(value.replace(',', ''));
+      if (testName && value && testName.length > 2 && testName.length < 50) {
+        const numericValue = parseFloat(value.replace(/[,<>]/g, ''));
         let status = 'normal';
         
-        // Status determination based on reference range
+        // Enhanced status determination based on reference range
         if (range && !isNaN(numericValue)) {
           const rangeMatch = range.match(/([0-9.]+)\s*[-–]\s*([0-9.]+)/);
           if (rangeMatch) {
@@ -140,12 +180,15 @@ const enhancedMedicalExtractor = (extractedText: string) => {
           section: currentSection,
           notes: ''
         });
+        
+        console.log('📝 Found test:', testName.trim(), '=', value.trim(), unit?.trim());
       }
     }
     
-    // Section detection
-    if (line.match(/^(Clinical Biochemistry|Haematology|Kidney Function|Complete Blood Count)/i)) {
+    // Section detection - improved
+    if (line.match(/^(DEPARTMENT\s+OF\s+)?([A-Z\s]+(?:BIOCHEMISTRY|HAEMATOLOGY|PATHOLOGY|MICROBIOLOGY|SEROLOGY))/i)) {
       currentSection = line;
+      console.log('📝 Found section:', currentSection);
     }
   }
   
@@ -2295,151 +2338,61 @@ serve(async (req) => {
       console.warn('⚠️ AWS processing failed, continuing with LLM-only approach:', awsError.message)
     }
 
-    // Phase 4: LLM Enhancement and contextual understanding
-    console.log('🤖 Phase 4: LLM Enhancement and gap filling...')
+    // Phase 4: Rule-based Primary Extraction
+    console.log('⚡ Phase 4: Rule-based primary extraction (enhanced medical extractor)...')
     
-    // Get OpenAI API key
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured')
-    }
+    // Use the enhanced medical extractor as PRIMARY parser
+    let parsedData = enhancedMedicalExtractor(report.extracted_text || '')
+    let confidence = parsedData.confidence || 0.85
     
-    // Try to get custom prompt first, fallback to default prompts
-    console.log('🔍 CUSTOM PROMPT DEBUG: Attempting to fetch custom prompt...')
-    let prompt = await getActiveCustomPrompt(supabaseClient)
-    let reportType = report.report_type
-    
-    if (prompt) {
-      console.log('✅ CUSTOM PROMPT DEBUG: Using active custom prompt for document processing')
-      reportType = 'custom'
-    } else {
-      console.log('⚠️ CUSTOM PROMPT DEBUG: No custom prompt found, using default prompt for report type:', report.report_type)
-      prompt = getPromptForReportType(report.report_type)
-    }
+    console.log(`✅ Enhanced medical extractor completed:`, {
+      reportType: parsedData.reportType,
+      hasTests: !!(parsedData.tests && parsedData.tests.length > 0),
+      hasPatient: !!(parsedData.patient && parsedData.patient.name),
+      hasFacility: !!(parsedData.facility),
+      testCount: parsedData.tests?.length || 0,
+      confidence: confidence
+    })
 
-    // Phase 5: Intelligent merging of AWS and LLM results
-    console.log('🔗 Phase 5: Intelligent merging of AWS and LLM results...')
+    // Phase 5: AWS Entity Enhancement (optional)
+    console.log('🔗 Phase 5: AWS entity enhancement...')
     
-    // Process LLM data and merge with AWS results
-    let parsedData = null
-    let confidence = 0.8
-    
-    try {
-      // LLM processing with AI
-      const processingResult = await processDocumentContent(report.extracted_text, reportType, openaiApiKey, prompt)
-      const aiResponse = processingResult.response
+    // Enhance with AWS entities if available
+    if (validatedEntities.length > 0 || awsEntities.length > 0) {
+      console.log(`🔗 Enhancing with ${awsEntities.length} AWS entities...`)
       
-      console.log(`LLM processing completed using: ${processingResult.processingType}`)
-      
-      // Parse LLM response with enhanced validation
-      let llmData = null
       try {
-        // Try to parse as JSON first
-        llmData = JSON.parse(aiResponse)
-        console.log('✅ Successfully parsed LLM response as JSON')
-      } catch (parseError) {
-        console.warn('⚠️ LLM response is not valid JSON, attempting enhanced text extraction')
-        llmData = extractDataFromTextResponse(aiResponse, reportType)
-      }
-      
-      // Enhanced validation and fallback
-      if (!llmData || typeof llmData !== 'object') {
-        console.warn('⚠️ LLM processing failed to produce structured data, creating fallback structure')
-        llmData = extractDataFromTextResponse(aiResponse || report.extracted_text, reportType)
-      }
-      
-      // Ensure critical fields exist
-      if (!llmData.reportType) {
-        llmData.reportType = reportType
-      }
-      
-      // CRITICAL FIX: Ensure we always have some structured data for lab reports
-      if ((reportType === 'lab' || reportType === 'custom') && (!llmData.tests || llmData.tests.length === 0)) {
-        console.log('🔧 CRITICAL FIX: Creating lab test structure from extracted text')
-        llmData.tests = extractTestsFromText(report.extracted_text)
-        
-        if (llmData.tests.length === 0) {
-          llmData.tests = extractTestsAggressively(report.extracted_text)
-        }
-        
-        // Last resort: create meaningful test entries
-        if (llmData.tests.length === 0) {
-          llmData.tests = [
-            {
-              name: "Uric Acid", 
-              value: "6.8", 
-              unit: "mg/dL", 
-              referenceRange: "3.5-7.2", 
-              status: "normal"
-            },
-            {
-              name: "Glucose", 
-              value: "95", 
-              unit: "mg/dL", 
-              referenceRange: "70-100", 
-              status: "normal"
-            }
-          ];
-        }
-        
-        console.log(`🔧 CRITICAL FIX: Generated ${llmData.tests.length} test entries for structured display`)
-      }
-      
-      console.log('📊 LLM Data Structure:', {
-        reportType: llmData.reportType,
-        hasTests: !!(llmData.tests && llmData.tests.length > 0),
-        hasMedications: !!(llmData.medications && llmData.medications.length > 0),
-        hasSections: !!(llmData.sections && llmData.sections.length > 0),
-        confidence: llmData.confidence || 0.5
-      })
-      
-      // Intelligent merging of AWS and LLM results
-      if (validatedEntities.length > 0 || awsEntities.length > 0) {
-        console.log(`🔗 Merging ${awsEntities.length} AWS entities with LLM data...`)
+        // Merge AWS entities to enhance the rule-based extraction
         parsedData = mergeAWSAndLLMResultsInline(
           awsEntities,
           awsRelationships,
-          llmData,
+          parsedData,
           structuredData
         )
-        confidence = calculateHybridConfidenceInline(awsEntities, llmData)
-        console.log(`✅ Hybrid processing complete with confidence: ${confidence.toFixed(2)}`)
-      } else {
-        console.log('📝 Using LLM-only results (no AWS entities available)')
-        parsedData = transformSectionsToFHIRFormat(llmData)
-        confidence = 0.75 // Slightly lower confidence for LLM-only
+        confidence = calculateHybridConfidenceInline(awsEntities, parsedData)
+        console.log(`✅ AWS enhancement complete with confidence: ${confidence.toFixed(2)}`)
+      } catch (awsEnhanceError) {
+        console.warn('⚠️ AWS enhancement failed, using rule-based data only:', awsEnhanceError.message)
       }
-      
-      // Ensure parsedData has required structure
-      if (!parsedData || typeof parsedData !== 'object') {
-        throw new Error('Failed to generate structured data from document')
-      }
-      
-      await supabaseClient
-        .from('reports')
-        .update({ 
-          progress_percentage: 75,
-          processing_phase: 'llm_enhancement_completed'
-        })
-        .eq('id', reportId)
-        
-    } catch (llmError) {
-      console.error('❌ LLM processing failed:', llmError)
-      throw new Error(`LLM processing failed: ${llmError.message}`)
+    } else {
+      console.log('📝 Using rule-based extraction only (no AWS entities available)')
     }
+    
+    // Ensure parsedData has required structure
+    if (!parsedData || typeof parsedData !== 'object') {
+      throw new Error('Enhanced medical extractor failed to generate structured data')
+    }
+    
+    await supabaseClient
+      .from('reports')
+      .update({ 
+        progress_percentage: 75,
+        processing_phase: 'rule_based_extraction_completed'
+      })
+      .eq('id', reportId)
 
     // Phase 6: Final processing and storage
     console.log('💾 Phase 6: Final processing and storage...')
-    
-    // ✅ CRITICAL FIX: Use enhanced medical extractor if no structured data
-    if (!parsedData || typeof parsedData !== 'object' || (!parsedData.tests && !parsedData.extractedData)) {
-      console.log('🔧 CRITICAL FIX: Using enhanced medical data extraction')
-      
-      // Use the enhanced medical extractor
-      parsedData = enhancedMedicalExtractor(report.extracted_text || '')
-      
-      console.log(`🔧 CRITICAL FIX: Enhanced extraction created ${parsedData.tests?.length || 0} tests and structured data`)
-    }
     
     console.log('💾 Storing parsed data with structure:', {
       reportType: parsedData.reportType,
