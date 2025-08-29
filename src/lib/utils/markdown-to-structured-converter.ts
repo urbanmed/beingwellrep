@@ -39,44 +39,94 @@ export function convertMarkdownToStructured(extractedData: {
     sections: []
   };
 
-  try {
-    // Use universal parser for more intelligent parsing
-    const combinedContent = [
-      extractedData.patientInformation,
-      extractedData.hospitalLabInformation,
-      extractedData.labTestResults
-    ].filter(Boolean).join('\n\n');
+  console.log('🔄 Converting markdown to structured format:', { extractedData });
 
-    const universalData = parseUniversalMedicalDocument(combinedContent);
-    
-    // Map universal data to display structure
-    result.patient = {
-      name: universalData.patientInfo.name,
-      dateOfBirth: universalData.patientInfo.dob,
-      id: universalData.patientInfo.id,
-      age: universalData.patientInfo.age,
-      gender: universalData.patientInfo.gender,
-    };
-    
-    result.facility = universalData.medicalInfo.facilityName || universalData.medicalInfo.labName;
-    result.provider = universalData.medicalInfo.physicianName || universalData.patientInfo.address; // Doctor from patient table
-    result.reportDate = universalData.medicalInfo.reportDate || universalData.patientInfo.contact; // Report date from patient table
-    result.visitDate = universalData.medicalInfo.collectionDate || '';
-    
-    // Add sections from universal parser
-    result.sections = universalData.sections;
-    
-    // Add lab results as structured data if we have test results
-    if (universalData.testResults.length > 0) {
-      const existingLabSection = result.sections.find(s => s.category === 'laboratory');
-      if (existingLabSection) {
-        existingLabSection.content = universalData.testResults;
-      } else {
+  try {
+    // DIRECT MARKDOWN TABLE PARSING - prioritize this over universal parser
+    // Parse lab test results from markdown table first
+    if (typeof extractedData.labTestResults === 'string' && extractedData.labTestResults.includes('|')) {
+      console.log('📊 Found markdown table in labTestResults, parsing directly...');
+      const labTests = parseMarkdownTable(extractedData.labTestResults);
+      console.log('📊 Parsed lab tests:', labTests.length, 'tests found');
+      
+      if (labTests.length > 0) {
         result.sections.push({
           title: 'Laboratory Results',
           category: 'laboratory',
-          content: universalData.testResults
+          content: labTests
         });
+      }
+    }
+
+    // Parse patient information
+    if (typeof extractedData.patientInformation === 'string') {
+      const patientData = parsePatientInformation(extractedData.patientInformation);
+      result.patient = patientData.patient;
+      result.reportDate = patientData.reportDate;
+      result.visitDate = patientData.visitDate;
+      if (Object.keys(patientData.additionalContent).length > 0) {
+        result.sections.push({ 
+          title: 'Patient Details', 
+          category: 'Patient Information', 
+          content: patientData.additionalContent 
+        });
+      }
+    }
+
+    // Parse facility information
+    if (typeof extractedData.hospitalLabInformation === 'string') {
+      const medicalData = parseMedicalInformation(extractedData.hospitalLabInformation);
+      result.facility = medicalData.facility;
+      result.provider = medicalData.provider;
+      if (Object.keys(medicalData.additionalContent).length > 0) {
+        result.sections.push({ 
+          title: 'Medical Information', 
+          category: 'Facility & Provider', 
+          content: medicalData.additionalContent 
+        });
+      }
+    }
+
+    // Fallback: Use universal parser if direct parsing didn't work
+    if (result.sections.length === 0) {
+      console.log('🔄 Fallback to universal parser...');
+      const combinedContent = [
+        extractedData.patientInformation,
+        extractedData.hospitalLabInformation,
+        extractedData.labTestResults
+      ].filter(Boolean).join('\n\n');
+
+      const universalData = parseUniversalMedicalDocument(combinedContent);
+      
+      // Map universal data to display structure
+      result.patient = {
+        name: universalData.patientInfo.name,
+        dateOfBirth: universalData.patientInfo.dob,
+        id: universalData.patientInfo.id,
+        age: universalData.patientInfo.age,
+        gender: universalData.patientInfo.gender,
+      };
+      
+      result.facility = universalData.medicalInfo.facilityName || universalData.medicalInfo.labName;
+      result.provider = universalData.medicalInfo.physicianName;
+      result.reportDate = universalData.medicalInfo.reportDate;
+      result.visitDate = universalData.medicalInfo.collectionDate || '';
+      
+      // Add sections from universal parser
+      result.sections = universalData.sections;
+      
+      // Add lab results as structured data if we have test results
+      if (universalData.testResults.length > 0) {
+        const existingLabSection = result.sections.find(s => s.category === 'laboratory');
+        if (existingLabSection) {
+          existingLabSection.content = universalData.testResults;
+        } else {
+          result.sections.push({
+            title: 'Laboratory Results',
+            category: 'laboratory',
+            content: universalData.testResults
+          });
+        }
       }
     }
 
@@ -367,69 +417,76 @@ function parseLabResults(content: string): ParsedSection[] {
 }
 
 function parseMarkdownTable(content: string): any[] {
+  console.log('📋 Parsing markdown table, content length:', content.length);
   const lines = content.split('\n').filter(line => line.includes('|'));
+  console.log('📋 Found table lines:', lines.length);
+  
   if (lines.length < 2) return [];
 
   const headerLine = lines[0];
   const headers = headerLine.split('|').map(h => h.trim()).filter(h => h);
+  console.log('📋 Table headers:', headers);
   
   const results: any[] = [];
   
   for (let i = 2; i < lines.length; i++) { // Skip header and separator
     const cells = lines[i].split('|').map(c => c.trim()).filter(c => c);
-    if (cells.length >= headers.length) {
-      const testData: any = {};
+    if (cells.length >= 2) { // At least test name and result
+      const testData: any = {
+        testName: '',
+        result: '',
+        units: '',
+        referenceRange: '',
+        status: 'Normal'
+      };
       
-      headers.forEach((header, index) => {
-        const normalizedHeader = header.toLowerCase();
-        const value = cells[index] || '';
+      // Map cells to expected format - be more flexible with mapping
+      if (cells.length >= 4) {
+        // Standard format: | Test Name | Result | Units | Reference Range |
+        testData.testName = cells[0];
+        testData.result = cells[1];
+        testData.units = cells[2];
+        testData.referenceRange = cells[3];
+      } else if (cells.length === 3) {
+        // Format: | Test Name | Result Units | Reference Range |
+        testData.testName = cells[0];
+        const resultWithUnits = cells[1];
+        testData.referenceRange = cells[2];
         
-        if (normalizedHeader.includes('test') || normalizedHeader.includes('name') || normalizedHeader.includes('parameter')) {
-          testData.testName = value;
-        } else if (normalizedHeader.includes('result') || normalizedHeader.includes('value')) {
-          // Handle empty/pending results
-          if (!value || value === '' || value === '-' || value.toLowerCase().includes('pending') || value.toLowerCase().includes('awaiting')) {
-            testData.result = '';
-            testData.units = '';
-            testData.status = 'Pending';
-          } else {
-            // Extract numeric result and units
-            const resultMatch = value.match(/^([\d.,]+)\s*(.*)$/);
-            testData.result = resultMatch ? resultMatch[1] : value;
-            testData.units = resultMatch ? resultMatch[2] : '';
-            
-            // Calculate status based on result and reference range if not explicitly provided
-            if (!testData.status && testData.referenceRange) {
-              testData.status = calculateStatus(testData.result, testData.referenceRange);
-            }
-          }
-        } else if (normalizedHeader.includes('reference') || normalizedHeader.includes('range') || normalizedHeader.includes('normal')) {
-          testData.referenceRange = value;
-        } else if (normalizedHeader.includes('status') || normalizedHeader.includes('flag')) {
-          testData.status = normalizeStatus(value);
+        // Extract result and units from combined string
+        const resultMatch = resultWithUnits.match(/^([\d.,<>]+)\s*(.*)$/);
+        if (resultMatch) {
+          testData.result = resultMatch[1];
+          testData.units = resultMatch[2];
+        } else {
+          testData.result = resultWithUnits;
         }
-      });
+      } else if (cells.length === 2) {
+        // Minimal format: | Test Name | Result |
+        testData.testName = cells[0];
+        testData.result = cells[1];
+      }
       
-      // Calculate status after all data is parsed if not already set
-      if (testData.testName && testData.result && !testData.status && testData.referenceRange) {
+      // Calculate status based on result and reference range
+      if (testData.result && testData.referenceRange) {
         testData.status = calculateStatus(testData.result, testData.referenceRange);
       }
       
-      // Include tests even if they have no results (requisition forms)
-      if (testData.testName) {
-        // Set default status if not already set
-        if (!testData.status) {
-          if (!testData.result || testData.result === '') {
-            testData.status = 'Pending';
-          } else {
-            testData.status = 'Normal';
-          }
-        }
+      // Clean up the data
+      testData.testName = testData.testName.trim();
+      testData.result = testData.result.trim();
+      testData.units = testData.units.trim();
+      testData.referenceRange = testData.referenceRange.trim();
+      
+      // Only add if we have meaningful data
+      if (testData.testName && testData.testName !== '--' && testData.testName !== '') {
         results.push(testData);
+        console.log('📋 Added test:', testData.testName, '=', testData.result, testData.units);
       }
     }
   }
   
+  console.log('📋 Successfully parsed', results.length, 'tests from markdown table');
   return results;
 }
 
