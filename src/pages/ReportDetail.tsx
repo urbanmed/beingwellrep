@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DocumentViewer } from "@/components/reports/DocumentViewer";
+import { DocumentProcessingTrigger } from "@/components/reports/DocumentProcessingTrigger";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -96,6 +97,12 @@ export default function ReportDetail() {
           Back
         </Button>
       </div>
+      
+      {/* Trigger processing if report status is pending */}
+      <DocumentProcessingTrigger 
+        reportId={id!}
+        shouldProcess={report.parsing_status === 'pending'}
+      />
       
       <DocumentViewer report={report} />
     </div>
