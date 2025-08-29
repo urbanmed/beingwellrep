@@ -131,37 +131,56 @@ const enhancedMedicalExtractor = (extractedText: string) => {
       }
     }
     
-    // Test result extraction - NEW PATTERNS for this lab report format
-    // Pattern 3: "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
-    const labTestMatch = line.match(/^([A-Za-z\s,]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([a-zA-Z\/\s]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+|Normal\s*:\s*[0-9.,-]+\s*[-–]\s*[0-9.,]+|Desirable\s*:\s*[<>]*\s*[0-9.,]+)?/i);
+    // Test result extraction - IMPROVED PATTERNS for this lab report format
+    console.log('🔍 Analyzing line for test extraction:', line.substring(0, 100));
     
-    // Pattern 4: "Fasting Plasma Glucose Method : Hexokinase : 76 mg/d L Normal : 70 - 100"
-    const glucoseMatch = line.match(/^([A-Za-z\s,]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([a-zA-Z\/\s]*)\s*(Normal\s*:\s*[0-9.,-]+\s*[-–]\s*[0-9.,]+|Prediabetes\s*:\s*[0-9.,-]+\s*[-–]\s*[0-9.,]+|Diabetic\s*:\s*[><=]*\s*[0-9.,]+)?/i);
+    // Pattern 1: "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
+    const methodPattern1 = line.match(/([A-Za-z\s,]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([a-zA-Z\/\s]*L?)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)?/i);
     
-    // Pattern 5: Standard lab format "Hemoglobin Method : Non-Cyanide Photometric Measurement : 15.8 g/d L 13.0-17.0"
-    const standardLabMatch = line.match(/^([A-Za-z\s,\/]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([a-zA-Z\/\s]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)?/i);
+    // Pattern 2: "TSH Method : CLIA : 4.08 μIU/m L Children: Birth-4 d:1.0-39.0"
+    const methodPattern2 = line.match(/([A-Za-z\s,]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([μa-zA-Z\/\s]*L?)\s*(Children|Adults|Normal|Desirable|Optimal).*?([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
-    const testMatch = labTestMatch || glucoseMatch || standardLabMatch;
+    // Pattern 3: General method pattern with flexible reference ranges
+    const methodPattern3 = line.match(/([A-Za-z\s,]+?)\s+Method\s*:\s*.*?:\s*([0-9.,<>]+)\s*([μa-zA-Z\/\s]*L?)\s*/i);
     
+    let testMatch = methodPattern1 || methodPattern2 || methodPattern3;
+    
+    // Also check if the line contains test results in other formats
+    const simpleTestMatch = line.match(/^([A-Za-z\s,]+?):\s*([0-9.,<>]+)\s*([a-zA-Z\/\s]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)?/i);
+    
+    testMatch = testMatch || simpleTestMatch;
+    
+    // More lenient filtering - only exclude obvious non-test lines
     if (testMatch && 
         !line.includes('Page') && 
-        !line.includes('Date') && 
-        !line.includes('Time') &&
-        !line.includes('Dr.') &&
-        !line.includes('Consultant') &&
-        !line.includes('DEPARTMENT') &&
+        !line.includes('Print Date') &&
+        !line.includes('Received On') &&
+        !line.includes('Registered On') &&
+        !line.includes('Client Req') &&
+        !line.includes('Phone') &&
+        !line.includes('Processing Location') &&
         !line.match(/^\d+$/) && // Skip pure numbers
         !line.match(/^[A-Z\s]+$/) && // Skip header lines
-        !line.includes('Interpretation') &&
-        !line.includes('Reference')
+        !line.includes('**End Of Report**') &&
+        line.length > 10 // Must have some content
        ) {
+       
+      console.log('✅ Found potential test match:', testMatch[1], testMatch[2]);
       
       let [, testName, value, unit, range] = testMatch;
       
-      // Clean up test name
-      testName = testName.replace(/Method.*$/i, '').trim();
+      // Clean up test name - remove "Method" and anything after it
+      testName = testName.replace(/\s+Method.*$/i, '').trim();
       
-      if (testName && value && testName.length > 2 && testName.length < 50) {
+      // Extract range from the line if not captured in the match
+      if (!range) {
+        const rangeSearch = line.match(/([0-9.,-]+\s*[-–]\s*[0-9.,]+)/g);
+        if (rangeSearch && rangeSearch.length > 0) {
+          range = rangeSearch[rangeSearch.length - 1]; // Take the last range found
+        }
+      }
+      
+      if (testName && value && testName.length > 1 && testName.length < 80) {
         const numericValue = parseFloat(value.replace(/[,<>]/g, ''));
         let status = 'normal';
         
