@@ -162,13 +162,72 @@ function cleanText(text: string): string {
 function extractPatientInfo(text: string): PatientInfo {
   const patientInfo: PatientInfo = {};
   
-  // Try to extract from tables first
+  // Enhanced pattern matching for lab reports
+  // Look for patterns like "Patient Name : : : : : Mr.PRAVEEN" or "Mr.PRAVEEN"
+  const namePatterns = [
+    /Patient Name\s*:?\s*:?\s*:?\s*:?\s*:?\s*([A-Za-z\.\s]+)/i,
+    /Name\s*:?\s*([A-Za-z\.\s]+)/i,
+    /Mr\.([A-Za-z\s]+)/i,
+    /Mrs\.([A-Za-z\s]+)/i,
+    /Ms\.([A-Za-z\s]+)/i
+  ];
+  
+  for (const pattern of namePatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      patientInfo.name = match[1].trim();
+      break;
+    }
+  }
+  
+  // Enhanced age/gender extraction for patterns like "45 Y(s) / Male"
+  const ageGenderPattern = /(\d+)\s*Y\(s\)\s*\/\s*(Male|Female|M|F)/i;
+  const ageGenderMatch = text.match(ageGenderPattern);
+  if (ageGenderMatch) {
+    patientInfo.age = ageGenderMatch[1];
+    patientInfo.gender = ageGenderMatch[2];
+  }
+  
+  // Separate age extraction if combined pattern didn't work
+  if (!patientInfo.age) {
+    const agePattern = /(?:Age|age)\s*:?\s*(\d+)/i;
+    const ageMatch = text.match(agePattern);
+    if (ageMatch) {
+      patientInfo.age = ageMatch[1];
+    }
+  }
+  
+  // Separate gender extraction
+  if (!patientInfo.gender) {
+    const genderPattern = /(?:Gender|Sex)\s*:?\s*(Male|Female|M|F)/i;
+    const genderMatch = text.match(genderPattern);
+    if (genderMatch) {
+      patientInfo.gender = genderMatch[1];
+    }
+  }
+  
+  // Extract patient ID/registration number
+  const idPatterns = [
+    /LAB\s+(\d+)/i,
+    /Patient\s*ID\s*:?\s*([A-Za-z0-9]+)/i,
+    /Registration\s*No\s*:?\s*([A-Za-z0-9-]+)/i
+  ];
+  
+  for (const pattern of idPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      patientInfo.id = match[1].trim();
+      break;
+    }
+  }
+  
+  // Try to extract from tables first (existing logic)
   const tableInfo = extractFromTables(text, PATIENT_FIELD_MAPPINGS);
-  Object.assign(patientInfo, tableInfo);
+  Object.assign(patientInfo, { ...tableInfo, ...patientInfo }); // Prioritize new extractions
   
   // Try to extract from key-value pairs
   const kvInfo = extractFromKeyValuePairs(text, PATIENT_FIELD_MAPPINGS);
-  Object.assign(patientInfo, kvInfo);
+  Object.assign(patientInfo, { ...kvInfo, ...patientInfo }); // Prioritize new extractions
   
   return patientInfo;
 }
@@ -176,13 +235,89 @@ function extractPatientInfo(text: string): PatientInfo {
 function extractMedicalInfo(text: string): MedicalInfo {
   const medicalInfo: MedicalInfo = {};
   
-  // Try to extract from tables first
+  // Enhanced facility name extraction
+  const facilityPatterns = [
+    /Simplify Wellness India/i,
+    /centrallab@luciddiagnostics/i,
+    /Lucid Diagnostics/i,
+    /(?:Facility|Hospital|Lab|Laboratory)\s*:?\s*([^\n]+)/i,
+    /Processing Location\s*:?\s*([^\n]+)/i
+  ];
+  
+  for (const pattern of facilityPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      if (match[0].includes('Simplify Wellness India')) {
+        medicalInfo.facilityName = 'Simplify Wellness India';
+        break;
+      } else if (match[0].includes('luciddiagnostics')) {
+        medicalInfo.facilityName = 'Lucid Diagnostics';
+        break;
+      } else if (match[1]) {
+        medicalInfo.facilityName = match[1].trim();
+        break;
+      }
+    }
+  }
+  
+  // Enhanced doctor/physician extraction
+  const physicianPatterns = [
+    /Dr\.([A-Za-z\s\.]+),?\s*[A-Z]{2,}/i,
+    /Dr\s+([A-Za-z\s\.]+)\s+[A-Z]{2,}/i,
+    /(?:Consultant|Doctor|Physician)\s+([A-Za-z\s\.]+)/i,
+    /Ref\.Dr\.\s*:?\s*([A-Za-z\s\.]+)/i
+  ];
+  
+  for (const pattern of physicianPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const doctorName = match[1].trim();
+      // Clean up the name - remove extra spaces and qualifications
+      const cleanName = doctorName.replace(/\s+/g, ' ').trim();
+      if (cleanName.length > 2) {
+        medicalInfo.physicianName = `Dr. ${cleanName}`;
+        break;
+      }
+    }
+  }
+  
+  // Extract report dates
+  const reportDatePatterns = [
+    /Reported On\s*:?\s*([0-9-]+\s+[0-9:]+)/i,
+    /Report Date\s*:?\s*([0-9-]+)/i,
+    /([0-9]{2}-[0-9]{2}-[0-9]{4}\s+[0-9]{2}:[0-9]{2})/i
+  ];
+  
+  for (const pattern of reportDatePatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      medicalInfo.reportDate = match[1].trim();
+      break;
+    }
+  }
+  
+  // Extract collection dates
+  const collectionPatterns = [
+    /Collected On\s*:?\s*([0-9-]+\s+[0-9:]+)/i,
+    /Collection Date\s*:?\s*([0-9-]+)/i,
+    /Sample Date\s*:?\s*([0-9-]+)/i
+  ];
+  
+  for (const pattern of collectionPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      medicalInfo.collectionDate = match[1].trim();
+      break;
+    }
+  }
+  
+  // Try to extract from tables first (existing logic as fallback)
   const tableInfo = extractFromTables(text, MEDICAL_FIELD_MAPPINGS);
-  Object.assign(medicalInfo, tableInfo);
+  Object.assign(medicalInfo, { ...tableInfo, ...medicalInfo }); // Prioritize new extractions
   
   // Try to extract from key-value pairs
   const kvInfo = extractFromKeyValuePairs(text, MEDICAL_FIELD_MAPPINGS);
-  Object.assign(medicalInfo, kvInfo);
+  Object.assign(medicalInfo, { ...kvInfo, ...medicalInfo }); // Prioritize new extractions
   
   return medicalInfo;
 }
@@ -246,68 +381,106 @@ function extractFromKeyValuePairs(text: string, fieldMappings: Record<string, st
 function extractTestResults(text: string): TestResult[] {
   const results: TestResult[] = [];
   
-  // Look for markdown tables with test results
-  const lines = text.split('\n');
-  let inTable = false;
-  let headers: string[] = [];
+  // Enhanced test result extraction patterns for lab reports
+  const testPatterns = [
+    // Pattern for "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
+    /([A-Za-z\s]+)\s*Method\s*:\s*[^:]+:\s*([\d\.<>]+)\s*([A-Za-z\/]+)\s*([\d\.-]+)/gi,
+    // Pattern for "Hemoglobin Method : Non-Cyanide Photometric Measurement : 15.8 g/d L 13.0-17.0"
+    /([A-Za-z\s]+)\s*Method\s*:\s*[^:]+:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]+)\s*([\d\.-]+)/gi,
+    // Pattern for structured test results
+    /([A-Za-z\s]+)\s*:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]*)\s*([\d\.-<>]+)/gi
+  ];
   
-  for (const line of lines) {
-    if (line.includes('|') && line.trim()) {
-      if (!inTable) {
-        // This might be a header row
-        headers = line.split('|').map(h => h.trim()).filter(h => h);
-        inTable = true;
-        continue;
-      }
+  // Look for specific test results patterns first
+  for (const pattern of testPatterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      const testName = match[1]?.trim();
+      const result = match[2]?.trim();
+      const units = match[3]?.trim();
+      const referenceRange = match[4]?.trim();
       
-      // Skip separator rows
-      if (line.includes('---') || line.includes('===')) {
-        continue;
-      }
-      
-      // Parse data row
-      const cells = line.split('|').map(c => c.trim()).filter(c => c);
-      
-      if (cells.length >= 2) {
-        const testData: TestResult = { testName: '' };
+      if (testName && result && testName.length > 2 && result.match(/[\d\.<>]/)) {
+        const testResult: TestResult = {
+          testName: testName,
+          result: result,
+          units: units || '',
+          referenceRange: referenceRange || '',
+          status: calculateEnhancedTestStatus(result, referenceRange || '')
+        };
         
-        // Map cells to test data based on headers
-        headers.forEach((header, index) => {
-          const normalizedHeader = header.toLowerCase();
-          const value = cells[index] || '';
+        // Avoid duplicates
+        if (!results.find(r => r.testName?.toLowerCase() === testName.toLowerCase())) {
+          results.push(testResult);
+        }
+      }
+    }
+  }
+  
+  // If enhanced patterns didn't find results, fall back to table parsing
+  if (results.length === 0) {
+    const lines = text.split('\n');
+    let inTable = false;
+    let headers: string[] = [];
+    
+    for (const line of lines) {
+      if (line.includes('|') && line.trim()) {
+        if (!inTable) {
+          // This might be a header row
+          headers = line.split('|').map(h => h.trim()).filter(h => h);
+          inTable = true;
+          continue;
+        }
+        
+        // Skip separator rows
+        if (line.includes('---') || line.includes('===')) {
+          continue;
+        }
+        
+        // Parse data row
+        const cells = line.split('|').map(c => c.trim()).filter(c => c);
+        
+        if (cells.length >= 2) {
+          const testData: TestResult = { testName: '' };
           
-          // Use field mappings to identify columns
-          if (TEST_FIELD_MAPPINGS.testName.some(field => normalizedHeader.includes(field))) {
-            testData.testName = value;
-          } else if (TEST_FIELD_MAPPINGS.result.some(field => normalizedHeader.includes(field))) {
-            testData.result = value;
-          } else if (TEST_FIELD_MAPPINGS.units.some(field => normalizedHeader.includes(field))) {
-            testData.units = value;
-          } else if (TEST_FIELD_MAPPINGS.referenceRange.some(field => normalizedHeader.includes(field))) {
-            testData.referenceRange = value;
-          } else if (TEST_FIELD_MAPPINGS.status.some(field => normalizedHeader.includes(field))) {
-            testData.status = normalizeStatus(value);
+          // Map cells to test data based on headers
+          headers.forEach((header, index) => {
+            const normalizedHeader = header.toLowerCase();
+            const value = cells[index] || '';
+            
+            // Use field mappings to identify columns
+            if (TEST_FIELD_MAPPINGS.testName.some(field => normalizedHeader.includes(field))) {
+              testData.testName = value;
+            } else if (TEST_FIELD_MAPPINGS.result.some(field => normalizedHeader.includes(field))) {
+              testData.result = value;
+            } else if (TEST_FIELD_MAPPINGS.units.some(field => normalizedHeader.includes(field))) {
+              testData.units = value;
+            } else if (TEST_FIELD_MAPPINGS.referenceRange.some(field => normalizedHeader.includes(field))) {
+              testData.referenceRange = value;
+            } else if (TEST_FIELD_MAPPINGS.status.some(field => normalizedHeader.includes(field))) {
+              testData.status = normalizeStatus(value);
+            }
+          });
+          
+          // Calculate status if not provided
+          if (testData.testName && testData.result && !testData.status && testData.referenceRange) {
+            testData.status = calculateTestStatus(testData.result, testData.referenceRange);
           }
-        });
-        
-        // Calculate status if not provided
-        if (testData.testName && testData.result && !testData.status && testData.referenceRange) {
-          testData.status = calculateTestStatus(testData.result, testData.referenceRange);
+          
+          // Set default status
+          if (testData.testName && !testData.status) {
+            testData.status = testData.result ? 'Normal' : 'Pending';
+          }
+          
+          if (testData.testName) {
+            results.push(testData);
+          }
         }
-        
-        // Set default status
-        if (testData.testName && !testData.status) {
-          testData.status = testData.result ? 'Normal' : 'Pending';
-        }
-        
-        if (testData.testName) {
-          results.push(testData);
-        }
+      } else if (inTable && line.trim() === '') {
+        // End of table
+        inTable = false;
+        headers = [];
       }
-    } else if (inTable && line.trim() === '') {
-      // End of table
-      inTable = false;
-      headers = [];
     }
   }
   
@@ -627,17 +800,19 @@ export function calculateEnhancedTestStatus(result: string, referenceRange: stri
 function normalizeStatus(status: string): string {
   if (!status) return 'Normal';
   
-  const normalized = status.toLowerCase().trim();
+  const lowerStatus = status.toLowerCase().trim();
   
-  if (normalized.includes('high') || normalized.includes('elevated') || normalized === 'h' || normalized.includes('↑')) {
+  if (lowerStatus.includes('high') || lowerStatus.includes('elevated') || lowerStatus.includes('above')) {
     return 'High';
-  } else if (normalized.includes('low') || normalized.includes('decreased') || normalized === 'l' || normalized.includes('↓')) {
+  } else if (lowerStatus.includes('low') || lowerStatus.includes('below') || lowerStatus.includes('decreased')) {
     return 'Low';
-  } else if (normalized.includes('critical') || normalized.includes('panic')) {
+  } else if (lowerStatus.includes('normal') || lowerStatus.includes('within') || lowerStatus.includes('acceptable')) {
+    return 'Normal';
+  } else if (lowerStatus.includes('critical') || lowerStatus.includes('panic') || lowerStatus.includes('alert')) {
     return 'Critical';
-  } else if (normalized.includes('pending') || normalized.includes('not done') || normalized === '') {
+  } else if (lowerStatus.includes('pending') || lowerStatus.includes('processing')) {
     return 'Pending';
   } else {
-    return 'Normal';
+    return status || 'Normal';
   }
 }

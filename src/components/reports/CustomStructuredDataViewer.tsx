@@ -180,13 +180,19 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
               {patient.name && (
                 <div>
                   <span className="font-medium text-muted-foreground">Name:</span>
-                  <div className={isMobile ? "mt-1" : ""}>{typeof patient.name === 'object' ? JSON.stringify(patient.name) : String(patient.name)}</div>
+                  <div className={`${isMobile ? "mt-1" : ""} font-medium`}>{typeof patient.name === 'object' ? JSON.stringify(patient.name) : String(patient.name)}</div>
                 </div>
               )}
               {patient.id && (
                 <div>
                   <span className="font-medium text-muted-foreground">Patient ID:</span>
                   <div className={isMobile ? "mt-1" : ""}>{typeof patient.id === 'object' ? JSON.stringify(patient.id) : String(patient.id)}</div>
+                </div>
+              )}
+              {(patient as any)?.age && (patient as any)?.gender && (
+                <div>
+                  <span className="font-medium text-muted-foreground">Age/Gender:</span>
+                  <div className={isMobile ? "mt-1" : ""}>{(patient as any).age} Y(s) / {(patient as any).gender}</div>
                 </div>
               )}
               {reportDate && (
@@ -217,13 +223,13 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
               {facility && (
                 <div>
                   <span className="font-medium text-muted-foreground">Facility:</span>
-                  <div className={isMobile ? "mt-1" : ""}>{typeof facility === 'object' ? JSON.stringify(facility) : String(facility)}</div>
+                  <div className={`${isMobile ? "mt-1" : ""} font-medium`}>{typeof facility === 'object' ? JSON.stringify(facility) : String(facility)}</div>
                 </div>
               )}
               {provider && (
                 <div>
                   <span className="font-medium text-muted-foreground">Provider:</span>
-                  <div className={isMobile ? "mt-1" : ""}>{typeof provider === 'object' ? JSON.stringify(provider) : String(provider)}</div>
+                  <div className={`${isMobile ? "mt-1" : ""} font-medium`}>{typeof provider === 'object' ? JSON.stringify(provider) : String(provider)}</div>
                 </div>
               )}
             </div>

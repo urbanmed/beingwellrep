@@ -263,39 +263,106 @@ export function convertMarkdownToStructured(extractedData: {
 function parsePatientInformation(content: string) {
   const result: any = {
     patient: {},
-    additionalContent: {}
+    additionalContent: {},
+    reportDate: '',
+    visitDate: ''
   };
 
-  // Extract structured patient data
-  const nameMatch = content.match(/(?:Patient Name|Name):\s*([^\n\r]+)/i);
-  if (nameMatch) {
-    result.patient.name = nameMatch[1].trim();
+  // Enhanced patient name extraction for lab reports
+  const namePatterns = [
+    /Patient Name\s*:?\s*:?\s*:?\s*:?\s*:?\s*([A-Za-z\.\s]+)/i,
+    /Name\s*:?\s*([A-Za-z\.\s]+)/i,
+    /Mr\.([A-Za-z\s]+)/i,
+    /Mrs\.([A-Za-z\s]+)/i,
+    /Ms\.([A-Za-z\s]+)/i
+  ];
+  
+  for (const pattern of namePatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      result.patient.name = match[1].trim();
+      break;
+    }
   }
 
-  const idMatch = content.match(/(?:Patient ID|ID|MRN):\s*([^\n\r]+)/i);
-  if (idMatch) {
-    result.patient.id = idMatch[1].trim();
+  // Enhanced age/gender extraction for patterns like "45 Y(s) / Male"
+  const ageGenderPattern = /(\d+)\s*Y\(s\)\s*\/\s*(Male|Female|M|F)/i;
+  const ageGenderMatch = content.match(ageGenderPattern);
+  if (ageGenderMatch) {
+    result.patient.age = ageGenderMatch[1];
+    result.patient.gender = ageGenderMatch[2];
   }
 
-  const dobMatch = content.match(/(?:Date of Birth|DOB|Birth Date):\s*([^\n\r]+)/i);
-  if (dobMatch) {
-    result.patient.dateOfBirth = dobMatch[1].trim();
+  // Extract patient ID patterns
+  const idPatterns = [
+    /LAB\s+(\d+)/i,
+    /Patient\s*ID\s*:?\s*([A-Za-z0-9]+)/i,
+    /Registration\s*No\s*:?\s*([A-Za-z0-9-]+)/i,
+    /Client Req\.No\s*:?\s*([A-Za-z0-9-]+)/i
+  ];
+  
+  for (const pattern of idPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      result.patient.id = match[1].trim();
+      break;
+    }
   }
 
-  const reportDateMatch = content.match(/(?:Report Date|Date of Report):\s*([^\n\r]+)/i);
-  if (reportDateMatch) {
-    result.reportDate = reportDateMatch[1].trim();
+  // Enhanced date extraction
+  const reportDatePatterns = [
+    /Reported On\s*:?\s*([0-9-]+\s+[0-9:]+)/i,
+    /Print Date\s*:?\s*([0-9-]+\s+[0-9:]+)/i,
+    /Report Date\s*:?\s*([0-9-]+)/i
+  ];
+  
+  for (const pattern of reportDatePatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      result.reportDate = match[1].trim();
+      break;
+    }
   }
 
-  const visitDateMatch = content.match(/(?:Visit Date|Date of Visit|Service Date):\s*([^\n\r]+)/i);
-  if (visitDateMatch) {
-    result.visitDate = visitDateMatch[1].trim();
+  const collectionPatterns = [
+    /Collected On\s*:?\s*([0-9-]+\s+[0-9:]+)/i,
+    /Collection Date\s*:?\s*([0-9-]+)/i,
+    /Sample Date\s*:?\s*([0-9-]+)/i
+  ];
+  
+  for (const pattern of collectionPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      result.visitDate = match[1].trim();
+      break;
+    }
+  }
+
+  // Fallback to original patterns
+  const originalNameMatch = content.match(/(?:Patient Name|Name):\s*([^\n\r]+)/i);
+  if (!result.patient.name && originalNameMatch) {
+    result.patient.name = originalNameMatch[1].trim();
+  }
+
+  const originalIdMatch = content.match(/(?:Patient ID|ID|MRN):\s*([^\n\r]+)/i);
+  if (!result.patient.id && originalIdMatch) {
+    result.patient.id = originalIdMatch[1].trim();
+  }
+
+  const originalReportDateMatch = content.match(/(?:Report Date|Date of Report):\s*([^\n\r]+)/i);
+  if (!result.reportDate && originalReportDateMatch) {
+    result.reportDate = originalReportDateMatch[1].trim();
+  }
+
+  const originalVisitDateMatch = content.match(/(?:Visit Date|Date of Visit|Service Date):\s*([^\n\r]+)/i);
+  if (!result.visitDate && originalVisitDateMatch) {
+    result.visitDate = originalVisitDateMatch[1].trim();
   }
 
   // Parse remaining content into key-value pairs
   const lines = content.split('\n').filter(line => line.trim());
   for (const line of lines) {
-    if (line.includes(':') && !line.match(/(?:Patient Name|Name|Patient ID|ID|MRN|Date of Birth|DOB|Birth Date|Report Date|Date of Report|Visit Date|Date of Visit|Service Date):/i)) {
+    if (line.includes(':') && !line.match(/(?:Patient Name|Name|Patient ID|ID|MRN|Date of Birth|DOB|Birth Date|Report Date|Date of Report|Visit Date|Date of Visit|Service Date|Collected On|Reported On):/i)) {
       const [key, ...valueParts] = line.split(':');
       const value = valueParts.join(':').trim();
       if (key.trim() && value) {
@@ -313,21 +380,57 @@ function parseMedicalInformation(content: string) {
     additionalContent: {}
   };
 
-  // Extract facility information
-  const facilityMatch = content.match(/(?:Facility|Hospital|Lab|Laboratory):\s*([^\n\r]+)/i);
-  if (facilityMatch) {
-    result.facility = facilityMatch[1].trim();
+  // Enhanced facility name extraction
+  const facilityPatterns = [
+    /Simplify Wellness India/i,
+    /centrallab@luciddiagnostics/i,
+    /Lucid Diagnostics/i,
+    /Processing Location\s*:?\s*([^\n]+)/i,
+    /(?:Facility|Hospital|Lab|Laboratory)\s*:?\s*([^\n\r]+)/i
+  ];
+  
+  for (const pattern of facilityPatterns) {
+    const match = content.match(pattern);
+    if (match) {
+      if (match[0].includes('Simplify Wellness India')) {
+        result.facility = 'Simplify Wellness India';
+        break;
+      } else if (match[0].includes('luciddiagnostics')) {
+        result.facility = 'Lucid Diagnostics';
+        break;
+      } else if (match[1]) {
+        result.facility = match[1].trim();
+        break;
+      }
+    }
   }
 
-  const providerMatch = content.match(/(?:Provider|Doctor|Physician|Ordering Provider):\s*([^\n\r]+)/i);
-  if (providerMatch) {
-    result.provider = providerMatch[1].trim();
+  // Enhanced doctor/physician extraction
+  const physicianPatterns = [
+    /Dr\.([A-Za-z\s\.]+),?\s*[A-Z]{2,}/i,
+    /Dr\s+([A-Za-z\s\.]+)\s+[A-Z]{2,}/i,
+    /(?:Consultant|Doctor|Physician)\s+([A-Za-z\s\.]+)/i,
+    /Ref\.Dr\.\s*:?\s*([A-Za-z\s\.]+)/i,
+    /(?:Provider|Doctor|Physician|Ordering Provider)\s*:?\s*([^\n\r]+)/i
+  ];
+  
+  for (const pattern of physicianPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      const doctorName = match[1].trim();
+      // Clean up the name - remove extra spaces and qualifications
+      const cleanName = doctorName.replace(/\s+/g, ' ').trim();
+      if (cleanName.length > 2) {
+        result.provider = cleanName.startsWith('Dr.') ? cleanName : `Dr. ${cleanName}`;
+        break;
+      }
+    }
   }
 
   // Parse remaining content into key-value pairs
   const lines = content.split('\n').filter(line => line.trim());
   for (const line of lines) {
-    if (line.includes(':') && !line.match(/(?:Facility|Hospital|Lab|Laboratory|Provider|Doctor|Physician|Ordering Provider):/i)) {
+    if (line.includes(':') && !line.match(/(?:Facility|Hospital|Lab|Laboratory|Provider|Doctor|Physician|Ordering Provider|Ref\.Dr|Processing Location):/i)) {
       const [key, ...valueParts] = line.split(':');
       const value = valueParts.join(':').trim();
       if (key.trim() && value) {
