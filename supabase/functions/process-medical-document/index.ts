@@ -120,33 +120,54 @@ const enhancedMedicalExtractor = (extractedText: string) => {
       }
     }
     
-    // Facility name extraction - look for "Simplify Wellness India"
-    if (line.match(/Simplify.*?Wellness.*?India/i) || 
-        (line.match(/(Hospital|Clinic|Laboratory|Medical|Health|Diagnostics)/i) && 
-         !line.match(/(Patient|Age|Date|Time|Test|Result|Reference)/i) &&
-         line.length > 10 && line.length < 100)) {
-      if (!facilityInfo.name && !line.match(/^\d/)) {
-        facilityInfo.name = line.trim();
+    // Facility name extraction - FIXED: Much more specific patterns
+    if (line.match(/Simplify\s+Wellness\s+India/i)) {
+      if (!facilityInfo.name) {
+        facilityInfo.name = "Simplify Wellness India";
         console.log('📝 Found facility:', facilityInfo.name);
       }
     }
+    // Alternative facility extraction - only capture short, clean facility names
+    else if (!facilityInfo.name && 
+             line.match(/(Hospital|Clinic|Laboratory|Medical|Health|Diagnostics|Center)/i) && 
+             !line.match(/(Patient|Age|Date|Time|Test|Result|Reference|Method|Page|Print|Received|Registered|Client|Phone|Processing|Report|End|Email|Rd|Address)/i) &&
+             line.length > 10 && line.length < 60 && // Much stricter length limits
+             !line.includes('|') && // Avoid table content
+             !line.match(/^\d/) && // No numbers at start
+             !line.match(/[:=]/) // No colons or equals
+             ) {
+      facilityInfo.name = line.trim();
+      console.log('📝 Found facility (alternative):', facilityInfo.name);
+    }
     
-    // Test result extraction - IMPROVED PATTERNS for this lab report format
+    // Doctor extraction - NEW: Extract doctor names from signature sections
+    if (line.match(/Dr\.([A-Za-z\s.,]+)(?:MBBS|MD|Ph\.D)/i)) {
+      const doctorMatch = line.match(/Dr\.([A-Za-z\s.,]+)(?:MBBS|MD|Ph\.D)/i);
+      if (doctorMatch && !facilityInfo.address) { // Using address field for doctor info
+        facilityInfo.address = `Dr.${doctorMatch[1].trim()}`;
+        console.log('📝 Found doctor:', facilityInfo.address);
+      }
+    }
+    
+    // Test result extraction - ENHANCED PATTERNS for this specific lab report format
     console.log('🔍 Analyzing line for test extraction:', line.substring(0, 100));
     
     // Pattern 1: "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
-    const methodPattern1 = line.match(/([A-Za-z\s,]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([a-zA-Z\/\s]*L?)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)?/i);
+    const methodPattern1 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([μa-zA-Z\/\s]*[Ll]?)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
-    // Pattern 2: "TSH Method : CLIA : 4.08 μIU/m L Children: Birth-4 d:1.0-39.0"
-    const methodPattern2 = line.match(/([A-Za-z\s,]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([μa-zA-Z\/\s]*L?)\s*(Children|Adults|Normal|Desirable|Optimal).*?([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
+    // Pattern 2: "TSH Method : CLIA : 4.08 μIU/m L Children: Birth-4 d:1.0-39.0" 
+    const methodPattern2 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([μa-zA-Z\/\s]*[Ll]?)\s*(Children|Adults|Normal|Desirable|Optimal).*?([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
-    // Pattern 3: General method pattern with flexible reference ranges
-    const methodPattern3 = line.match(/([A-Za-z\s,]+?)\s+Method\s*:\s*.*?:\s*([0-9.,<>]+)\s*([μa-zA-Z\/\s]*L?)\s*/i);
+    // Pattern 3: "Fasting Plasma Glucose Method : Hexokinase : 76 mg/d L Normal : 70 - 100"
+    const methodPattern3 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([μa-zA-Z\/\s]*[Ll]?)\s*Normal\s*:\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
-    let testMatch = methodPattern1 || methodPattern2 || methodPattern3;
+    // Pattern 4: "Hemoglobin Method : Non-Cyanide Photometric Measurement : 15.8 g/d L 13.0-17.0"
+    const methodPattern4 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([μa-zA-Z\/\s]*[Ll]?)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
-    // Also check if the line contains test results in other formats
-    const simpleTestMatch = line.match(/^([A-Za-z\s,]+?):\s*([0-9.,<>]+)\s*([a-zA-Z\/\s]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)?/i);
+    let testMatch = methodPattern1 || methodPattern2 || methodPattern3 || methodPattern4;
+    
+    // Fallback: Simple test pattern for other format like "Neutrophils : 47 % 40-80"
+    const simpleTestMatch = line.match(/^([A-Za-z\s,()]+?):\s*([0-9.,<>]+)\s*([a-zA-Z\/\s%]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)?/i);
     
     testMatch = testMatch || simpleTestMatch;
     
@@ -239,16 +260,20 @@ const enhancedMedicalExtractor = (extractedText: string) => {
     extractedData: {
       patientInformation: `| Field | Value |
 | --- | --- |
-| Name | ${patientInfo.name} |
-| Age | ${patientInfo.age} |
-| Gender | ${patientInfo.gender} |`,
-      labTestResults: tests.map(test => 
+| Name | ${patientInfo.name || 'Not found'} |
+| Age | ${patientInfo.age || 'Not found'} |
+| Gender | ${patientInfo.gender || 'Not found'} |`,
+      labTestResults: tests.length > 0 ? tests.map(test => 
         `| ${test.name} | ${test.value} ${test.unit} | ${test.referenceRange} | ${test.status} |`
-      ).join('\n'),
-      hospitalLabInformation: `| Field | Value |
+      ).join('\n') : 'No test results extracted',
+      hospitalLabInformation: {
+        _type: "String",
+        value: `| Field | Value |
 | --- | --- |
-| Facility | ${facilityInfo.name} |
+| Facility | ${facilityInfo.name && facilityInfo.name.length < 100 ? facilityInfo.name : 'Not found'} |
+| Doctor | ${facilityInfo.address && facilityInfo.address.length < 100 ? facilityInfo.address : 'Not found'} |
 | Department | Laboratory Services |`
+      }
     },
     confidence: 0.85,
     suggestedName: `Lab Results - ${patientInfo.name || 'Unknown'} - ${new Date().toLocaleDateString()}`
