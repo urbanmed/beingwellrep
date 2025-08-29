@@ -2437,19 +2437,62 @@ serve(async (req) => {
       reportType: parsedData.reportType,
       hasTests: !!(parsedData.tests && parsedData.tests.length > 0),
       hasMedications: !!(parsedData.medications && parsedData.medications.length > 0),
-      hasSections: !!(parsedData.sections && parsedData.sections.length > 0)
+      hasSections: !!(parsedData.sections && parsedData.sections.length > 0),
+      dataSize: JSON.stringify(parsedData).length
     })
     
-    await supabaseClient
+    // Validate parsed data before updating
+    if (!parsedData || typeof parsedData !== 'object') {
+      throw new Error('Invalid parsed data structure')
+    }
+    
+    const parsedDataSize = JSON.stringify(parsedData).length
+    console.log(`📊 Parsed data size: ${parsedDataSize} characters`)
+    
+    // Update database with comprehensive error handling
+    const { data: updateResult, error: updateError } = await supabaseClient
       .from('reports')
       .update({
         parsed_data: parsedData,
-        confidence: confidence,
+        parsing_confidence: confidence, // Fixed: was 'confidence', should be 'parsing_confidence'
         parsing_status: 'completed',
         processing_phase: 'parsing_completed',
         progress_percentage: 85
       })
       .eq('id', reportId)
+    
+    if (updateError) {
+      console.error('❌ Database update failed:', updateError)
+      
+      // Fallback: Try with simplified data if main update fails
+      console.log('🔄 Attempting fallback with simplified data structure...')
+      const simplifiedData = {
+        reportType: parsedData.reportType || 'general',
+        summary: 'Processing completed but full data structure failed to save',
+        tests: parsedData.tests?.slice(0, 10) || [],
+        medications: parsedData.medications?.slice(0, 10) || []
+      }
+      
+      const { error: fallbackError } = await supabaseClient
+        .from('reports')
+        .update({
+          parsed_data: simplifiedData,
+          parsing_confidence: confidence,
+          parsing_status: 'completed',
+          processing_phase: 'parsing_completed_with_fallback',
+          progress_percentage: 85,
+          processing_error: `Original update failed: ${updateError.message}`
+        })
+        .eq('id', reportId)
+      
+      if (fallbackError) {
+        throw new Error(`Both main and fallback database updates failed: ${updateError.message}, ${fallbackError.message}`)
+      }
+      
+      console.log('✅ Fallback update succeeded with simplified data')
+    } else {
+      console.log('✅ Database update succeeded - parsed_data saved successfully')
+    }
 
     console.log(`✅ Hybrid processing pipeline completed successfully for report ${reportId}`)
 
