@@ -153,25 +153,23 @@ const enhancedMedicalExtractor = (extractedText: string) => {
     console.log('🔍 Analyzing line for test extraction:', line.substring(0, 100));
     
     // Pattern 1: "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
-    const methodPattern1 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([μa-zA-Z\/\s]*[Ll]?)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
+    const methodPattern1 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*(mg\/d?\s*L|g\/d?\s*L|μIU\/m?\s*L|[μa-zA-Z\/\s%]*[Ll]?)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
     // Pattern 2: "TSH Method : CLIA : 4.08 μIU/m L Children: Birth-4 d:1.0-39.0" 
-    const methodPattern2 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([μa-zA-Z\/\s]*[Ll]?)\s*(Children|Adults|Normal|Desirable|Optimal).*?([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
+    const methodPattern2 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*(mg\/d?\s*L|g\/d?\s*L|μIU\/m?\s*L|[μa-zA-Z\/\s%]*[Ll]?)\s*(Children|Adults|Normal|Desirable|Optimal).*?([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
     // Pattern 3: "Fasting Plasma Glucose Method : Hexokinase : 76 mg/d L Normal : 70 - 100"
-    const methodPattern3 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([μa-zA-Z\/\s]*[Ll]?)\s*Normal\s*:\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
+    const methodPattern3 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*(mg\/d?\s*L|g\/d?\s*L|μIU\/m?\s*L|[μa-zA-Z\/\s%]*[Ll]?)\s*Normal\s*:\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
     // Pattern 4: "Hemoglobin Method : Non-Cyanide Photometric Measurement : 15.8 g/d L 13.0-17.0"
-    const methodPattern4 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([μa-zA-Z\/\s]*[Ll]?)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
+    const methodPattern4 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*(mg\/d?\s*L|g\/d?\s*L|μIU\/m?\s*L|[μa-zA-Z\/\s%]*[Ll]?)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
-    let testMatch = methodPattern1 || methodPattern2 || methodPattern3 || methodPattern4;
+    // Pattern 5: "Neutrophils : 47 % 40-80" - Simple colon format
+    const simplePattern = line.match(/^([A-Za-z\s,()]+?)\s*:\s*([0-9.,<>]+)\s*([%a-zA-Z\/\s]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
-    // Fallback: Simple test pattern for other format like "Neutrophils : 47 % 40-80"
-    const simpleTestMatch = line.match(/^([A-Za-z\s,()]+?):\s*([0-9.,<>]+)\s*([a-zA-Z\/\s%]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)?/i);
+    let testMatch = methodPattern1 || methodPattern2 || methodPattern3 || methodPattern4 || simplePattern;
     
-    testMatch = testMatch || simpleTestMatch;
-    
-    // More lenient filtering - only exclude obvious non-test lines
+    // More comprehensive filtering - exclude obvious non-test lines
     if (testMatch && 
         !line.includes('Page') && 
         !line.includes('Print Date') &&
@@ -180,21 +178,29 @@ const enhancedMedicalExtractor = (extractedText: string) => {
         !line.includes('Client Req') &&
         !line.includes('Phone') &&
         !line.includes('Processing Location') &&
+        !line.includes('Email') &&
+        !line.includes('Address') &&
+        !line.includes('Rd #') &&
         !line.match(/^\d+$/) && // Skip pure numbers
         !line.match(/^[A-Z\s]+$/) && // Skip header lines
         !line.includes('**End Of Report**') &&
         line.length > 10 // Must have some content
        ) {
        
-      console.log('✅ Found potential test match:', testMatch[1], testMatch[2]);
+      console.log('✅ Found potential test match:', testMatch[1]?.trim(), '=', testMatch[2]);
       
       let [, testName, value, unit, range] = testMatch;
+      
+      // Handle case where range might be in position 5 (for methodPattern2)
+      if (!range && testMatch[5]) {
+        range = testMatch[5];
+      }
       
       // Clean up test name - remove "Method" and anything after it
       testName = testName.replace(/\s+Method.*$/i, '').trim();
       
       // Extract range from the line if not captured in the match
-      if (!range) {
+      if (!range || range.length < 3) {
         const rangeSearch = line.match(/([0-9.,-]+\s*[-–]\s*[0-9.,]+)/g);
         if (rangeSearch && rangeSearch.length > 0) {
           range = rangeSearch[rangeSearch.length - 1]; // Take the last range found
@@ -228,8 +234,8 @@ const enhancedMedicalExtractor = (extractedText: string) => {
           }
         }
         
-        // Clean up unit (remove extra spaces and 'd')
-        unit = unit?.replace(/d\s*L/g, 'dL').replace(/\s+/g, ' ').trim() || '';
+        // Clean up unit (remove extra spaces and normalize 'd L' to 'dL')
+        unit = unit?.replace(/d\s*L/g, 'dL').replace(/\/m\s*L/g, '/mL').replace(/\s+/g, ' ').trim() || '';
         
         tests.push({
           name: testName.trim(),
@@ -241,7 +247,7 @@ const enhancedMedicalExtractor = (extractedText: string) => {
           notes: ''
         });
         
-        console.log('📝 Found test:', testName.trim(), '=', value.trim(), unit, 'Status:', status);
+        console.log('📝 Added test:', testName.trim(), '=', value.trim(), unit, 'Range:', range?.trim(), 'Status:', status);
       }
     }
     
