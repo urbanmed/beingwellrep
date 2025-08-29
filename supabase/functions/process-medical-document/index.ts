@@ -68,9 +68,12 @@ const getActiveCustomPrompt = async (supabaseClient: any): Promise<string | null
 
 const enhancedMedicalExtractor = (extractedText: string) => {
   console.log('🔧 Enhanced medical extractor processing text length:', extractedText.length);
+  console.log('📄 Sample text (first 500 chars):', extractedText.substring(0, 500));
   
   // Enhanced medical text parser for lab reports
   const lines = extractedText.split('\n').map(line => line.trim()).filter(Boolean);
+  console.log('📝 Processing', lines.length, 'non-empty lines');
+  console.log('📄 Sample lines:', lines.slice(0, 10));
   
   // Extract patient information
   const patientInfo = {
