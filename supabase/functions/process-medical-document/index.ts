@@ -94,16 +94,16 @@ const enhancedMedicalExtractor = (extractedText: string) => {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
-    // Patient name extraction - improved patterns
-    if (line.match(/(?:Mr\.|Mrs\.|Ms\.|Patient:|Name:)\s*([A-Z][A-Z\s]+)/i)) {
-      const nameMatch = line.match(/(?:Mr\.|Mrs\.|Ms\.|Patient:|Name:)\s*([A-Z][A-Z\s]+)/i);
+    // Patient name extraction - improved patterns for "Mr.PRAVEEN"
+    if (line.match(/(?:Mr\.|Mrs\.|Ms\.|Patient\s*Name\s*:)\s*([A-Z][A-Z\s]+)/i)) {
+      const nameMatch = line.match(/(?:Mr\.|Mrs\.|Ms\.|Patient\s*Name\s*:)\s*([A-Z][A-Z\s]+)/i);
       if (nameMatch && nameMatch[1]) {
-        patientInfo.name = nameMatch[1].trim();
+        patientInfo.name = nameMatch[1].replace(/\s+Received.*$/, '').trim();
         console.log('📝 Found patient name:', patientInfo.name);
       }
     }
     
-    // Age and gender extraction - improved patterns
+    // Age and gender extraction - improved patterns for "45 Y(s) / Male"
     if (line.match(/(\d+)\s*Y\(s\)\s*\/\s*(Male|Female|M|F)/i)) {
       const ageGenderMatch = line.match(/(\d+)\s*Y\(s\)\s*\/\s*(Male|Female|M|F)/i);
       if (ageGenderMatch) {
@@ -120,24 +120,28 @@ const enhancedMedicalExtractor = (extractedText: string) => {
       }
     }
     
-    // Facility name extraction
-    if (line.match(/(Hospital|Clinic|Laboratory|Medical|Health|Diagnostics)/i) && 
-        !line.match(/(Patient|Age|Date|Time|Test|Result|Reference)/i) &&
-        line.length > 10 && line.length < 100) {
+    // Facility name extraction - look for "Simplify Wellness India"
+    if (line.match(/Simplify.*?Wellness.*?India/i) || 
+        (line.match(/(Hospital|Clinic|Laboratory|Medical|Health|Diagnostics)/i) && 
+         !line.match(/(Patient|Age|Date|Time|Test|Result|Reference)/i) &&
+         line.length > 10 && line.length < 100)) {
       if (!facilityInfo.name && !line.match(/^\d/)) {
         facilityInfo.name = line.trim();
         console.log('📝 Found facility:', facilityInfo.name);
       }
     }
     
-    // Test result extraction - enhanced pattern matching
-    // Pattern 1: "Test Name  Value  Unit  Range"
-    const testMatch1 = line.match(/^([A-Za-z][A-Za-z\s\(\)\.,-]+?)\s+([0-9.,<>]+)\s*([a-zA-Z\/%]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)?/);
+    // Test result extraction - NEW PATTERNS for this lab report format
+    // Pattern 3: "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
+    const labTestMatch = line.match(/^([A-Za-z\s,]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([a-zA-Z\/\s]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+|Normal\s*:\s*[0-9.,-]+\s*[-–]\s*[0-9.,]+|Desirable\s*:\s*[<>]*\s*[0-9.,]+)?/i);
     
-    // Pattern 2: "Test Name: Value Unit (Range)"
-    const testMatch2 = line.match(/^([A-Za-z][A-Za-z\s\(\)\.,-]+?):\s*([0-9.,<>]+)\s*([a-zA-Z\/%]*)\s*(?:\(([0-9.,-]+\s*[-–]\s*[0-9.,]+)\))?/);
+    // Pattern 4: "Fasting Plasma Glucose Method : Hexokinase : 76 mg/d L Normal : 70 - 100"
+    const glucoseMatch = line.match(/^([A-Za-z\s,]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([a-zA-Z\/\s]*)\s*(Normal\s*:\s*[0-9.,-]+\s*[-–]\s*[0-9.,]+|Prediabetes\s*:\s*[0-9.,-]+\s*[-–]\s*[0-9.,]+|Diabetic\s*:\s*[><=]*\s*[0-9.,]+)?/i);
     
-    const testMatch = testMatch1 || testMatch2;
+    // Pattern 5: Standard lab format "Hemoglobin Method : Non-Cyanide Photometric Measurement : 15.8 g/d L 13.0-17.0"
+    const standardLabMatch = line.match(/^([A-Za-z\s,\/]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*([a-zA-Z\/\s]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)?/i);
+    
+    const testMatch = labTestMatch || glucoseMatch || standardLabMatch;
     
     if (testMatch && 
         !line.includes('Page') && 
@@ -147,10 +151,15 @@ const enhancedMedicalExtractor = (extractedText: string) => {
         !line.includes('Consultant') &&
         !line.includes('DEPARTMENT') &&
         !line.match(/^\d+$/) && // Skip pure numbers
-        !line.match(/^[A-Z\s]+$/) // Skip header lines
+        !line.match(/^[A-Z\s]+$/) && // Skip header lines
+        !line.includes('Interpretation') &&
+        !line.includes('Reference')
        ) {
       
-      const [, testName, value, unit, range] = testMatch;
+      let [, testName, value, unit, range] = testMatch;
+      
+      // Clean up test name
+      testName = testName.replace(/Method.*$/i, '').trim();
       
       if (testName && value && testName.length > 2 && testName.length < 50) {
         const numericValue = parseFloat(value.replace(/[,<>]/g, ''));
@@ -158,11 +167,19 @@ const enhancedMedicalExtractor = (extractedText: string) => {
         
         // Enhanced status determination based on reference range
         if (range && !isNaN(numericValue)) {
-          const rangeMatch = range.match(/([0-9.]+)\s*[-–]\s*([0-9.]+)/);
+          // Handle "Normal : 70 - 100" format
+          const normalRangeMatch = range.match(/Normal\s*:\s*([0-9.]+)\s*[-–]\s*([0-9.]+)/i);
+          // Handle direct range "3.5-7.2" format
+          const directRangeMatch = range.match(/([0-9.]+)\s*[-–]\s*([0-9.]+)/);
+          
+          const rangeMatch = normalRangeMatch || directRangeMatch;
+          
           if (rangeMatch) {
-            const [, low, high] = rangeMatch;
-            const lowVal = parseFloat(low);
-            const highVal = parseFloat(high);
+            const lowIdx = normalRangeMatch ? 1 : 1;
+            const highIdx = normalRangeMatch ? 2 : 2;
+            
+            const lowVal = parseFloat(rangeMatch[lowIdx]);
+            const highVal = parseFloat(rangeMatch[highIdx]);
             
             if (numericValue > highVal * 2) status = 'critical';
             else if (numericValue > highVal) status = 'high';
@@ -171,17 +188,20 @@ const enhancedMedicalExtractor = (extractedText: string) => {
           }
         }
         
+        // Clean up unit (remove extra spaces and 'd')
+        unit = unit?.replace(/d\s*L/g, 'dL').replace(/\s+/g, ' ').trim() || '';
+        
         tests.push({
           name: testName.trim(),
           value: value.trim(),
-          unit: unit?.trim() || '',
+          unit: unit,
           referenceRange: range?.trim() || '',
           status,
           section: currentSection,
           notes: ''
         });
         
-        console.log('📝 Found test:', testName.trim(), '=', value.trim(), unit?.trim());
+        console.log('📝 Found test:', testName.trim(), '=', value.trim(), unit, 'Status:', status);
       }
     }
     

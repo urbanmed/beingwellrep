@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DocumentViewer } from "@/components/reports/DocumentViewer";
 import { DocumentProcessingTrigger } from "@/components/reports/DocumentProcessingTrigger";
+import { useDocumentReprocessing } from "@/hooks/useDocumentReprocessing";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +29,7 @@ export default function ReportDetail() {
   const { toast } = useToast();
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
+  const { reprocessDocument, isReprocessing } = useDocumentReprocessing();
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -95,6 +97,15 @@ export default function ReportDetail() {
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
+        </Button>
+        
+        <Button
+          onClick={() => reprocessDocument(id!)}
+          disabled={isReprocessing}
+          variant="outline"
+          size="sm"
+        >
+          {isReprocessing ? "Reprocessing..." : "Reprocess Document"}
         </Button>
       </div>
       
