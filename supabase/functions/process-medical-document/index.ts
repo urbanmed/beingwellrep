@@ -1489,6 +1489,19 @@ const createFHIRObservationsFromLab = async (
 ): Promise<number> => {
   let createdCount = 0;
 
+  // Get user_id from the report once
+  const { data: reportData } = await supabaseClient
+    .from('reports')
+    .select('user_id')
+    .eq('id', reportId)
+    .single();
+
+  const userId = reportData?.user_id;
+  if (!userId) {
+    console.error('Could not find user_id for report:', reportId);
+    return 0;
+  }
+
   for (const test of tests) {
     if (!test.name || !test.value) {
       console.warn('Skipping test with missing name or value:', test);
@@ -1545,7 +1558,7 @@ const createFHIRObservationsFromLab = async (
       const { error } = await supabaseClient
         .from('fhir_observations')
         .insert({
-          user_id: (await supabaseClient.from('reports').select('user_id').eq('id', reportId).single()).data?.user_id,
+          user_id: userId,
           fhir_id: fhirId,
           patient_fhir_id: patientFhirId,
           source_report_id: reportId,
