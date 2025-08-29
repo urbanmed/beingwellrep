@@ -209,27 +209,20 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
             <CardTitle className="text-lg">Laboratory Results</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {tests.map((test, testIndex) => (
-                <div key={testIndex} className="flex justify-between items-center py-2 px-3 bg-secondary/30 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="font-medium text-sm text-foreground">{test.name}</div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-base font-semibold text-primary">
-                        {test.value} {test.unit}
-                      </span>
+                <div key={testIndex} className="flex items-center justify-between py-3 px-4 bg-muted/50 rounded-lg border">
+                  <div className="flex-1 space-y-1">
+                    <div className="font-medium text-foreground">
+                      {test.name}: <span className="font-semibold text-primary">{test.value} {test.unit}</span>
                       {test.referenceRange && (
-                        <span className="text-xs text-muted-foreground">
-                          ({test.referenceRange})
-                        </span>
+                        <span className="text-muted-foreground ml-2">({test.referenceRange})</span>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={getStatusBadgeVariant(test.status)} className="text-xs">
-                      {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
-                    </Badge>
-                  </div>
+                  <Badge variant={getStatusBadgeVariant(test.status)} className="ml-2">
+                    {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
+                  </Badge>
                 </div>
               ))}
             </div>

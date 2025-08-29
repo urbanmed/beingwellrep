@@ -153,7 +153,7 @@ const enhancedMedicalExtractor = (extractedText: string) => {
     console.log('🔍 Analyzing line for test extraction:', line.substring(0, 100));
     
     // Pattern 1: "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
-    const methodPattern1 = line.match(/^([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+\s*:\s*([0-9.,<>]+)\s*(mg\/d\s*L|g\/d\s*L|μIU\/m\s*L|f\s*L|pg|%|Cells\/cmm|millions\/cumm|lakhs\/cmm)\s*([0-9.,-]+\s*[-–]\s*[0-9.,-]+)/i);
+    const methodPattern1 = line.match(/^([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+\s*:\s*([0-9.,<>]+)\s*(mg\/d\s*L|g\/d\s*L|μIU\/m\s*L|f\s*L|pg|%|Cells\/cmm|millions\/cumm|lakhs\/cmm|Units\/L)\s*([0-9.,-]+\s*[-–]\s*[0-9.,-]+)/i);
     
     // Pattern 2: "TSH Method : CLIA : 4.08 μIU/m L Children: Birth-4 d:1.0-39.0" 
     const methodPattern2 = line.match(/^([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+\s*:\s*([0-9.,<>]+)\s*(mg\/d\s*L|g\/d\s*L|μIU\/m\s*L|[μa-zA-Z\/\s%]*[Ll]?)\s*(Children|Adults|Normal|Desirable|Optimal).*?([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
@@ -162,12 +162,19 @@ const enhancedMedicalExtractor = (extractedText: string) => {
     const methodPattern3 = line.match(/^([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+\s*:\s*([0-9.,<>]+)\s*(mg\/d\s*L|g\/d\s*L|μIU\/m\s*L|[μa-zA-Z\/\s%]*[Ll]?)\s*Normal\s*:\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
     // Pattern 4: "Hemoglobin Method : Non-Cyanide Photometric Measurement : 15.8 g/d L 13.0-17.0"
-    const methodPattern4 = line.match(/^([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]*\s*:\s*([0-9.,<>]+)\s*(mg\/d\s*L|g\/d\s*L|f\s*L|pg|%|Cells\/cmm|millions\/cumm|lakhs\/cmm)\s*([0-9.,-]+\s*[-–]\s*[0-9.,-]+)/i);
+    const methodPattern4 = line.match(/^([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]*\s*:\s*([0-9.,<>]+)\s*(mg\/d\s*L|g\/d\s*L|f\s*L|pg|%|Cells\/cmm|millions\/cumm|lakhs\/cmm|Units\/L)\s*([0-9.,-]+\s*[-–]\s*[0-9.,-]+)/i);
     
     // Pattern 5: "Neutrophils : 47 % 40-80" - Simple colon format
     const simplePattern = line.match(/^([A-Za-z\s,()]+?)\s*:\s*([0-9.,<>]+)\s*([%a-zA-Z\/\s]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
-    let testMatch = methodPattern1 || methodPattern2 || methodPattern3 || methodPattern4 || simplePattern;
+    // Pattern 6: More flexible patterns to catch any test format
+    // "Test Name : Value unit range" or "Test Name Method: xxx : Value unit range"
+    const flexiblePattern1 = line.match(/^([A-Za-z\s,()]+?)\s*:\s*([0-9.,<>]+)\s*([a-zA-Z\/\s%μ]*[a-zA-Z])\s+([0-9.,-]+\s*[-–]\s*[0-9.,]+)/);
+    
+    // "Test Name Method : xxx : Value unit range" - captures method-based tests
+    const flexiblePattern2 = line.match(/^([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]*:\s*([0-9.,<>]+)\s*([a-zA-Z\/\s%μ]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/);
+    
+    let testMatch = methodPattern1 || methodPattern2 || methodPattern3 || methodPattern4 || simplePattern || flexiblePattern1 || flexiblePattern2;
     
     // More comprehensive filtering - exclude obvious non-test lines
     if (testMatch && 
@@ -188,6 +195,20 @@ const enhancedMedicalExtractor = (extractedText: string) => {
        ) {
        
       console.log('✅ Found potential test match:', testMatch[1]?.trim(), '=', testMatch[2]);
+      console.log('📝 Full match details:', { 
+        pattern: testMatch === methodPattern1 ? 'methodPattern1' : 
+                testMatch === methodPattern2 ? 'methodPattern2' :
+                testMatch === methodPattern3 ? 'methodPattern3' :
+                testMatch === methodPattern4 ? 'methodPattern4' :
+                testMatch === simplePattern ? 'simplePattern' :
+                testMatch === flexiblePattern1 ? 'flexiblePattern1' :
+                testMatch === flexiblePattern2 ? 'flexiblePattern2' : 'unknown',
+        fullMatch: testMatch[0],
+        testName: testMatch[1],
+        value: testMatch[2],
+        unit: testMatch[3],
+        range: testMatch[4] || testMatch[5]
+      });
       
       let [, testName, value, unit, range] = testMatch;
       
