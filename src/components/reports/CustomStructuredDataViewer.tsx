@@ -110,44 +110,51 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
   };
 
   const renderTestValue = (test: any) => {
-    if (typeof test === 'object' && test.result !== undefined) {
-      return (
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1">
-            <span className="font-medium text-xs">{test.result} {test.units}</span>
-            <Badge variant={getStatusBadgeVariant(test.status)} className="text-xs px-1.5 py-0.5">
-              {test.status}
-            </Badge>
+    if (typeof test === 'object' && test !== null) {
+      if (test.result !== undefined) {
+        return (
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-1">
+              <span className="font-medium text-xs">{test.result} {test.units || ''}</span>
+              {test.status && (
+                <Badge variant={getStatusBadgeVariant(test.status)} className="text-xs px-1.5 py-0.5">
+                  {test.status}
+                </Badge>
+              )}
+            </div>
+            {test.referenceRange && (
+              <span className="text-xs text-muted-foreground">
+                Ref: {test.referenceRange}
+              </span>
+            )}
           </div>
-          {test.referenceRange && (
-            <span className="text-xs text-muted-foreground">
-              Ref: {test.referenceRange}
-            </span>
-          )}
-        </div>
-      );
+        );
+      } else {
+        // Handle other object types by displaying as JSON
+        return <span className="text-xs">{JSON.stringify(test)}</span>;
+      }
     }
-    return <span className="text-xs">{test}</span>;
+    return <span className="text-xs">{String(test)}</span>;
   };
 
   const renderMobileLabCard = (test: any, testIndex: number) => (
     <Card key={testIndex} className="p-2">
       <div className="space-y-1.5">
         <div className="flex items-start justify-between gap-2">
-          <h5 className="font-medium text-xs leading-tight">{test.testName}</h5>
+          <h5 className="font-medium text-xs leading-tight">{String(test.testName || 'Unknown Test')}</h5>
           <Badge variant={getStatusBadgeVariant(test.status)} className="text-xs px-1.5 py-0.5 shrink-0">
-            {test.status}
+            {String(test.status || 'Unknown')}
           </Badge>
         </div>
         <div className="space-y-1">
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground text-xs">Result:</span>
-            <span className="font-medium text-xs">{test.result} {test.units}</span>
+            <span className="font-medium text-xs">{String(test.result || '')} {String(test.units || '')}</span>
           </div>
           {(test.referenceRange || test.referenceInterval) && (
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground text-xs">Reference:</span>
-              <span className="text-xs">{test.referenceRange || test.referenceInterval}</span>
+              <span className="text-xs">{String(test.referenceRange || test.referenceInterval || '')}</span>
             </div>
           )}
         </div>
@@ -173,25 +180,25 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
               {patient.name && (
                 <div>
                   <span className="font-medium text-muted-foreground">Name:</span>
-                  <div className={isMobile ? "mt-1" : ""}>{patient.name}</div>
+                  <div className={isMobile ? "mt-1" : ""}>{typeof patient.name === 'object' ? JSON.stringify(patient.name) : String(patient.name)}</div>
                 </div>
               )}
               {patient.id && (
                 <div>
                   <span className="font-medium text-muted-foreground">Patient ID:</span>
-                  <div className={isMobile ? "mt-1" : ""}>{patient.id}</div>
+                  <div className={isMobile ? "mt-1" : ""}>{typeof patient.id === 'object' ? JSON.stringify(patient.id) : String(patient.id)}</div>
                 </div>
               )}
               {reportDate && (
                 <div>
                   <span className="font-medium text-muted-foreground">Report Date:</span>
-                  <div className={isMobile ? "mt-1" : ""}>{reportDate}</div>
+                  <div className={isMobile ? "mt-1" : ""}>{typeof reportDate === 'object' ? JSON.stringify(reportDate) : String(reportDate)}</div>
                 </div>
               )}
               {visitDate && (
                 <div>
                   <span className="font-medium text-muted-foreground">Visit Date:</span>
-                  <div className={isMobile ? "mt-1" : ""}>{visitDate}</div>
+                  <div className={isMobile ? "mt-1" : ""}>{typeof visitDate === 'object' ? JSON.stringify(visitDate) : String(visitDate)}</div>
                 </div>
               )}
             </div>
@@ -210,13 +217,13 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
               {facility && (
                 <div>
                   <span className="font-medium text-muted-foreground">Facility:</span>
-                  <div className={isMobile ? "mt-1" : ""}>{facility}</div>
+                  <div className={isMobile ? "mt-1" : ""}>{typeof facility === 'object' ? JSON.stringify(facility) : String(facility)}</div>
                 </div>
               )}
               {provider && (
                 <div>
                   <span className="font-medium text-muted-foreground">Provider:</span>
-                  <div className={isMobile ? "mt-1" : ""}>{provider}</div>
+                  <div className={isMobile ? "mt-1" : ""}>{typeof provider === 'object' ? JSON.stringify(provider) : String(provider)}</div>
                 </div>
               )}
             </div>
@@ -316,9 +323,7 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
                       </div>
                  ) : (
                       <div className="text-xs p-2 border rounded-lg">
-                        {section.content || (
-                          <span className="text-muted-foreground italic">No content available</span>
-                        )}
+                        {typeof section.content === 'object' ? JSON.stringify(section.content) : String(section.content || 'No content available')}
                       </div>
                     )}
                   </div>
@@ -341,17 +346,17 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
                         {section.content.map((test: any, testIndex: number) => (
                           <tr key={testIndex} className="hover:bg-muted/50">
                             <td className="border border-border px-3 py-2 text-sm font-medium">
-                              {test.testName}
+                              {String(test.testName || 'Unknown Test')}
                             </td>
                             <td className="border border-border px-3 py-2 text-sm">
-                              {test.result} {test.units}
+                              {String(test.result || '')} {String(test.units || '')}
                             </td>
                             <td className="border border-border px-3 py-2 text-sm text-muted-foreground">
-                              {test.referenceRange || test.referenceInterval}
+                              {String(test.referenceRange || test.referenceInterval || '')}
                             </td>
                             <td className="border border-border px-3 py-2 text-sm">
                               <Badge variant={getStatusBadgeVariant(test.status)}>
-                                {test.status}
+                                {String(test.status || 'Unknown')}
                               </Badge>
                             </td>
                           </tr>
@@ -370,10 +375,8 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
                   </div>
                  ) : (
                    <div className="text-sm">
-                     {section.content || (
-                       <span className="text-muted-foreground italic">No content available</span>
-                     )}
-                   </div>
+                      {typeof section.content === 'object' ? JSON.stringify(section.content) : String(section.content || 'No content available')}
+                    </div>
                  )}
               </div>
             )}
