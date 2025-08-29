@@ -190,6 +190,8 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
       {hasSections && sections.map((section, index) => {
         const isLabSection = section.category === 'laboratory' || section.category === 'Lab Tests' || section.title.toLowerCase().includes('lab');
         
+        console.log('🔍 Rendering section:', { title: section.title, category: section.category, contentType: typeof section.content, contentLength: Array.isArray(section.content) ? section.content.length : 'not array' });
+        
         // Handle laboratory results specially
         if (isLabSection && Array.isArray(section.content)) {
           const labTests = section.content;
@@ -203,28 +205,47 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {labTests.map((test: any, testIndex: number) => (
-                    <div key={testIndex} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-card border rounded-lg">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{test.testName}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-sm font-medium text-primary">
-                            {test.result} {test.units}
-                          </span>
-                          {test.status && (
-                            <Badge variant={getStatusBadgeVariant(test.status)} className="text-xs">
-                              {test.status}
-                            </Badge>
-                          )}
-                        </div>
-                        {test.referenceRange && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Reference: {test.referenceRange}
-                          </div>
-                        )}
-                      </div>
+                  {labTests.length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      <p>No laboratory test results found in this report.</p>
                     </div>
-                  ))}
+                  ) : (
+                    labTests.map((test: any, testIndex: number) => (
+                      <div key={testIndex} className="flex flex-col gap-2 p-3 bg-secondary/30 border rounded-lg">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="font-medium text-sm text-foreground">{test.testName || 'Unknown Test'}</div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-base font-semibold text-primary">
+                                {test.result || 'N/A'}
+                                {test.units && <span className="text-sm font-normal ml-1">{test.units}</span>}
+                              </span>
+                              {test.status && test.status !== 'Normal' && (
+                                <Badge variant={getStatusBadgeVariant(test.status)} className="text-xs">
+                                  {test.status}
+                                </Badge>
+                              )}
+                              {(!test.status || test.status === 'Normal') && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Normal
+                                </Badge>
+                              )}
+                            </div>
+                            {test.referenceRange && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Reference Range: {test.referenceRange}
+                              </div>
+                            )}
+                            {test.category && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Category: {test.category}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -381,14 +381,21 @@ function extractFromKeyValuePairs(text: string, fieldMappings: Record<string, st
 function extractTestResults(text: string): TestResult[] {
   const results: TestResult[] = [];
   
+  console.log('🔍 Extracting test results from text length:', text.length);
+  
   // Enhanced test result extraction patterns for specific lab report format
   const specificPatterns = [
-    // Pattern for "Uric Acid Method : Uricase PAP : 5.71 mg/d L 3.5-7.2"
-    /([A-Za-z\s]+?)\s*Method\s*:\s*[^:]+?\s*:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]+?)\s*([\d\.-<>]+(?:\s*-\s*[\d\.-<>]+)?)/gi,
-    // Pattern for direct lab values "Test Name : Value Unit Reference"
-    /(?:^|\n)\s*([A-Za-z][A-Za-z\s]+?)\s*:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]*?)\s+([\d\.-<>]+(?:\s*-\s*[\d\.-<>]+)?)/gm,
-    // Pattern for tests with status indicators
-    /([A-Za-z\s]+?)\s*:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]*?)\s*(?:Reference|Ref|Normal)?\s*:?\s*([\d\.-<>]+(?:\s*-\s*[\d\.-<>]+)?)?/gi
+    // Pattern 1: "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
+    /([A-Za-z][A-Za-z\s,]+?)\s*Method\s*:\s*([^:]+?)\s*:\s*([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*?)\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi,
+    
+    // Pattern 2: "Fasting Plasma Glucose Method : Hexokinase : 76 mg/d L Normal : 70 - 100"
+    /([A-Za-z][A-Za-z\s,]+?)\s*Method\s*:\s*([^:]+?)\s*:\s*([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*?)\s*(?:Normal|Reference|Ref)?\s*:?\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi,
+    
+    // Pattern 3: Simple "Test Name : Value Unit Range" format
+    /(?:^|\n)\s*([A-Za-z][A-Za-z\s,]+?)\s*:\s*([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*?)\s+([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gm,
+    
+    // Pattern 4: Test results in lines with specific indicators
+    /([A-Za-z][A-Za-z\s,]+?)\s*(?:Result|Value)?\s*:\s*([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*?)\s*(?:Reference|Normal|Range)?\s*:?\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi
   ];
   
   // Look for lab test sections first
@@ -405,29 +412,99 @@ function extractTestResults(text: string): TestResult[] {
   for (const pattern of specificPatterns) {
     let match;
     while ((match = pattern.exec(text)) !== null) {
-      const testName = match[1]?.trim().replace(/\s+/g, ' ');
-      const result = match[2]?.trim();
-      const units = match[3]?.trim().replace(/\s+/g, ' ');
-      const referenceRange = match[4]?.trim();
+      console.log('🧪 Found test match:', match);
+      
+      let testName, result, units, referenceRange;
+      
+      if (match[0].includes('Method :')) {
+        // Format: "Test Method : Method : Result Units Range"
+        testName = match[1]?.trim().replace(/\s+/g, ' ');
+        result = match[3]?.trim();
+        units = match[4]?.trim().replace(/\s+/g, ' ');
+        referenceRange = match[5]?.trim();
+      } else {
+        // Format: "Test : Result Units Range"
+        testName = match[1]?.trim().replace(/\s+/g, ' ');
+        result = match[2]?.trim();
+        units = match[3]?.trim().replace(/\s+/g, ' ');
+        referenceRange = match[4]?.trim();
+      }
       
       if (testName && result && testName.length > 2 && result.match(/[\d\.<>]/)) {
+        // Clean up test name - remove common prefixes/suffixes
+        testName = testName.replace(/^(TEST NAME|RESULT|UNITS|Parameter)\s*/i, '').trim();
+        
         const testResult: TestResult = {
           testName: testName,
           result: result,
           units: units || '',
           referenceRange: referenceRange || '',
-          status: calculateEnhancedTestStatus(result, referenceRange || '')
+          status: calculateEnhancedTestStatus(result, referenceRange || ''),
+          category: 'Laboratory'
         };
         
         // Avoid duplicates
         if (!results.find(r => r.testName?.toLowerCase() === testName.toLowerCase())) {
+          console.log('✅ Added test:', testResult);
           results.push(testResult);
         }
       }
     }
   }
   
-  // If enhanced patterns didn't find results, fall back to table parsing
+  console.log('📊 Found', results.length, 'test results with enhanced patterns');
+  
+  // Enhanced fallback: Parse raw text line by line for test results  
+  if (results.length === 0) {
+    console.log('🔄 Enhanced patterns found no results, trying line-by-line parsing...');
+    
+    const lines = text.split('\n');
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Skip empty lines and headers
+      if (!line || line.length < 5) continue;
+      
+      // Look for test patterns in individual lines
+      const linePatterns = [
+        // "Test Name Result Units Reference"
+        /^([A-Za-z][A-Za-z\s,()]+?)\s+([\d\.<>\/=]+)\s+([A-Za-z\/\sd]*?)\s+([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)$/,
+        // "Test Name : Result Units" (no reference range)
+        /^([A-Za-z][A-Za-z\s,()]+?)\s*:\s*([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*)$/,
+        // Test with Method followed by result on same line
+        /^([A-Za-z][A-Za-z\s,()]+?)\s*Method\s*:\s*[^0-9]*?([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*?)\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)?$/
+      ];
+      
+      for (const pattern of linePatterns) {
+        const match = line.match(pattern);
+        if (match) {
+          const testName = match[1]?.trim().replace(/\s+/g, ' ');
+          const result = match[2]?.trim();
+          const units = match[3]?.trim();
+          const referenceRange = match[4]?.trim() || '';
+          
+          if (testName && result && testName.length > 3 && !testName.match(/^(test|name|result|unit|reference|normal|range)/i)) {
+            const testResult: TestResult = {
+              testName: testName,
+              result: result,
+              units: units || '',
+              referenceRange: referenceRange,
+              status: calculateEnhancedTestStatus(result, referenceRange),
+              category: 'Laboratory'
+            };
+            
+            if (!results.find(r => r.testName?.toLowerCase() === testName.toLowerCase())) {
+              console.log('✅ Line parsing found test:', testResult);
+              results.push(testResult);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // If still no results, fall back to table parsing
   if (results.length === 0) {
     const lines = text.split('\n');
     let inTable = false;
@@ -763,43 +840,58 @@ export function parseLabResultsMarkdownTable(markdownTable: string): TestResult[
 export function calculateEnhancedTestStatus(result: string, referenceRange: string): string {
   if (!result || !referenceRange) return 'Normal';
   
-  // Clean up the result and reference range
-  const cleanResult = result.trim();
-  const cleanRange = referenceRange.trim();
+  // Clean up the inputs
+  const cleanResult = result.replace(/[<>=≤≥]/g, '').trim();
+  const cleanRange = referenceRange.replace(/[<>=≤≥]/g, '').trim();
   
-  // Handle special reference range formats
-  let normalizedRange = cleanRange.toLowerCase();
+  // Parse numeric result
+  const numResult = parseFloat(cleanResult);
+  if (isNaN(numResult)) return 'Normal';
   
-  // Extract range from formats like "Desirable: < 200", "Normal: 70-100"
-  if (normalizedRange.includes(':')) {
-    normalizedRange = normalizedRange.split(':')[1].trim();
-  }
+  // Handle complex range formats
+  const rangePatterns = [
+    // Standard range: "3.5-7.2" or "70 - 100"
+    /([\d.]+)\s*[-–—to]\s*([\d.]+)/i,
+    // Desirable/Borderline/High format: "Desirable: < 200 Borderline: 200–239 High: >= 240"
+    /desirable:\s*[<≤]?\s*([\d.]+)[\s\w]*borderline:\s*([\d.]+)[-–—]\s*([\d.]+)[\s\w]*high:\s*[>≥]?\s*([\d.]+)/i,
+    // Normal format: "Normal: 70 - 100"
+    /normal:\s*([\d.]+)\s*[-–—]\s*([\d.]+)/i,
+    // Single threshold: "< 150" or "> 60"
+    /^([<>≤≥])\s*([\d.]+)/
+  ];
   
-  // Extract numeric value from result
-  const resultValue = parseFloat(cleanResult.replace(/[^\d.-]/g, ''));
-  if (isNaN(resultValue)) return 'Normal';
-  
-  // Handle different range formats
-  if (normalizedRange.includes('<')) {
-    const maxValue = parseFloat(normalizedRange.replace(/[^\d.-]/g, ''));
-    if (!isNaN(maxValue)) {
-      return resultValue < maxValue ? 'Normal' : 'High';
-    }
-  } else if (normalizedRange.includes('>')) {
-    const minValue = parseFloat(normalizedRange.replace(/[^\d.-]/g, ''));
-    if (!isNaN(minValue)) {
-      return resultValue > minValue ? 'Normal' : 'Low';
-    }
-  } else if (normalizedRange.includes('-')) {
-    const rangeParts = normalizedRange.split('-');
-    if (rangeParts.length === 2) {
-      const minValue = parseFloat(rangeParts[0].replace(/[^\d.-]/g, ''));
-      const maxValue = parseFloat(rangeParts[1].replace(/[^\d.-]/g, ''));
-      
-      if (!isNaN(minValue) && !isNaN(maxValue)) {
-        if (resultValue < minValue) return 'Low';
-        if (resultValue > maxValue) return 'High';
-        return 'Normal';
+  for (const pattern of rangePatterns) {
+    const match = cleanRange.match(pattern);
+    if (match) {
+      if (pattern.toString().includes('desirable')) {
+        // Complex range with desirable/borderline/high
+        const desirable = parseFloat(match[1]);
+        const borderlineLow = parseFloat(match[2]);
+        const borderlineHigh = parseFloat(match[3]);
+        const high = parseFloat(match[4]);
+        
+        if (numResult < desirable) return 'Normal';
+        if (numResult >= desirable && numResult < high) return 'Borderline';
+        if (numResult >= high) return 'High';
+      } else if (match.length === 3 && !match[0].includes('<') && !match[0].includes('>')) {
+        // Standard range
+        const min = parseFloat(match[1]);
+        const max = parseFloat(match[2]);
+        
+        if (!isNaN(min) && !isNaN(max)) {
+          if (numResult < min) return 'Low';
+          if (numResult > max) return 'High';
+          return 'Normal';
+        }
+      } else if (match.length === 3) {
+        // Single threshold
+        const operator = match[1];
+        const threshold = parseFloat(match[2]);
+        
+        if (!isNaN(threshold)) {
+          if ((operator === '<' || operator === '≤') && numResult >= threshold) return 'High';
+          if ((operator === '>' || operator === '≥') && numResult <= threshold) return 'Low';
+        }
       }
     }
   }

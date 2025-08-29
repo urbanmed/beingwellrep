@@ -448,14 +448,23 @@ function parseMedicalInformation(content: string) {
 function parseLabResults(content: string): ParsedSection[] {
   const sections: ParsedSection[] = [];
 
+  console.log('🧪 Parsing lab results from content length:', content.length);
+
+  // Check if content indicates "No test results extracted"
+  if (content.toLowerCase().includes('no test results extracted') || content.toLowerCase().includes('no results found')) {
+    console.log('⚠️ Content indicates no test results, skipping table parsing');
+    return sections;
+  }
+
   // Try to parse table format first
   const tableMatch = content.match(/\|[^|]+\|[^|]+\|/);
   if (tableMatch) {
     const parsedTable = parseMarkdownTable(content);
     if (parsedTable.length > 0) {
+      console.log('✅ Found', parsedTable.length, 'tests from table parsing');
       sections.push({
         title: "Laboratory Results",
-        category: "Lab Tests",
+        category: "laboratory",
         content: parsedTable
       });
       return sections;
@@ -465,84 +474,102 @@ function parseLabResults(content: string): ParsedSection[] {
   // Enhanced parsing for specific lab report format
   const tests: any[] = [];
   
-  // Pattern for "Test Method : Method Name : Value Unit Reference"
-  const methodPattern = /([A-Za-z\s]+?)\s*Method\s*:\s*[^:]+?\s*:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]+?)\s*([\d\.-<>]+(?:\s*-\s*[\d\.-<>]+)?)/gi;
-  let match;
-  
-  while ((match = methodPattern.exec(content)) !== null) {
-    const testName = match[1].trim().replace(/\s+/g, ' ');
-    const result = match[2].trim();
-    const units = match[3].trim().replace(/\s+/g, ' ');
-    const referenceRange = match[4].trim();
+  // Enhanced patterns for complex lab report formats
+  const methodPatterns = [
+    // Pattern 1: "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
+    /([A-Za-z][A-Za-z\s,]+?)\s*Method\s*:\s*([^:]+?)\s*:\s*([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*?)\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi,
     
-    if (testName && result && testName.length > 2) {
-      const status = calculateStatus(result, referenceRange);
-      tests.push({
-        testName,
-        result,
-        units,
-        referenceRange,
-        status: normalizeStatus(status)
-      });
+    // Pattern 2: Direct test results "Test Name : Result Units Range"
+    /(?:^|\n)\s*([A-Za-z][A-Za-z\s,]+?)\s*:\s*([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*?)\s+([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gm,
+  ];
+  
+  for (const pattern of methodPatterns) {
+    let match;
+    while ((match = pattern.exec(content)) !== null) {
+      console.log('🔍 Lab pattern match:', match);
+      
+      let testName, result, units, referenceRange;
+      
+      if (match[0].includes('Method :')) {
+        // Format: "Test Method : Method : Result Units Range"
+        testName = match[1]?.trim().replace(/\s+/g, ' ');
+        result = match[3]?.trim();
+        units = match[4]?.trim().replace(/\s+/g, ' ');
+        referenceRange = match[5]?.trim();
+      } else {
+        // Format: "Test : Result Units Range"
+        testName = match[1]?.trim().replace(/\s+/g, ' ');
+        result = match[2]?.trim();
+        units = match[3]?.trim().replace(/\s+/g, ' ');
+        referenceRange = match[4]?.trim();
+      }
+      
+      if (testName && result && testName.length > 2 && result.match(/[\d\.<>]/)) {
+        const testResult = {
+          testName: testName,
+          result: result,
+          units: units || '',
+          referenceRange: referenceRange || '',
+          status: calculateStatus(result, referenceRange || '')
+        };
+        
+        // Avoid duplicates
+        if (!tests.find(t => t.testName?.toLowerCase() === testName.toLowerCase())) {
+          console.log('✅ Found lab test:', testResult);
+          tests.push(testResult);
+        }
+      }
     }
   }
-  
-  // Fallback pattern for simpler formats
+
+  // If no tests found with patterns, try to parse raw content
   if (tests.length === 0) {
-    const simplePattern = /(?:^|\n)\s*([A-Za-z][A-Za-z\s]+?)\s*:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]*?)(?:\s+([\d\.-<>]+(?:\s*-\s*[\d\.-<>]+)?))?/gm;
+    console.log('🔄 No tests found with patterns, trying raw content parsing...');
     
-    while ((match = simplePattern.exec(content)) !== null) {
-      const testName = match[1].trim().replace(/\s+/g, ' ');
-      const result = match[2].trim();
-      const units = match[3]?.trim().replace(/\s+/g, ' ') || '';
-      const referenceRange = match[4]?.trim() || '';
+    // Look for any content that might contain lab data
+    const lines = content.split('\n').filter(line => line.trim());
+    
+    for (const line of lines) {
+      // Skip obviously non-test lines
+      if (line.length < 5 || line.match(/^(test|name|result|unit|reference|normal|range|patient|doctor|lab)/i)) {
+        continue;
+      }
       
-      // Skip if testName looks like metadata or section headers
-      if (testName && result && testName.length > 2 && 
-          !testName.toLowerCase().includes('date') &&
-          !testName.toLowerCase().includes('time') &&
-          !testName.toLowerCase().includes('id')) {
-        const status = referenceRange ? calculateStatus(result, referenceRange) : 'Normal';
-        tests.push({
-          testName,
-          result,
-          units,
-          referenceRange,
-          status: normalizeStatus(status)
-        });
+      // Try to extract test data from any line that looks like it has test info
+      const testMatch = line.match(/([A-Za-z][A-Za-z\s,]+?)\s+([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*?)\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)?/);
+      if (testMatch) {
+        const testName = testMatch[1]?.trim();
+        const result = testMatch[2]?.trim();
+        const units = testMatch[3]?.trim();
+        const referenceRange = testMatch[4]?.trim() || '';
+        
+        if (testName && result && testName.length > 3) {
+          const testResult = {
+            testName: testName,
+            result: result,
+            units: units || '',
+            referenceRange: referenceRange,
+            status: calculateStatus(result, referenceRange)
+          };
+          
+          if (!tests.find(t => t.testName?.toLowerCase() === testName.toLowerCase())) {
+            console.log('✅ Raw parsing found test:', testResult);
+            tests.push(testResult);
+          }
+        }
       }
     }
   }
 
   if (tests.length > 0) {
+    console.log('🎉 Successfully parsed', tests.length, 'lab tests');
     sections.push({
       title: "Laboratory Results",
-      category: "Lab Tests",
+      category: "laboratory",
       content: tests
     });
   } else {
-    // Final fallback: parse as key-value pairs
-    const keyValuePairs: any = {};
-    const lines = content.split('\n').filter(line => line.trim());
-    
-    for (const line of lines) {
-      if (line.includes(':')) {
-        const [key, ...valueParts] = line.split(':');
-        const value = valueParts.join(':').trim();
-        if (key.trim() && value) {
-          const cleanKey = key.trim().replace(/[*-]/g, '').trim();
-          keyValuePairs[cleanKey] = value;
-        }
-      }
-    }
-
-    if (Object.keys(keyValuePairs).length > 0) {
-      sections.push({
-        title: "Test Results",
-        category: "Lab Data",
-        content: keyValuePairs
-      });
-    }
+    console.log('❌ No lab tests could be extracted');
   }
 
   return sections;
