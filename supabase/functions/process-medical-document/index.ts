@@ -66,6 +66,113 @@ const getActiveCustomPrompt = async (supabaseClient: any): Promise<string | null
   }
 };
 
+const enhancedMedicalExtractor = (extractedText: string) => {
+  // Enhanced medical text parser for lab reports
+  const lines = extractedText.split('\n').map(line => line.trim()).filter(Boolean);
+  
+  // Extract patient information
+  const patientInfo = {
+    name: '',
+    age: '',
+    gender: '',
+    id: ''
+  };
+  
+  // Extract facility information
+  const facilityInfo = {
+    name: '',
+    address: '',
+    phone: ''
+  };
+  
+  // Extract tests with proper parsing
+  const tests: any[] = [];
+  let currentSection = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Patient name extraction
+    if (line.includes('Mr.') || line.includes('Mrs.') || line.includes('Ms.') || line.includes('Patient:')) {
+      const nameMatch = line.match(/(?:Mr\.|Mrs\.|Ms\.|Patient:)\s*([A-Z\s]+)/i);
+      if (nameMatch) patientInfo.name = nameMatch[1].trim();
+    }
+    
+    // Age and gender extraction
+    if (line.match(/Age.*?(\d+).*?(Male|Female|M|F)/i)) {
+      const ageGenderMatch = line.match(/Age.*?(\d+).*?(Male|Female|M|F)/i);
+      if (ageGenderMatch) {
+        patientInfo.age = ageGenderMatch[1];
+        patientInfo.gender = ageGenderMatch[2];
+      }
+    }
+    
+    // Test result extraction - enhanced pattern matching
+    const testMatch = line.match(/^([A-Za-z\s\(\)]+?)\s+([0-9.,]+)\s*([a-zA-Z/%]+)?\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)?/);
+    if (testMatch && !line.includes('Page') && !line.includes('Date') && !line.includes('Time')) {
+      const [, testName, value, unit, range] = testMatch;
+      
+      if (testName && value && testName.length > 2) {
+        const numericValue = parseFloat(value.replace(',', ''));
+        let status = 'normal';
+        
+        // Status determination based on reference range
+        if (range && !isNaN(numericValue)) {
+          const rangeMatch = range.match(/([0-9.]+)\s*[-–]\s*([0-9.]+)/);
+          if (rangeMatch) {
+            const [, low, high] = rangeMatch;
+            const lowVal = parseFloat(low);
+            const highVal = parseFloat(high);
+            
+            if (numericValue > highVal * 2) status = 'critical';
+            else if (numericValue > highVal) status = 'high';
+            else if (numericValue < lowVal * 0.5) status = 'critical';
+            else if (numericValue < lowVal) status = 'low';
+          }
+        }
+        
+        tests.push({
+          name: testName.trim(),
+          value: value.trim(),
+          unit: unit?.trim() || '',
+          referenceRange: range?.trim() || '',
+          status,
+          section: currentSection,
+          notes: ''
+        });
+      }
+    }
+    
+    // Section detection
+    if (line.match(/^(Clinical Biochemistry|Haematology|Kidney Function|Complete Blood Count)/i)) {
+      currentSection = line;
+    }
+  }
+  
+  return {
+    reportType: "lab",
+    patient: patientInfo,
+    facility: facilityInfo,
+    tests,
+    extractedData: {
+      patientInformation: `| Field | Value |
+| --- | --- |
+| Name | ${patientInfo.name} |
+| Age | ${patientInfo.age} |
+| Gender | ${patientInfo.gender} |`,
+      labTestResults: tests.map(test => 
+        `| ${test.name} | ${test.value} ${test.unit} | ${test.referenceRange} | ${test.status} |`
+      ).join('\n'),
+      hospitalLabInformation: `| Field | Value |
+| --- | --- |
+| Facility | ${facilityInfo.name} |
+| Department | Laboratory Services |`
+    },
+    confidence: 0.85,
+    suggestedName: `Lab Results - ${patientInfo.name || 'Unknown'} - ${new Date().toLocaleDateString()}`
+  };
+};
+
 const getPromptForReportType = (reportType: string): string => {
   const baseInstructions = `CRITICAL: Return ONLY valid JSON. No markdown formatting, no code blocks, no explanations.
 
@@ -2324,52 +2431,14 @@ serve(async (req) => {
     // Phase 6: Final processing and storage
     console.log('💾 Phase 6: Final processing and storage...')
     
-    // ✅ CRITICAL FIX: Ensure comprehensive structured data extraction
-    if (!parsedData || typeof parsedData !== 'object' || !parsedData.tests || parsedData.tests.length === 0) {
-      console.log('🔧 CRITICAL FIX: Extracting comprehensive structured data from medical text')
+    // ✅ CRITICAL FIX: Use enhanced medical extractor if no structured data
+    if (!parsedData || typeof parsedData !== 'object' || (!parsedData.tests && !parsedData.extractedData)) {
+      console.log('🔧 CRITICAL FIX: Using enhanced medical data extraction')
       
-      // Extract structured data directly from the medical text
-      const extractedTests = extractTestsFromText(report.extracted_text || '')
+      // Use the enhanced medical extractor
+      parsedData = enhancedMedicalExtractor(report.extracted_text || '')
       
-      parsedData = {
-        reportType: reportType || 'lab_report',
-        patient: {
-          name: report.extracted_text?.match(/Patient Name\s*:\s*([^\n]+)/i)?.[1]?.trim() || 
-                report.extracted_text?.match(/Mr\.([A-Z]+)/i)?.[1]?.trim() || 
-                'Patient',
-          id: report.extracted_text?.match(/LAB\s+(\d+)/i)?.[1] || 'N/A'
-        },
-        facility: report.extracted_text?.match(/([^,\n]+diagnostic[^,\n]*)/i)?.[1]?.trim() || 'Medical Facility',
-        reportDate: report.extracted_text?.match(/(\d{2}-\d{2}-\d{4})/)?.[1] || new Date().toLocaleDateString(),
-        sections: extractedTests.length > 0 ? [{
-          title: 'Laboratory Test Results',
-          category: 'lab_results',
-          content: extractedTests
-        }] : [{
-          title: "Document Content",
-          content: report.extracted_text?.substring(0, 500) || "Medical document processed",
-          category: "general"
-        }],
-        tests: extractedTests.length > 0 ? extractedTests : [{
-          testName: 'Document Status',
-          result: 'Processed',
-          units: '',
-          status: 'completed',
-          referenceRange: 'N/A'
-        }],
-        extractedData: {
-          patientInformation: report.extracted_text?.substring(0, 500) || 'Medical document',
-          hospitalLabInformation: 'Laboratory test results',
-          labTestResults: `Found ${extractedTests.length} test results`
-        },
-        confidence: 0.85,
-        extractedAt: new Date().toISOString(),
-        processingNote: extractedTests.length > 0 ? 
-          `Extracted ${extractedTests.length} lab tests from medical report` : 
-          "Medical document processed successfully"
-      }
-      
-      console.log(`🔧 CRITICAL FIX: Created comprehensive structured data with ${extractedTests.length} tests`)
+      console.log(`🔧 CRITICAL FIX: Enhanced extraction created ${parsedData.tests?.length || 0} tests and structured data`)
     }
     
     console.log('💾 Storing parsed data with structure:', {
@@ -2409,6 +2478,7 @@ serve(async (req) => {
         console.log('⚠️ FHIR resources already exist for this report, skipping creation to prevent duplicates')
         fhirResourcesCreated = 0
       } else {
+        // Create FHIR resources with proper test data
         const fhirResult = await createFHIRResourcesFromParsedData(
           supabaseClient,
           parsedData, 
@@ -2418,6 +2488,47 @@ serve(async (req) => {
         
         fhirResourcesCreated = fhirResult.totalCreated || 0
         console.log(`✅ Created ${fhirResourcesCreated} FHIR resources`)
+        
+        // Create individual FHIR observations for each test
+        if (parsedData.tests && parsedData.tests.length > 0) {
+          for (const test of parsedData.tests) {
+            try {
+              const observationData = {
+                resourceType: "Observation",
+                status: "final",
+                code: {
+                  coding: [{
+                    display: test.name || test.testName
+                  }]
+                },
+                valueQuantity: {
+                  value: parseFloat(test.value || test.result) || 0,
+                  unit: test.unit || test.units || ""
+                },
+                effectiveDateTime: new Date().toISOString(),
+                referenceRange: test.referenceRange ? [{
+                  text: test.referenceRange
+                }] : undefined
+              }
+              
+              await supabaseClient
+                .from('fhir_observations')
+                .insert({
+                  user_id: report.user_id,
+                  fhir_id: `obs-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  source_report_id: reportId,
+                  observation_type: 'lab_result',
+                  status: 'final',
+                  effective_date_time: new Date().toISOString(),
+                  resource_data: observationData
+                })
+                
+              console.log(`✅ Created FHIR Observation: ${test.name || test.testName}`)
+            } catch (obsError) {
+              console.error('Failed to create FHIR observation:', obsError)
+            }
+          }
+        }
       }
       
       // Final status update
