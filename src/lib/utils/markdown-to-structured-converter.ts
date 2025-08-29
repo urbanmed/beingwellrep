@@ -377,51 +377,53 @@ function parsePatientInformation(content: string) {
 
 function parseMedicalInformation(content: string) {
   const result: any = {
+    facility: '',
+    provider: '',
     additionalContent: {}
   };
 
-  // Enhanced facility name extraction
+  // Enhanced facility extraction for lab reports - look for exact facility name
   const facilityPatterns = [
-    /Simplify Wellness India/i,
-    /centrallab@luciddiagnostics/i,
-    /Lucid Diagnostics/i,
-    /Processing Location\s*:?\s*([^\n]+)/i,
-    /(?:Facility|Hospital|Lab|Laboratory)\s*:?\s*([^\n\r]+)/i
+    /(Simplify Wellness India)/i,
+    /(?:Lab Name|Laboratory|Facility|Hospital)\s*:?\s*([A-Za-z\s]+)/i,
+    /(?:Processing Location|Lab Location)\s*:?\s*([^\n\r]+)/i
   ];
   
   for (const pattern of facilityPatterns) {
     const match = content.match(pattern);
     if (match) {
-      if (match[0].includes('Simplify Wellness India')) {
+      if (match[0].toLowerCase().includes('simplify wellness india')) {
         result.facility = 'Simplify Wellness India';
         break;
-      } else if (match[0].includes('luciddiagnostics')) {
-        result.facility = 'Lucid Diagnostics';
-        break;
-      } else if (match[1]) {
+      } else if (match[1] && match[1].trim().length > 3) {
         result.facility = match[1].trim();
         break;
       }
     }
   }
 
-  // Enhanced doctor/physician extraction
+  // Enhanced doctor/physician extraction - specifically look for the doctor pattern
   const physicianPatterns = [
-    /Dr\.([A-Za-z\s\.]+),?\s*[A-Z]{2,}/i,
-    /Dr\s+([A-Za-z\s\.]+)\s+[A-Z]{2,}/i,
-    /(?:Consultant|Doctor|Physician)\s+([A-Za-z\s\.]+)/i,
-    /Ref\.Dr\.\s*:?\s*([A-Za-z\s\.]+)/i,
-    /(?:Provider|Doctor|Physician|Ordering Provider)\s*:?\s*([^\n\r]+)/i
+    /Dr\.([A-Za-z\s\.]+?),?\s*([A-Z]{2,}[A-Z\s\.]*)/i,
+    /Dr\s+([A-Za-z\s\.]+?)\s+([A-Z]{2,}[A-Z\s\.]*)/i,
+    /(?:Consultant|Doctor|Physician|Ref\.Dr\.?)\s*:?\s*Dr\.?\s*([A-Za-z\s\.]+?)(?:,\s*([A-Z]{2,}[A-Z\s\.]*))?/i,
+    /(?:Provider|Ordering Provider)\s*:?\s*([^\n\r]+)/i
   ];
   
   for (const pattern of physicianPatterns) {
     const match = content.match(pattern);
     if (match && match[1]) {
       const doctorName = match[1].trim();
-      // Clean up the name - remove extra spaces and qualifications
-      const cleanName = doctorName.replace(/\s+/g, ' ').trim();
+      const qualifications = match[2]?.trim() || '';
+      
+      // Clean up the name
+      let cleanName = doctorName.replace(/\s+/g, ' ').trim();
       if (cleanName.length > 2) {
-        result.provider = cleanName.startsWith('Dr.') ? cleanName : `Dr. ${cleanName}`;
+        // Add qualifications if present
+        const fullName = qualifications ? 
+          `Dr. ${cleanName}, ${qualifications}` : 
+          (cleanName.startsWith('Dr.') ? cleanName : `Dr. ${cleanName}`);
+        result.provider = fullName;
         break;
       }
     }
@@ -460,29 +462,56 @@ function parseLabResults(content: string): ParsedSection[] {
     }
   }
 
-  // Try to parse structured test results
-  const testPattern = /(?:^|\n)([A-Za-z][^:\n]*?):\s*([^\n]+?)(?:\s+(?:Reference|Ref|Normal):\s*([^\n]+))?(?:\s+(?:Status|Flag):\s*([^\n]+))?/gm;
+  // Enhanced parsing for specific lab report format
   const tests: any[] = [];
+  
+  // Pattern for "Test Method : Method Name : Value Unit Reference"
+  const methodPattern = /([A-Za-z\s]+?)\s*Method\s*:\s*[^:]+?\s*:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]+?)\s*([\d\.-<>]+(?:\s*-\s*[\d\.-<>]+)?)/gi;
   let match;
-
-  while ((match = testPattern.exec(content)) !== null) {
-    const testName = match[1].trim();
-    const resultWithUnits = match[2].trim();
-    const referenceRange = match[3]?.trim();
-    const status = match[4]?.trim() || 'Normal';
-
-    // Extract numeric result and units
-    const resultMatch = resultWithUnits.match(/^([\d.,]+)\s*(.*)$/);
-    const result = resultMatch ? resultMatch[1] : resultWithUnits;
-    const units = resultMatch ? resultMatch[2] : '';
-
-    tests.push({
-      testName,
-      result,
-      units,
-      referenceRange: referenceRange || '',
-      status: normalizeStatus(status)
-    });
+  
+  while ((match = methodPattern.exec(content)) !== null) {
+    const testName = match[1].trim().replace(/\s+/g, ' ');
+    const result = match[2].trim();
+    const units = match[3].trim().replace(/\s+/g, ' ');
+    const referenceRange = match[4].trim();
+    
+    if (testName && result && testName.length > 2) {
+      const status = calculateStatus(result, referenceRange);
+      tests.push({
+        testName,
+        result,
+        units,
+        referenceRange,
+        status: normalizeStatus(status)
+      });
+    }
+  }
+  
+  // Fallback pattern for simpler formats
+  if (tests.length === 0) {
+    const simplePattern = /(?:^|\n)\s*([A-Za-z][A-Za-z\s]+?)\s*:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]*?)(?:\s+([\d\.-<>]+(?:\s*-\s*[\d\.-<>]+)?))?/gm;
+    
+    while ((match = simplePattern.exec(content)) !== null) {
+      const testName = match[1].trim().replace(/\s+/g, ' ');
+      const result = match[2].trim();
+      const units = match[3]?.trim().replace(/\s+/g, ' ') || '';
+      const referenceRange = match[4]?.trim() || '';
+      
+      // Skip if testName looks like metadata or section headers
+      if (testName && result && testName.length > 2 && 
+          !testName.toLowerCase().includes('date') &&
+          !testName.toLowerCase().includes('time') &&
+          !testName.toLowerCase().includes('id')) {
+        const status = referenceRange ? calculateStatus(result, referenceRange) : 'Normal';
+        tests.push({
+          testName,
+          result,
+          units,
+          referenceRange,
+          status: normalizeStatus(status)
+        });
+      }
+    }
   }
 
   if (tests.length > 0) {
@@ -492,7 +521,7 @@ function parseLabResults(content: string): ParsedSection[] {
       content: tests
     });
   } else {
-    // Fallback: parse as key-value pairs
+    // Final fallback: parse as key-value pairs
     const keyValuePairs: any = {};
     const lines = content.split('\n').filter(line => line.trim());
     

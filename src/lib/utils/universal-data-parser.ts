@@ -381,23 +381,33 @@ function extractFromKeyValuePairs(text: string, fieldMappings: Record<string, st
 function extractTestResults(text: string): TestResult[] {
   const results: TestResult[] = [];
   
-  // Enhanced test result extraction patterns for lab reports
-  const testPatterns = [
-    // Pattern for "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
-    /([A-Za-z\s]+)\s*Method\s*:\s*[^:]+:\s*([\d\.<>]+)\s*([A-Za-z\/]+)\s*([\d\.-]+)/gi,
-    // Pattern for "Hemoglobin Method : Non-Cyanide Photometric Measurement : 15.8 g/d L 13.0-17.0"
-    /([A-Za-z\s]+)\s*Method\s*:\s*[^:]+:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]+)\s*([\d\.-]+)/gi,
-    // Pattern for structured test results
-    /([A-Za-z\s]+)\s*:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]*)\s*([\d\.-<>]+)/gi
+  // Enhanced test result extraction patterns for specific lab report format
+  const specificPatterns = [
+    // Pattern for "Uric Acid Method : Uricase PAP : 5.71 mg/d L 3.5-7.2"
+    /([A-Za-z\s]+?)\s*Method\s*:\s*[^:]+?\s*:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]+?)\s*([\d\.-<>]+(?:\s*-\s*[\d\.-<>]+)?)/gi,
+    // Pattern for direct lab values "Test Name : Value Unit Reference"
+    /(?:^|\n)\s*([A-Za-z][A-Za-z\s]+?)\s*:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]*?)\s+([\d\.-<>]+(?:\s*-\s*[\d\.-<>]+)?)/gm,
+    // Pattern for tests with status indicators
+    /([A-Za-z\s]+?)\s*:\s*([\d\.<>]+)\s*([A-Za-z\/\sd]*?)\s*(?:Reference|Ref|Normal)?\s*:?\s*([\d\.-<>]+(?:\s*-\s*[\d\.-<>]+)?)?/gi
   ];
   
-  // Look for specific test results patterns first
-  for (const pattern of testPatterns) {
+  // Look for lab test sections first
+  const labSections = [
+    'BIOCHEMISTRY',
+    'HAEMATOLOGY', 
+    'LIPID PROFILE',
+    'LIVER FUNCTION TEST',
+    'KIDNEY FUNCTION TEST',
+    'CARDIAC MARKERS',
+    'DIABETES MARKERS'
+  ];
+  
+  for (const pattern of specificPatterns) {
     let match;
     while ((match = pattern.exec(text)) !== null) {
-      const testName = match[1]?.trim();
+      const testName = match[1]?.trim().replace(/\s+/g, ' ');
       const result = match[2]?.trim();
-      const units = match[3]?.trim();
+      const units = match[3]?.trim().replace(/\s+/g, ' ');
       const referenceRange = match[4]?.trim();
       
       if (testName && result && testName.length > 2 && result.match(/[\d\.<>]/)) {
