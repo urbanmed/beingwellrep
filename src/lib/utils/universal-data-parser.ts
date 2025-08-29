@@ -381,21 +381,25 @@ function extractFromKeyValuePairs(text: string, fieldMappings: Record<string, st
 function extractTestResults(text: string): TestResult[] {
   const results: TestResult[] = [];
   
-  console.log('🔍 Extracting test results from text length:', text.length);
+  console.info('🔍 Extracting test results from text length:', text.length);
+  console.info('📄 Text preview for test extraction:', text.substring(0, 1000) + (text.length > 1000 ? '...' : ''));
   
   // Enhanced test result extraction patterns for specific lab report format
   const specificPatterns = [
-    // Pattern 1: "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
-    /([A-Za-z][A-Za-z\s,]+?)\s*Method\s*:\s*([^:]+?)\s*:\s*([\d\.<>\/=]+)\s*mg\/d?\s*L\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi,
+    // Pattern 1: "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/dL 3.5-7.2"
+    /([A-Za-z][A-Za-z\s,.-]+?)\s*Method\s*:\s*([^:]+?)\s*:\s*([\d\.<>\/=]+(?:\.\d+)?)\s*(mg\/dL|mg\/dl|mg\/L|g\/dL|U\/L|mIU\/mL|ng\/mL|μg\/dL|mmol\/L|%|\/mm3|cells\/μL|[A-Za-z\/]*)\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi,
     
-    // Pattern 2: "Fasting Plasma Glucose Method : Hexokinase : 76 mg/d L Normal : 70 - 100"
-    /([A-Za-z][A-Za-z\s,]+?)\s*Method\s*:\s*([^:]+?)\s*:\s*([\d\.<>\/=]+)\s*mg\/d?\s*L\s*(?:Normal|Reference|Ref)?\s*:?\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi,
+    // Pattern 2: "Fasting Plasma Glucose Method : Hexokinase : 76 mg/dL Normal : 70 - 100"
+    /([A-Za-z][A-Za-z\s,.-]+?)\s*Method\s*:\s*([^:]+?)\s*:\s*([\d\.<>\/=]+(?:\.\d+)?)\s*(mg\/dL|mg\/dl|mg\/L|g\/dL|U\/L|mIU\/mL|ng\/mL|μg\/dL|mmol\/L|%|\/mm3|cells\/μL|[A-Za-z\/]*)\s*(?:Normal|Reference|Ref)?\s*:?\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi,
     
-    // Pattern 3: Simple "Test Name : Value Unit Range" format
-    /(?:^|\n)\s*([A-Za-z][A-Za-z\s,]+?)\s*:\s*([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*?)\s+([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gm,
+    // Pattern 3: Direct "Test : Value Unit Range" format
+    /([A-Za-z][A-Za-z\s,.-]+?)\s*:\s*([\d\.<>\/=]+(?:\.\d+)?)\s*(mg\/dL|mg\/dl|mg\/L|g\/dL|U\/L|mIU\/mL|ng\/mL|μg\/dL|mmol\/L|%|\/mm3|cells\/μL|[A-Za-z\/]*)\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi,
     
-    // Pattern 4: Test results in lines with specific indicators
-    /([A-Za-z][A-Za-z\s,]+?)\s*(?:Result|Value)?\s*:\s*([\d\.<>\/=]+)\s*([A-Za-z\/\sd]*?)\s*(?:Reference|Normal|Range)?\s*:?\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi
+    // Pattern 4: General fallback for other formats
+    /(?:^|\n)\s*([A-Za-z][A-Za-z\s,.-]+?)\s*:\s*([\d\.<>\/=]+(?:\.\d+)?)\s*([A-Za-z\/\sd]*?)\s+([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gm,
+    
+    // Pattern 5: Test results in lines with specific indicators
+    /([A-Za-z][A-Za-z\s,.-]+?)\s*(?:Result|Value)?\s*:\s*([\d\.<>\/=]+(?:\.\d+)?)\s*([A-Za-z\/\sd]*?)\s*(?:Reference|Normal|Range)?\s*:?\s*([\d\.-<>\/=]+(?:\s*-\s*[\d\.-<>\/=]+)?)/gi
   ];
   
   // Look for lab test sections first
@@ -412,7 +416,7 @@ function extractTestResults(text: string): TestResult[] {
   for (const pattern of specificPatterns) {
     let match;
     while ((match = pattern.exec(text)) !== null) {
-      console.log('🧪 Found test match:', match);
+      console.info('🧪 Test pattern match found:', match);
       
       let testName, result, units, referenceRange;
       
@@ -420,14 +424,14 @@ function extractTestResults(text: string): TestResult[] {
         // Format: "Test Method : Method : Result Units Range"
         testName = match[1]?.trim().replace(/\s+/g, ' ');
         result = match[3]?.trim();
-        units = 'mg/dL'; // Fixed units for this pattern
-        referenceRange = match[4]?.trim();
+        units = match[4]?.trim().replace(/\s+/g, ' ') || '';
+        referenceRange = match[5]?.trim() || '';
       } else {
-        // Format: "Test : Result Units Range"
+        // Format: "Test : Result Units Range" or other patterns
         testName = match[1]?.trim().replace(/\s+/g, ' ');
         result = match[2]?.trim();
-        units = match[3]?.trim().replace(/\s+/g, ' ');
-        referenceRange = match[4]?.trim();
+        units = match[3]?.trim().replace(/\s+/g, ' ') || '';
+        referenceRange = match[4]?.trim() || '';
       }
       
       if (testName && result && testName.length > 2 && result.match(/[\d\.<>]/)) {
@@ -437,26 +441,26 @@ function extractTestResults(text: string): TestResult[] {
         const testResult: TestResult = {
           testName: testName,
           result: result,
-          units: units || '',
-          referenceRange: referenceRange || '',
-          status: calculateEnhancedTestStatus(result, referenceRange || ''),
+          units: units,
+          referenceRange: referenceRange,
+          status: calculateEnhancedTestStatus(result, referenceRange),
           category: 'Laboratory'
         };
         
         // Avoid duplicates
         if (!results.find(r => r.testName?.toLowerCase() === testName.toLowerCase())) {
-          console.log('✅ Added test:', testResult);
+          console.info('✅ Enhanced pattern extracted test:', testResult);
           results.push(testResult);
         }
       }
     }
   }
   
-  console.log('📊 Found', results.length, 'test results with enhanced patterns');
+  console.info('📊 Found', results.length, 'test results with enhanced patterns');
   
   // Enhanced fallback: Parse raw text line by line for test results  
   if (results.length === 0) {
-    console.log('🔄 Enhanced patterns found no results, trying line-by-line parsing...');
+    console.info('🔄 Enhanced patterns found no results, trying line-by-line parsing...');
     
     const lines = text.split('\n');
     

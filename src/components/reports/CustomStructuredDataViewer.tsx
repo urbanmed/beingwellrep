@@ -33,10 +33,11 @@ interface CustomStructuredDataViewerProps {
     extracted_text?: string; // Raw extracted text for fallback parsing
     confidence?: number;
   } | null;
+  extractedText?: string | null; // Separate prop for raw extracted text
 }
 
-export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataViewerProps) {
-  console.log('CustomStructuredDataViewer rendering with:', { parsedData });
+export function CustomStructuredDataViewer({ parsedData, extractedText }: CustomStructuredDataViewerProps) {
+  console.info("CustomStructuredDataViewer rendering with:", { parsedData, extractedTextLength: extractedText?.length });
   const isMobile = useIsMobile();
   const [openSections, setOpenSections] = useState<Record<number, boolean>>({});
 
@@ -58,7 +59,11 @@ export function CustomStructuredDataViewer({ parsedData }: CustomStructuredDataV
   let displayData = parsedData;
   
   if (parsedData.extractedData && (!parsedData.sections || parsedData.sections.length === 0)) {
-    const convertedData = convertMarkdownToStructured(parsedData.extractedData, parsedData.extracted_text);
+    console.info("🔄 Converting markdown to structured format:", { 
+      extractedData: parsedData.extractedData,
+      rawExtractedTextLength: extractedText?.length 
+    });
+    const convertedData = convertMarkdownToStructured(parsedData.extractedData, extractedText);
     displayData = {
       ...parsedData,
       patient: convertedData.patient || parsedData.patient,

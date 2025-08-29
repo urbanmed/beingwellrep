@@ -141,7 +141,10 @@ export function EnhancedDocumentViewer({ report }: EnhancedDocumentViewerProps) 
 
         <TabsContent value="structured" className="mt-6">
           {hasStructuredData ? (
-            <CustomStructuredDataViewer parsedData={report.parsed_data} />
+            <CustomStructuredDataViewer 
+              parsedData={report.parsed_data} 
+              extractedText={report.extracted_text}
+            />
           ) : (
             <Card>
               <CardContent className="p-8 text-center">

@@ -91,24 +91,42 @@ export function convertMarkdownToStructured(extractedData: {
     const noTestResults = typeof extractedData.labTestResults === 'string' && 
                           extractedData.labTestResults.toLowerCase().includes('no test results extracted');
     
+    console.info('🔍 Fallback analysis:', {
+      sectionsCount: result.sections.length,
+      noTestResults,
+      hasRawText: !!rawExtractedText,
+      rawTextLength: rawExtractedText?.length,
+      labTestResults: extractedData.labTestResults
+    });
+    
     if (result.sections.length === 0 || noTestResults) {
-      console.log('🔄 Fallback to universal parser...');
+      console.info('🔄 Fallback to universal parser...');
       
       // Use raw extracted text if available and structured extraction failed
       let contentToParse = '';
-      if (rawExtractedText && noTestResults) {
-        console.log('📄 Using raw extracted_text for parsing (length:', rawExtractedText.length, ')');
+      if (rawExtractedText && rawExtractedText.length > 0 && noTestResults) {
+        console.info('📄 Using raw extracted_text for parsing:', rawExtractedText.length, 'characters');
+        console.info('📄 Raw text preview:', rawExtractedText.substring(0, 500) + '...');
         contentToParse = rawExtractedText;
       } else {
+        console.info('📄 Using structured extractedData fields for parsing');
         // Fallback to combining extractedData fields
         contentToParse = [
           extractedData.patientInformation,
           extractedData.hospitalLabInformation,
           extractedData.labTestResults
         ].filter(Boolean).join('\n\n');
+        console.info('📄 Combined content length:', contentToParse.length);
       }
 
+      console.info('🔍 About to parse with universal parser, content length:', contentToParse.length);
       const universalData = parseUniversalMedicalDocument(contentToParse);
+      console.info('🔍 Universal parser result:', {
+        testResultsCount: universalData.testResults?.length || 0,
+        sectionsCount: universalData.sections?.length || 0,
+        hasPatientInfo: !!universalData.patientInfo?.name,
+        hasMedicalInfo: !!universalData.medicalInfo?.facilityName
+      });
       
       // Map universal data to display structure
       result.patient = {
