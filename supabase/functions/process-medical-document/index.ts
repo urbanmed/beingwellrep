@@ -2262,8 +2262,21 @@ serve(async (req) => {
     const requestBody = await req.json()
     reportId = requestBody.reportId
 
+    // Step 4: Add defensive programming for reportId validation
     if (!reportId) {
       throw new Error('Report ID is required')
+    }
+
+    // Ensure reportId is a string, not a Promise or other object
+    if (typeof reportId !== 'string') {
+      console.error('❌ CRITICAL: reportId is not a string:', typeof reportId, reportId)
+      throw new Error(`Invalid reportId type: expected string, got ${typeof reportId}`)
+    }
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(reportId)) {
+      throw new Error('Report ID must be a valid UUID')
     }
 
     console.log(`🔄 Starting hybrid AWS+LLM processing for report ID: ${reportId}`)
@@ -2272,6 +2285,24 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
+
+    // Step 1: Add proper lock validation - Try to acquire processing lock first
+    console.log('🔒 Attempting to acquire processing lock...')
+    const { data: lockAcquired, error: lockError } = await supabaseClient.rpc('acquire_processing_lock', {
+      report_id_param: reportId
+    })
+
+    if (lockError) {
+      console.error('❌ Lock acquisition error:', lockError)
+      throw new Error(`Unable to acquire processing lock: ${lockError.message}`)
+    }
+
+    if (!lockAcquired) {
+      console.log('⚠️ Document is already being processed by another instance')
+      throw new Error('Document is currently being processed. Please wait and try again.')
+    }
+
+    console.log('✅ Processing lock acquired successfully')
 
     // Get the report from the database
     const { data: report, error: reportError } = await supabaseClient
@@ -2282,6 +2313,11 @@ serve(async (req) => {
 
     if (reportError || !report) {
       console.error('Report fetch error:', reportError)
+      // Release lock before throwing error
+      await supabaseClient.rpc('release_processing_lock', {
+        report_id_param: reportId,
+        final_status: 'failed'
+      })
       throw new Error('Report not found')
     }
 
@@ -2666,16 +2702,24 @@ serve(async (req) => {
   } catch (error) {
     console.error('❌ Enhanced processing error:', error)
     
-    // Always attempt to release lock and update error state
-    if (reportId && supabaseClient) {
+    // Step 5: Implement proper error recovery - Always attempt to release lock and update error state
+    if (reportId && supabaseClient && typeof reportId === 'string') {
       try {
+        // Determine if this is a temporary or permanent error
+        const isTemporary = error.message.includes('timeout') || 
+                          error.message.includes('rate limit') || 
+                          error.message.includes('network') ||
+                          error.message.includes('temporary')
+
         await supabaseClient
           .from('reports')
           .update({
             parsing_status: 'failed',
             processing_phase: 'failed',
             processing_error: error.message,
-            error_category: error.message.includes('timeout') ? 'temporary' : 'permanent'
+            error_category: isTemporary ? 'temporary' : 'permanent',
+            // Don't increment retry count excessively for concurrent processing attempts
+            retry_count: report?.retry_count < 10 ? (report?.retry_count || 0) + 1 : 10
           })
           .eq('id', reportId)
           
@@ -2686,7 +2730,21 @@ serve(async (req) => {
         
         console.log('🔓 Released processing lock due to error')
       } catch (cleanupError) {
-        console.error('Failed to cleanup after error:', cleanupError)
+        console.error('❌ Failed to cleanup after error:', cleanupError)
+        // Last resort: try to clear the lock directly
+        try {
+          await supabaseClient
+            .from('reports')
+            .update({
+              processing_lock: null,
+              processing_started_at: null,
+              lock_expires_at: null
+            })
+            .eq('id', reportId)
+          console.log('🔓 Force-cleared processing lock as last resort')
+        } catch (forceCleanupError) {
+          console.error('❌ Failed to force-clear lock:', forceCleanupError)
+        }
       }
     }
     

@@ -19,25 +19,14 @@ export function useDocumentProcessing() {
     
     const attemptProcessing = async (attempt: number): Promise<DocumentParsingResult> => {
       try {
+        console.log(`🔄 Processing document ${reportId} (attempt ${attempt + 1}/${maxRetries})`);
+        
+        // Step 2: Fix Promise handling - ensure reportId is always a string
+        if (typeof reportId !== 'string') {
+          throw new Error(`Invalid reportId: expected string, got ${typeof reportId}`);
+        }
+        
         setRetryCount(attempt);
-        
-        // Phase 1: Attempt to acquire processing lock
-        console.log(`Attempting to acquire processing lock for report ${reportId} (attempt ${attempt + 1})`);
-        
-        const { data: lockData, error: lockError } = await supabase.rpc('acquire_processing_lock', {
-          report_id_param: reportId
-        });
-
-        if (lockError) {
-          console.error('Lock acquisition error:', lockError);
-          throw new Error('Failed to acquire processing lock');
-        }
-
-        if (!lockData) {
-          throw new Error('Document is already being processed or processing is locked');
-        }
-
-        console.log('✅ Successfully acquired processing lock');
         
         // Add extended timeout for complex documents
         const timeoutPromise = new Promise((_, reject) => {
@@ -121,16 +110,8 @@ export function useDocumentProcessing() {
       } catch (error) {
         console.error(`Document processing error (attempt ${attempt + 1}):`, error);
         
-        // Always release the processing lock on error
-        try {
-          await supabase.rpc('release_processing_lock', {
-            report_id_param: reportId,
-            final_status: 'failed'
-          });
-          console.log('🔓 Released processing lock due to error');
-        } catch (lockReleaseError) {
-          console.error('Failed to release processing lock:', lockReleaseError);
-        }
+        // Step 5: Don't try to release lock here since the edge function handles it
+        // The edge function is now responsible for all lock management
         
         // Enhanced error categorization
         const errorMsg = error.message.toLowerCase();
