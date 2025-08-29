@@ -20,6 +20,15 @@ interface CustomStructuredDataViewerProps {
     provider?: string;
     reportDate?: string;
     visitDate?: string;
+    tests?: Array<{
+      name: string;
+      value: string;
+      unit: string;
+      referenceRange: string;
+      status: string;
+      section?: string;
+      notes?: string;
+    }>; // Direct tests array from backend
     sections?: Array<{
       title: string;
       category: string;
@@ -75,13 +84,14 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
     };
   }
 
-  const { patient, facility, provider, reportDate, visitDate, sections } = displayData;
+  const { patient, facility, provider, reportDate, visitDate, sections, tests } = displayData;
 
   // Check if we have any meaningful data to display
   const hasPatientInfo = patient && (patient.name || patient.id);
   const hasFacilityInfo = facility || provider;
   const hasSections = sections && sections.length > 0;
-  const hasAnyData = hasPatientInfo || hasFacilityInfo || hasSections;
+  const hasLabTests = tests && tests.length > 0;
+  const hasAnyData = hasPatientInfo || hasFacilityInfo || hasSections || hasLabTests;
 
   if (!hasAnyData) {
     return (
@@ -188,6 +198,41 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
                 <span className="text-sm font-medium">{provider}</span>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Direct Laboratory Results from Tests Array */}
+      {hasLabTests && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Laboratory Results</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {tests.map((test, testIndex) => (
+                <div key={testIndex} className="flex justify-between items-center py-2 px-3 bg-secondary/30 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="font-medium text-sm text-foreground">{test.name}</div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-base font-semibold text-primary">
+                        {test.value} {test.unit}
+                      </span>
+                      {test.referenceRange && (
+                        <span className="text-xs text-muted-foreground">
+                          ({test.referenceRange})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={getStatusBadgeVariant(test.status)} className="text-xs">
+                      {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

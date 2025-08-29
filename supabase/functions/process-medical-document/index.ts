@@ -153,16 +153,16 @@ const enhancedMedicalExtractor = (extractedText: string) => {
     console.log('🔍 Analyzing line for test extraction:', line.substring(0, 100));
     
     // Pattern 1: "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
-    const methodPattern1 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*(mg\/d?\s*L|g\/d?\s*L|μIU\/m?\s*L|[μa-zA-Z\/\s%]*[Ll]?)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
+    const methodPattern1 = line.match(/^([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+\s*:\s*([0-9.,<>]+)\s*(mg\/d\s*L|g\/d\s*L|μIU\/m\s*L|f\s*L|pg|%|Cells\/cmm|millions\/cumm|lakhs\/cmm)\s*([0-9.,-]+\s*[-–]\s*[0-9.,-]+)/i);
     
     // Pattern 2: "TSH Method : CLIA : 4.08 μIU/m L Children: Birth-4 d:1.0-39.0" 
-    const methodPattern2 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*(mg\/d?\s*L|g\/d?\s*L|μIU\/m?\s*L|[μa-zA-Z\/\s%]*[Ll]?)\s*(Children|Adults|Normal|Desirable|Optimal).*?([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
+    const methodPattern2 = line.match(/^([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+\s*:\s*([0-9.,<>]+)\s*(mg\/d\s*L|g\/d\s*L|μIU\/m\s*L|[μa-zA-Z\/\s%]*[Ll]?)\s*(Children|Adults|Normal|Desirable|Optimal).*?([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
     // Pattern 3: "Fasting Plasma Glucose Method : Hexokinase : 76 mg/d L Normal : 70 - 100"
-    const methodPattern3 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*(mg\/d?\s*L|g\/d?\s*L|μIU\/m?\s*L|[μa-zA-Z\/\s%]*[Ll]?)\s*Normal\s*:\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
+    const methodPattern3 = line.match(/^([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+\s*:\s*([0-9.,<>]+)\s*(mg\/d\s*L|g\/d\s*L|μIU\/m\s*L|[μa-zA-Z\/\s%]*[Ll]?)\s*Normal\s*:\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
     
     // Pattern 4: "Hemoglobin Method : Non-Cyanide Photometric Measurement : 15.8 g/d L 13.0-17.0"
-    const methodPattern4 = line.match(/([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]+:\s*([0-9.,<>]+)\s*(mg\/d?\s*L|g\/d?\s*L|μIU\/m?\s*L|[μa-zA-Z\/\s%]*[Ll]?)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
+    const methodPattern4 = line.match(/^([A-Za-z\s,()]+?)\s+Method\s*:\s*[^:]*\s*:\s*([0-9.,<>]+)\s*(mg\/d\s*L|g\/d\s*L|f\s*L|pg|%|Cells\/cmm|millions\/cumm|lakhs\/cmm)\s*([0-9.,-]+\s*[-–]\s*[0-9.,-]+)/i);
     
     // Pattern 5: "Neutrophils : 47 % 40-80" - Simple colon format
     const simplePattern = line.match(/^([A-Za-z\s,()]+?)\s*:\s*([0-9.,<>]+)\s*([%a-zA-Z\/\s]*)\s*([0-9.,-]+\s*[-–]\s*[0-9.,]+)/i);
