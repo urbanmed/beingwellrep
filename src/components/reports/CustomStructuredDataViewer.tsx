@@ -50,6 +50,54 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
   const isMobile = useIsMobile();
   const [openSections, setOpenSections] = useState<Record<number, boolean>>({});
 
+  // Helper function to parse lab tests from raw extracted text as fallback
+  const parseTestsFromRawText = (text: string) => {
+    if (!text) return [];
+    
+    const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+    const tests: any[] = [];
+    
+    // Pattern to match: "Test Method : Method Name : Value Unit Range"
+    const testPattern = /^([A-Za-z\s\(\)\-\.]+?)\s+Method\s*:\s*([^:]+?)\s*:\s*([\d\.]+)\s*(mg\/d\s*L|g\/d\s*L|μIU\/m\s*L|μg\/d\s*L|IU\/L|Units\/L|%|f\s*L|pg)\s*([\d\.\-\s]+)$/i;
+    
+    for (const line of lines) {
+      const match = line.match(testPattern);
+      if (match) {
+        const [, testName, method, value, unit, range] = match;
+        
+        // Clean up unit format
+        const cleanUnit = unit.trim().replace(/mg\/d\s+L/gi, 'mg/dL').replace(/g\/d\s+L/gi, 'g/dL').replace(/μIU\/m\s+L/gi, 'μIU/mL');
+        
+        // Parse range and determine status
+        const rangeMatch = range.match(/([\d\.]+)\s*[-–]\s*([\d\.]+)/);
+        let status = 'Normal';
+        let cleanRange = range.trim();
+        
+        if (rangeMatch) {
+          const [, minVal, maxVal] = rangeMatch;
+          const min = parseFloat(minVal);
+          const max = parseFloat(maxVal);
+          const numValue = parseFloat(value);
+          cleanRange = `${min}-${max}`;
+          
+          if (numValue < min) status = 'Low';
+          else if (numValue > max) status = 'High';
+        }
+        
+        tests.push({
+          name: testName.trim(),
+          value: value,
+          unit: cleanUnit,
+          referenceRange: cleanRange,
+          status: status.toLowerCase(),
+          method: method.trim()
+        });
+      }
+    }
+    
+    return tests;
+  };
+
   // Handle null parsedData case
   if (!parsedData) {
     return (
@@ -86,12 +134,38 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
 
   const { patient, facility, provider, reportDate, visitDate, sections, tests } = displayData;
 
+  // Helper function to check if we have meaningful data to display
+  const hasMeaningfulData = () => {
+    // Check for direct tests array
+    if (tests && Array.isArray(tests) && tests.length > 0) {
+      return true;
+    }
+    
+    // Check if we can parse tests from raw text
+    const rawTests = parseTestsFromRawText(extractedText || '');
+    if (rawTests.length > 0) {
+      return true;
+    }
+    
+    // Check for sections with content
+    if (sections && Array.isArray(sections)) {
+      return sections.some(section => 
+        section.content && 
+        section.content.trim() !== '' && 
+        !section.content.toLowerCase().includes('no test results') &&
+        !section.content.toLowerCase().includes('not found')
+      );
+    }
+    
+    return false;
+  };
+
   // Check if we have any meaningful data to display
   const hasPatientInfo = patient && (patient.name || patient.id);
   const hasFacilityInfo = facility || provider;
   const hasSections = sections && sections.length > 0;
   const hasLabTests = tests && tests.length > 0;
-  const hasAnyData = hasPatientInfo || hasFacilityInfo || hasSections || hasLabTests;
+  const hasAnyData = hasPatientInfo || hasFacilityInfo || hasSections || hasLabTests || hasMeaningfulData();
 
   if (!hasAnyData) {
     return (
@@ -202,33 +276,47 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
         </Card>
       )}
 
-      {/* Direct Laboratory Results from Tests Array */}
-      {hasLabTests && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Laboratory Results</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {tests.map((test, testIndex) => (
-                <div key={testIndex} className="flex items-center justify-between py-3 px-4 bg-muted/50 rounded-lg border">
-                  <div className="flex-1 space-y-1">
-                    <div className="font-medium text-foreground">
-                      {test.name}: <span className="font-semibold text-primary">{test.value} {test.unit}</span>
-                      {test.referenceRange && (
-                        <span className="text-muted-foreground ml-2">({test.referenceRange})</span>
+      {/* Laboratory Results from direct tests array or parsed from raw text */}
+      {(() => {
+        // Use direct tests if available, otherwise parse from raw text
+        const testResults = (tests && Array.isArray(tests) && tests.length > 0) 
+          ? tests 
+          : parseTestsFromRawText(extractedText || '');
+        
+        if (testResults.length === 0) return null;
+        
+        return (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Laboratory Results</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {testResults.map((test: any, testIndex: number) => (
+                  <div key={testIndex} className="flex items-center justify-between py-3 px-4 bg-muted/50 rounded-lg border">
+                    <div className="flex-1 space-y-1">
+                      <div className="font-medium text-foreground">
+                        {test.name}: <span className="font-semibold text-primary">{test.value} {test.unit}</span>
+                        {test.referenceRange && (
+                          <span className="text-muted-foreground ml-2">({test.referenceRange})</span>
+                        )}
+                      </div>
+                      {(test.notes || test.method) && (
+                        <div className="text-sm text-muted-foreground">
+                          {test.notes || (test.method ? `Method: ${test.method}` : '')}
+                        </div>
                       )}
                     </div>
+                    <Badge variant={getStatusBadgeVariant(test.status)} className="ml-2">
+                      {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
+                    </Badge>
                   </div>
-                  <Badge variant={getStatusBadgeVariant(test.status)} className="ml-2">
-                    {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Laboratory Results Section */}
       {hasSections && sections.map((section, index) => {
