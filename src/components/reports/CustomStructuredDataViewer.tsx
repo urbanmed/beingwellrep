@@ -50,52 +50,120 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
   const isMobile = useIsMobile();
   const [openSections, setOpenSections] = useState<Record<number, boolean>>({});
 
-  // Helper function to parse lab tests from raw extracted text as fallback
+  // Enhanced helper function to parse test results from raw text as fallback
   const parseTestsFromRawText = (text: string) => {
     if (!text) return [];
     
     const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
     const tests: any[] = [];
     
-    // Pattern to match: "Test Method : Method Name : Value Unit Range"
-    const testPattern = /^([A-Za-z\s\(\)\-\.]+?)\s+Method\s*:\s*([^:]+?)\s*:\s*([\d\.]+)\s*(mg\/d\s*L|g\/d\s*L|μIU\/m\s*L|μg\/d\s*L|IU\/L|Units\/L|%|f\s*L|pg)\s*([\d\.\-\s]+)$/i;
+    // Enhanced cascading patterns matching backend logic
+    const testPatterns = [
+      // Pattern 1: Method with complex description
+      /^(.+?)\s+Method\s*:\s*(.+?)\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±]+).*$/i,
+      // Pattern 2: Direct test result  
+      /^(.+?)\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±\w]+).*$/i,
+      // Pattern 3: Test name with units separated
+      /^([a-zA-Z\s\/\-]+?)\s+([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±]+).*$/i,
+      // Pattern 4: Percentage values
+      /^(.+?)\s*:\s*([\d.,]+)\s*%\s*([\d\s\-<>≤≥.,\/():=±]+).*$/i
+    ];
     
     for (const line of lines) {
-      const match = line.match(testPattern);
-      if (match) {
-        const [, testName, method, value, unit, range] = match;
-        
-        // Clean up unit format
-        const cleanUnit = unit.trim().replace(/mg\/d\s+L/gi, 'mg/dL').replace(/g\/d\s+L/gi, 'g/dL').replace(/μIU\/m\s+L/gi, 'μIU/mL');
-        
-        // Parse range and determine status
-        const rangeMatch = range.match(/([\d\.]+)\s*[-–]\s*([\d\.]+)/);
-        let status = 'Normal';
-        let cleanRange = range.trim();
-        
-        if (rangeMatch) {
-          const [, minVal, maxVal] = rangeMatch;
-          const min = parseFloat(minVal);
-          const max = parseFloat(maxVal);
-          const numValue = parseFloat(value);
-          cleanRange = `${min}-${max}`;
+      // Skip header lines and non-test content
+      if (line.match(/^(TEST NAME|RESULT|UNITS|BIOLOGICAL REFERENCE|Page \d+|Print Date|Client Req|Phone|Age|Gender|Patient Name|Received On|Registered On|Collected On|Sample Type|LAB|Ref\.Dr|Processing Location|Report Status|Email|\*\*End Of Report\*\*|Dr\.|Note|Reference|Interpretation)/i)) {
+        continue;
+      }
+      
+      for (let i = 0; i < testPatterns.length; i++) {
+        const match = line.match(testPatterns[i]);
+        if (match) {
+          let testName: string;
+          let value: string;
+          let unit: string;
+          let range: string;
+
+          if (i === 0) {
+            // Method pattern
+            testName = match[1].trim();
+            value = match[3];
+            unit = match[4].trim();
+            range = match[5].trim();
+          } else if (i === 3) {
+            // Percentage pattern
+            testName = match[1].trim();
+            value = match[2];
+            unit = '%';
+            range = match[3].trim();
+          } else {
+            // Standard patterns
+            testName = match[1].trim();
+            value = match[2];
+            unit = match[3]?.trim() || '';
+            range = match[4]?.trim() || '';
+          }
+
+          // Clean and validate data
+          testName = testName.replace(/\s*Method\s*:.*$/i, '').trim();
+          unit = unit.replace(/\s+/g, '').replace(/d\s*L/gi, 'dL').replace(/m\s*L/gi, 'mL');
+          range = range.replace(/Normal\s*:\s*/i, '').replace(/Desirable\s*:\s*/i, '').trim();
           
-          if (numValue < min) status = 'Low';
-          else if (numValue > max) status = 'High';
+          if (testName && value && !isNaN(parseFloat(value)) && testName.length > 2) {
+            const numericValue = parseFloat(value);
+            const status = determineTestStatusFrontend(numericValue, range);
+            
+            tests.push({
+              name: testName,
+              value: value,
+              unit: unit,
+              referenceRange: range,
+              status: status
+            });
+            break;
+          }
         }
-        
-        tests.push({
-          name: testName.trim(),
-          value: value,
-          unit: cleanUnit,
-          referenceRange: cleanRange,
-          status: status.toLowerCase(),
-          method: method.trim()
-        });
       }
     }
     
     return tests;
+  };
+
+  // Frontend status determination function
+  const determineTestStatusFrontend = (value: number, range: string): string => {
+    if (!range || range.trim() === '') return 'normal';
+    
+    const rangePatterns = [
+      /(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/,
+      /<\s*(\d+\.?\d*)/,
+      />(?:=)?\s*(\d+\.?\d*)/,
+    ];
+    
+    for (const pattern of rangePatterns) {
+      const match = range.match(pattern);
+      if (match) {
+        if (pattern.source.includes('-') && match[2]) {
+          const lower = parseFloat(match[1]);
+          const upper = parseFloat(match[2]);
+          if (!isNaN(lower) && !isNaN(upper)) {
+            if (value < lower) return 'low';
+            if (value > upper) return 'high';
+            return 'normal';
+          }
+        } else if (pattern.source.includes('<')) {
+          const threshold = parseFloat(match[1]);
+          if (!isNaN(threshold)) {
+            return value <= threshold ? 'normal' : 'high';
+          }
+        } else if (pattern.source.includes('>')) {
+          const threshold = parseFloat(match[1]);
+          if (!isNaN(threshold)) {
+            return value >= threshold ? 'normal' : 'low';
+          }
+        }
+      }
+    }
+    
+    return 'normal';
   };
 
   // Handle null parsedData case

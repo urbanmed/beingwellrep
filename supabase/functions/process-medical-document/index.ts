@@ -152,41 +152,42 @@ const enhancedMedicalExtractor = (extractedText: string) => {
       }
     }
     
-    // Test result extraction - ENHANCED PATTERNS for this specific lab report format
-    console.log('🔍 Analyzing line for test extraction:', line.substring(0, 100));
+    // Test result extraction - ENHANCED PATTERNS for flexible extraction
+    console.log('🔍 Analyzing line for test extraction:', line.substring(0, 120));
     
-    // NEW ENHANCED PATTERNS specifically for "Uric Acid Method : Uricase PAP : 5.71 mg/d L 3.5-7.2" format
+    // Enhanced cascading patterns for better extraction
+    const testPatterns = [
+      // Pattern 1: Method with complex description - handles "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
+      /^(.+?)\s+Method\s*:\s*(.+?)\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±]+).*$/i,
+      
+      // Pattern 2: Direct test result - handles "TSH : 4.08 μIU/m L Children: Birth-4 d:1.0-39.0"
+      /^(.+?)\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±\w]+).*$/i,
+      
+      // Pattern 3: Test name with units separated - handles "Hemoglobin 15.8 g/d L 13.0-17.0"
+      /^([a-zA-Z\s\/\-]+?)\s+([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±]+).*$/i,
+      
+      // Pattern 4: Percentage values - handles "Neutrophils : 47 % 40-80"
+      /^(.+?)\s*:\s*([\d.,]+)\s*%\s*([\d\s\-<>≤≥.,\/():=±]+).*$/i
+    ];
     
-    // Primary Pattern: "Test Method : Method Name : Value Unit Range"
-    const primaryMethodPattern = line.match(/^([A-Za-z\s\(\)\-\.]+?)\s+Method\s*:\s*([^:]+?)\s*:\s*([\d\.]+)\s*(mg\/d\s*L|g\/d\s*L|μIU\/m\s*L|f\s*L|pg|%|Cells\/cmm|millions\/cumm|lakhs\/cmm|Units\/L|IU\/L)\s*([\d\.\-\s]+)$/i);
+    let testMatch = null;
+    let matchedPatternIndex = -1;
     
-    // Secondary Pattern: Handle ranges with text before them like "Children: Birth-4 d:1.0-39.0"
-    const rangeWithTextPattern = line.match(/^([A-Za-z\s\(\)\-\.]+?)\s+Method\s*:\s*([^:]+?)\s*:\s*([\d\.]+)\s*(mg\/d\s*L|g\/d\s*L|μIU\/m\s*L|μg\/d\s*L|IU\/L|Units\/L|%|f\s*L|pg)\s*(?:Children|Adults|Normal|Desirable|Optimal).*?([\d\.\-\s]+)$/i);
-    
-    // Pattern for "Normal : X - Y" format
-    const normalRangePattern = line.match(/^([A-Za-z\s\(\)\-\.]+?)\s+Method\s*:\s*([^:]+?)\s*:\s*([\d\.]+)\s*(mg\/d\s*L|g\/d\s*L|μIU\/m\s*L|μg\/d\s*L|IU\/L|Units\/L|%|f\s*L|pg)\s*Normal\s*:\s*([\d\.\-\s]+)$/i);
-    
-    // Simple colon pattern: "Test Name : Value Unit Range"
-    const simpleColonPattern = line.match(/^([A-Za-z\s\(\)\-\.]+?)\s*:\s*([\d\.]+)\s*(mg\/d\s*L|g\/d\s*L|μIU\/m\s*L|μg\/d\s*L|IU\/L|Units\/L|%|f\s*L|pg|cells\/cmm|millions\/cumm|lakhs\/cmm)\s*([\d\.\-\s]+)$/i);
-    
-    // Fallback pattern for any line with test-like structure
-    const fallbackPattern = line.match(/^([A-Za-z\s\(\)\-\.]{3,40}?)\s*:?\s*([\d\.]+)\s*([a-zA-Z\/\s%μ]{1,15})\s*([\d\.\-\s]{3,15})$/);
-    
-    let testMatch = primaryMethodPattern || rangeWithTextPattern || normalRangePattern || simpleColonPattern || fallbackPattern;
-    
-    if (testMatch) {
-      console.log('🎯 MATCH FOUND! Pattern details:', {
-        pattern: testMatch === primaryMethodPattern ? 'primaryMethodPattern' : 
-                testMatch === rangeWithTextPattern ? 'rangeWithTextPattern' :
-                testMatch === normalRangePattern ? 'normalRangePattern' :
-                testMatch === simpleColonPattern ? 'simpleColonPattern' :
-                testMatch === fallbackPattern ? 'fallbackPattern' : 'unknown',
-        fullLine: line,
-        groups: testMatch
-      });
+    // Try each pattern in order
+    for (let i = 0; i < testPatterns.length; i++) {
+      const match = line.match(testPatterns[i]);
+      if (match) {
+        testMatch = match;
+        matchedPatternIndex = i;
+        console.log(`🎯 MATCH FOUND! Pattern ${i + 1}:`, {
+          fullLine: line,
+          groups: match
+        });
+        break;
+      }
     }
     
-    // More comprehensive filtering - exclude obvious non-test lines
+    // Enhanced filtering - exclude obvious non-test lines
     if (testMatch && 
         !line.includes('Page') && 
         !line.includes('Print Date') &&
@@ -198,92 +199,57 @@ const enhancedMedicalExtractor = (extractedText: string) => {
         !line.includes('Email') &&
         !line.includes('Address') &&
         !line.includes('Rd #') &&
+        !line.match(/^(TEST NAME|RESULT|UNITS|BIOLOGICAL REFERENCE|\*\*End Of Report\*\*|Dr\.|Note|Reference|Interpretation)/i) &&
         !line.match(/^\d+$/) && // Skip pure numbers
         !line.match(/^[A-Z\s]+$/) && // Skip header lines
-        !line.includes('**End Of Report**') &&
         line.length > 10 // Must have some content
        ) {
        
-      console.log('✅ PROCESSING MATCHED TEST:', testMatch[1]?.trim(), '=', testMatch[2]);
+      console.log('✅ PROCESSING MATCHED TEST with Pattern', matchedPatternIndex + 1);
       
       let testName, method, value, unit, range;
       
       // Extract values based on which pattern matched
-      if (testMatch === primaryMethodPattern || testMatch === rangeWithTextPattern || testMatch === normalRangePattern) {
-        // Patterns with method: [testName, method, value, unit, range]
+      if (matchedPatternIndex === 0) {
+        // Method pattern: [full, testName, method, value, unit, range]
         [, testName, method, value, unit, range] = testMatch;
-        console.log('📊 Method-based pattern extracted:', { testName, method, value, unit, range });
+      } else if (matchedPatternIndex === 3) {
+        // Percentage pattern: [full, testName, value, range] with unit = '%'
+        [, testName, value, , range] = testMatch;
+        unit = '%';
       } else {
-        // Simple patterns: [testName, value, unit, range] 
+        // Other patterns: [full, testName, value, unit, range] 
         [, testName, value, unit, range] = testMatch;
-        console.log('📊 Simple pattern extracted:', { testName, value, unit, range });
       }
       
-      // Clean up test name
-      testName = testName.trim().replace(/\s+Method.*$/i, '');
+      // Clean and normalize the data
+      testName = testName.trim().replace(/\s*Method\s*:.*$/i, '');
+      unit = unit?.trim().replace(/\s+/g, '').replace(/d\s*L/gi, 'dL').replace(/m\s*L/gi, 'mL') || '';
+      range = range?.trim().replace(/Normal\s*:\s*/i, '').replace(/Desirable\s*:\s*/i, '') || '';
       
-      // Handle range extraction for cases where it might not be captured properly
-      if (!range || range.length < 3) {
-        // Look for range pattern anywhere in the line
-        const rangeSearch = line.match(/([\d\.]+)\s*[-–]\s*([\d\.]+)/g);
-        if (rangeSearch && rangeSearch.length > 0) {
-          range = rangeSearch[rangeSearch.length - 1]; // Take the last range found
-          console.log('🔍 Found range via fallback search:', range);
-        }
-      }
+      console.log('📊 Extracted data:', { testName, method, value, unit, range });
       
-      if (testName && value && testName.length > 1 && testName.length < 80) {
+      // Validate extracted data
+      if (testName && value && !isNaN(parseFloat(value)) && testName.length > 2 && testName.length < 80) {
         const numericValue = parseFloat(value.replace(/[,<>]/g, ''));
-        let status = 'normal';
-        
-        // Enhanced status determination
-        if (range && !isNaN(numericValue)) {
-          console.log('🧮 Calculating status for:', numericValue, 'vs range:', range);
-          
-          // Handle different range formats
-          const directRangeMatch = range.match(/([\d\.]+)\s*[-–]\s*([\d\.]+)/);
-          
-          if (directRangeMatch) {
-            const lowVal = parseFloat(directRangeMatch[1]);
-            const highVal = parseFloat(directRangeMatch[2]);
-            
-            console.log('📈 Range values:', { low: lowVal, high: highVal, value: numericValue });
-            
-            if (numericValue > highVal * 2) {
-              status = 'critical';
-            } else if (numericValue > highVal) {
-              status = 'high';
-            } else if (numericValue < lowVal * 0.5) {
-              status = 'critical';
-            } else if (numericValue < lowVal) {
-              status = 'low';
-            } else {
-              status = 'normal';
-            }
-            
-            console.log('✅ Status determined:', status);
-          }
-        }
-        
-        // Fix unit formatting - handle "mg/d L" -> "mg/dL"
-        unit = unit?.trim().replace(/mg\/d\s*L/gi, 'mg/dL').replace(/g\/d\s*L/gi, 'g/dL').replace(/μIU\/m\s*L/gi, 'μIU/mL').replace(/\s+/g, ' ') || '';
+        const status = determineTestStatusEnhanced(numericValue, range);
         
         const extractedTest = {
-          name: testName.trim(),
+          name: testName,
           value: value.trim(),
           unit: unit,
-          referenceRange: range?.trim() || '',
+          referenceRange: range,
           status,
           section: currentSection,
-          notes: method ? `Method: ${method}` : ''
+          notes: method ? `Method: ${method.trim()}` : ''
         };
         
         tests.push(extractedTest);
-        
         console.log('🧪 SUCCESSFULLY ADDED TEST:', extractedTest);
       } else {
-        console.log('❌ Test rejected - invalid name/value:', { testName, value, nameLength: testName?.length });
+        console.log('❌ Test rejected - invalid data:', { testName, value, nameLength: testName?.length });
       }
+    }
     }
     
     // Section detection - improved
@@ -291,6 +257,56 @@ const enhancedMedicalExtractor = (extractedText: string) => {
       currentSection = line;
       console.log('📝 Found section:', currentSection);
     }
+  }
+
+// Enhanced status determination function for backend
+function determineTestStatusEnhanced(value: number, range: string): string {
+  if (!range || range.trim() === '') return 'normal';
+  
+  // Handle various range formats with improved parsing
+  const rangePatterns = [
+    // Standard range: "3.5-7.2", "13.0-17.0"
+    /(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/,
+    // Less than: "< 200", "< 100"
+    /<\s*(\d+\.?\d*)/,
+    // Greater than: "> 60", ">= 240"  
+    />(?:=)?\s*(\d+\.?\d*)/,
+    // Range with descriptors: "70 - 100", "Normal : 70 - 100"
+    /(\d+\.?\d*)\s*-?\s*(\d+\.?\d*)/,
+    // Age-specific ranges: "21-54 y:0.4-4.2"
+    /(\d+\.?\d*)-(\d+\.?\d*)/
+  ];
+  
+  for (const pattern of rangePatterns) {
+    const match = range.match(pattern);
+    if (match) {
+      if (pattern.source.includes('-') && match[2]) {
+        // Range format
+        const lower = parseFloat(match[1]);
+        const upper = parseFloat(match[2]);
+        if (!isNaN(lower) && !isNaN(upper)) {
+          if (value < lower) return 'low';
+          if (value > upper) return 'high';
+          return 'normal';
+        }
+      } else if (pattern.source.includes('<')) {
+        // Less than format
+        const threshold = parseFloat(match[1]);
+        if (!isNaN(threshold)) {
+          return value <= threshold ? 'normal' : 'high';
+        }
+      } else if (pattern.source.includes('>')) {
+        // Greater than format  
+        const threshold = parseFloat(match[1]);
+        if (!isNaN(threshold)) {
+          return value >= threshold ? 'normal' : 'low';
+        }
+      }
+    }
+  }
+  
+  return 'normal';
+}
   }
   
   return {
