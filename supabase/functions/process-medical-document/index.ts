@@ -365,7 +365,6 @@ function determineTestStatusEnhanced(value: number, range: string): string {
   
   return 'normal';
 }
-  }
   
   return {
     reportType: "lab",
