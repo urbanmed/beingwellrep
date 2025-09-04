@@ -50,25 +50,32 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
   const isMobile = useIsMobile();
   const [openSections, setOpenSections] = useState<Record<number, boolean>>({});
 
-  // IMMEDIATE FIX: Enhanced helper function to parse test results from continuous OCR text
+  // CRITICAL FIX: Enhanced helper function to parse test results from continuous OCR text
   const parseTestsFromRawText = (text: string) => {
     if (!text) return [];
     
     console.log('🔍 Frontend parsing text length:', text.length);
     
-    // IMMEDIATE FIX: Intelligent text preprocessing for continuous OCR format
+    // CRITICAL FIX: Synchronized intelligent text preprocessing (matching backend logic)
+    console.log('🛠️ FRONTEND: Applying intelligent text preprocessing...');
+    
     let processedText = text
-      // Add line breaks before test patterns
-      .replace(/([a-zA-Z\s]+)\s+(Method\s*:)/gi, '\n$1 $2')
-      .replace(/([a-zA-Z\s]+)\s*:\s*([\d.,]+)/g, '\n$1 : $2')
-      // Add line breaks before common lab test names
-      .replace(/(Uric\s+Acid|Glucose|Hemoglobin|Cholesterol|TSH|Creatinine|Albumin|Bilirubin|Protein|Sodium|Potassium|Chloride|Neutrophils|Lymphocytes|Monocytes|Eosinophils|Basophils)/gi, '\n$1')
+      // Add breaks before method patterns (matching backend)
+      .replace(/([a-zA-Z\s]+)\s+(Method\s*:\s*[^:]+?\s*:)/gi, '\n$1 $2')
+      // Add breaks before test name patterns with colons
+      .replace(/\s+(Uric\s+Acid|Fasting\s+Plasma\s+Glucose|Hemoglobin|Total\s+Cholesterol|HDL\s+Cholesterol|LDL\s+Cholesterol|TSH|Creatinine|Blood\s+Urea\s+Nitrogen|Albumin|Total\s+Bilirubin|Total\s+Protein|Sodium|Potassium|Chloride|RBC|WBC|Neutrophils|Lymphocytes|Monocytes|Eosinophils|Basophils)\s*:/gi, '\n$1:')
+      // Add breaks before test results without colons  
+      .replace(/\s+(Uric\s+Acid|Glucose|Hemoglobin|Cholesterol|TSH|Creatinine|Albumin|Bilirubin|Protein|Sodium|Potassium|Chloride|Neutrophils|Lymphocytes|Monocytes|Eosinophils|Basophils)\s+([\d.,]+)\s+([a-zA-Z\/\sd%μλ]+)/gi, '\n$1 $2 $3')
       // Clean up multiple newlines
       .replace(/\n+/g, '\n')
       .trim();
     
+    console.log('🔍 Frontend preprocessed sample:', processedText.substring(0, 300));
+    
     const lines = processedText.split('\n').map(line => line.trim()).filter(Boolean);
     const tests: any[] = [];
+    
+    console.log(`📝 Frontend processed ${lines.length} lines from continuous text`);
     
     // IMMEDIATE FIX: Enhanced cascading patterns with continuous text handling
     const testPatterns = [
@@ -180,6 +187,65 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
               });
               console.log('✅ Frontend parsed test:', { testName, value, unit, range, status });
             }
+          }
+        }
+      }
+    }
+    
+    // CRITICAL FIX: Additional continuous pattern matching for missed tests (matching backend)
+    console.log('🔧 FRONTEND: Running continuous pattern extraction as fallback...');
+    
+    const globalTestPatterns = [
+      // Global pattern for method-based tests
+      /([A-Za-z\s\-\/]{3,40})\s+Method\s*:\s*([^:]+?)\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±Children:Birth\w\-\.]+)/gi,
+      // Global pattern for colon-separated tests  
+      /([A-Za-z\s\-\/]{3,40})\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±Children:Birth\w\-\.]+)/gi,
+      // Global pattern for space-separated tests
+      /\b([A-Za-z\s\-\/]{3,40})\s+([\d.,]+)\s+([a-zA-Z\/\sd%μλ]+)\s+([\d\s\-<>≤≥.,\/():=±]+)/gi
+    ];
+    
+    for (const globalPattern of globalTestPatterns) {
+      const globalMatches = Array.from(processedText.matchAll(globalPattern));
+      
+      for (const match of globalMatches) {
+        let testName = match[1]?.trim();
+        let value = match[2]?.trim();
+        let unit = match[3]?.trim() || '';
+        let range = match[4]?.trim() || '';
+        
+        // Clean and validate
+        if (!testName || !value) continue;
+        
+        testName = testName
+          .replace(/\s*Method\s*:.*$/i, '')
+          .replace(/^(Mr\.|Mrs\.|Ms\.)\s*/i, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        // Skip if invalid test name or already exists
+        if (testName.length < 3 || testName.match(/^(Page|Print|Date|Client|Phone|Age|Gender|Patient|Received|Registered|Processing|Report|End|Email|Note|Reference|Interpretation)$/i)) {
+          continue;
+        }
+        
+        // Check for duplicates  
+        const isDuplicate = tests.some(existing => 
+          existing.testName.toLowerCase() === testName.toLowerCase()
+        );
+        
+        if (!isDuplicate) {
+          const numericValue = parseFloat(value.replace(/[,<>]/g, ''));
+          if (!isNaN(numericValue)) {
+            const status = determineTestStatusFrontend(numericValue, range);
+            
+            tests.push({
+              testName: testName,
+              value: value,
+              unit: unit.replace(/d\s*L/gi, 'dL').replace(/m\s*L/gi, 'mL'),
+              range: range.replace(/Normal\s*:\s*/i, '').replace(/Desirable\s*:\s*/i, ''),
+              status
+            });
+            
+            console.log('🎯 FRONTEND GLOBAL PATTERN CAUGHT MISSED TEST:', testName, value, unit);
           }
         }
       }

@@ -366,6 +366,71 @@ const enhancedMedicalExtractor = (extractedText: string) => {
     return 'normal';
   }
   
+  // CRITICAL FIX: Additional continuous pattern matching for missed tests
+  console.log('🔧 Running continuous pattern extraction as fallback...');
+  
+  // Apply global patterns to the entire preprocessed text to catch any missed tests
+  const globalTestPatterns = [
+    // Global pattern for method-based tests
+    /([A-Za-z\s\-\/]{3,40})\s+Method\s*:\s*([^:]+?)\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±Children:Birth\w\-\.]+)/gi,
+    // Global pattern for colon-separated tests  
+    /([A-Za-z\s\-\/]{3,40})\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±Children:Birth\w\-\.]+)/gi,
+    // Global pattern for space-separated tests
+    /\b([A-Za-z\s\-\/]{3,40})\s+([\d.,]+)\s+([a-zA-Z\/\sd%μλ]+)\s+([\d\s\-<>≤≥.,\/():=±]+)/gi
+  ];
+  
+  for (const globalPattern of globalTestPatterns) {
+    const globalMatches = Array.from(preprocessedText.matchAll(globalPattern));
+    
+    for (const match of globalMatches) {
+      let testName = match[1]?.trim();
+      let value = match[2]?.trim();
+      let unit = match[3]?.trim() || '';
+      let range = match[4]?.trim() || '';
+      
+      // Clean and validate
+      if (!testName || !value) continue;
+      
+      testName = testName
+        .replace(/\s*Method\s*:.*$/i, '')
+        .replace(/^(Mr\.|Mrs\.|Ms\.)\s*/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      // Skip if invalid test name or already exists
+      if (testName.length < 3 || testName.match(/^(Page|Print|Date|Client|Phone|Age|Gender|Patient|Received|Registered|Processing|Report|End|Email|Note|Reference|Interpretation)$/i)) {
+        continue;
+      }
+      
+      // Check for duplicates  
+      const isDuplicate = tests.some(existing => 
+        existing.name.toLowerCase() === testName.toLowerCase()
+      );
+      
+      if (!isDuplicate) {
+        const numericValue = parseFloat(value.replace(/[,<>]/g, ''));
+        if (!isNaN(numericValue)) {
+          const status = determineTestStatusEnhanced(numericValue, range);
+          
+          tests.push({
+            name: testName,
+            value: value,
+            unit: unit.replace(/d\s*L/gi, 'dL').replace(/m\s*L/gi, 'mL'),
+            referenceRange: range.replace(/Normal\s*:\s*/i, '').replace(/Desirable\s*:\s*/i, ''),
+            status,
+            section: currentSection || 'General',
+            notes: ''
+          });
+          
+          console.log('🎯 GLOBAL PATTERN CAUGHT MISSED TEST:', testName, value, unit);
+        }
+      }
+    }
+  }
+  
+  console.log(`🏁 FINAL EXTRACTION RESULTS: ${tests.length} tests extracted total`);
+  console.log('📊 Test summary:', tests.map(t => `${t.name}: ${t.value} ${t.unit}`));
+  
   return {
     reportType: "lab",
     patient: patientInfo,
@@ -389,7 +454,7 @@ const enhancedMedicalExtractor = (extractedText: string) => {
 | Department | Laboratory Services |`
       }
     },
-    confidence: 0.85,
+    confidence: tests.length > 0 ? 0.85 : 0.3,
     suggestedName: `Lab Results - ${patientInfo.name || 'Unknown'} - ${new Date().toLocaleDateString()}`
   };
 };
