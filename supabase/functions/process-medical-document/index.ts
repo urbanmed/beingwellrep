@@ -70,10 +70,29 @@ const enhancedMedicalExtractor = (extractedText: string) => {
   console.log('🔧 Enhanced medical extractor processing text length:', extractedText.length);
   console.log('📄 Sample text (first 500 chars):', extractedText.substring(0, 500));
   
+  // IMMEDIATE FIX: Intelligent text preprocessing for continuous OCR format
+  let processedText = extractedText;
+  
+  // Step 1: Handle continuous text by adding line breaks before key patterns
+  processedText = processedText
+    // Add line breaks before test patterns
+    .replace(/([a-zA-Z\s]+)\s+(Method\s*:)/gi, '\n$1 $2')
+    .replace(/([a-zA-Z\s]+)\s*:\s*([\d.,]+)/g, '\n$1 : $2')
+    // Add line breaks before common lab test names
+    .replace(/(Uric\s+Acid|Glucose|Hemoglobin|Cholesterol|TSH|Creatinine|Albumin|Bilirubin|Protein|Sodium|Potassium|Chloride|Neutrophils|Lymphocytes|Monocytes|Eosinophils|Basophils)/gi, '\n$1')
+    // Add line breaks before patient info
+    .replace(/(Mr\.|Mrs\.|Ms\.|Patient\s+Name)/gi, '\n$1')
+    .replace(/(\d+\s*Y\(s\)\s*\/\s*(?:Male|Female))/gi, '\n$1')
+    // Clean up multiple newlines
+    .replace(/\n+/g, '\n')
+    .trim();
+  
+  console.log('🔄 Processed text sample (first 500 chars):', processedText.substring(0, 500));
+  
   // Enhanced medical text parser for lab reports
-  const lines = extractedText.split('\n').map(line => line.trim()).filter(Boolean);
-  console.log('📝 Processing', lines.length, 'non-empty lines');
-  console.log('📄 Sample lines:', lines.slice(0, 10));
+  const lines = processedText.split('\n').map(line => line.trim()).filter(Boolean);
+  console.log('📝 Processing', lines.length, 'non-empty lines after preprocessing');
+  console.log('📄 Sample processed lines:', lines.slice(0, 10));
   
   // Extract patient information
   const patientInfo = {
@@ -155,101 +174,140 @@ const enhancedMedicalExtractor = (extractedText: string) => {
     // Test result extraction - ENHANCED PATTERNS for flexible extraction
     console.log('🔍 Analyzing line for test extraction:', line.substring(0, 120));
     
-    // Enhanced cascading patterns for better extraction
+    // IMMEDIATE FIX: Enhanced cascading patterns with continuous text handling
     const testPatterns = [
-      // Pattern 1: Method with complex description - handles "Uric Acid Method : Uricase PAP(Phenyl Amino Phenazone) : 5.71 mg/d L 3.5-7.2"
-      /^(.+?)\s+Method\s*:\s*(.+?)\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±]+).*$/i,
+      // Pattern 1: Method with complex description - handles continuous format
+      /(?:^|\s)([A-Za-z\s\-\/]{3,40})\s+Method\s*:\s*([^:]+?)\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±Children:Birth\w\-\.]+)/gi,
       
-      // Pattern 2: Direct test result - handles "TSH : 4.08 μIU/m L Children: Birth-4 d:1.0-39.0"
-      /^(.+?)\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±\w]+).*$/i,
+      // Pattern 2: Direct test result with embedded text - handles "TSH : 4.08 μIU/m L Children: Birth-4 d:1.0-39.0"
+      /(?:^|\s)([A-Za-z\s\-\/]{3,40})\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±Children:Birth\w\-\.]+)/gi,
       
-      // Pattern 3: Test name with units separated - handles "Hemoglobin 15.8 g/d L 13.0-17.0"
-      /^([a-zA-Z\s\/\-]+?)\s+([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±]+).*$/i,
+      // Pattern 3: Test name with units separated - handles embedded interpretation
+      /(?:^|\s)([A-Za-z\s\-\/]{3,40})\s+([\d.,]+)\s+([a-zA-Z\/\sd%μλ]+)\s+([\d\s\-<>≤≥.,\/():=±]+)/gi,
       
-      // Pattern 4: Percentage values - handles "Neutrophils : 47 % 40-80"
-      /^(.+?)\s*:\s*([\d.,]+)\s*%\s*([\d\s\-<>≤≥.,\/():=±]+).*$/i
+      // Pattern 4: Percentage values with interpretation - handles "Neutrophils : 47 % 40-80 Normal"
+      /(?:^|\s)([A-Za-z\s\-\/]{3,40})\s*:\s*([\d.,]+)\s*%\s*([\d\s\-<>≤≥.,\/():=±Normal]+)/gi,
+      
+      // Pattern 5: Simple format without colons - handles "Hemoglobin 15.8 g/dL 13.0-17.0"
+      /(?:^|\s)(Uric\s+Acid|Glucose|Hemoglobin|Cholesterol|TSH|Creatinine|Albumin|Bilirubin|Protein|Sodium|Potassium|Chloride|Neutrophils|Lymphocytes|Monocytes|Eosinophils|Basophils)\s+([\d.,]+)\s+([a-zA-Z\/\sd%μλ]+)\s+([\d\s\-<>≤≥.,\/():=±]+)/gi
     ];
     
-    let testMatch = null;
-    let matchedPatternIndex = -1;
+    // IMMEDIATE FIX: Process entire text with global patterns instead of line-by-line
+    let allMatches: any[] = [];
     
-    // Try each pattern in order
+    // Try each pattern against the entire line text
     for (let i = 0; i < testPatterns.length; i++) {
-      const match = line.match(testPatterns[i]);
-      if (match) {
-        testMatch = match;
-        matchedPatternIndex = i;
-        console.log(`🎯 MATCH FOUND! Pattern ${i + 1}:`, {
-          fullLine: line,
-          groups: match
+      const matches = Array.from(line.matchAll(testPatterns[i]));
+      if (matches.length > 0) {
+        matches.forEach(match => {
+          allMatches.push({
+            match,
+            patternIndex: i,
+            line: line
+          });
+          console.log(`🎯 MATCH FOUND! Pattern ${i + 1}:`, {
+            testName: match[1],
+            value: match[2] || match[3],
+            fullMatch: match[0]
+          });
         });
-        break;
       }
     }
     
-    // Enhanced filtering - exclude obvious non-test lines
-    if (testMatch && 
-        !line.includes('Page') && 
-        !line.includes('Print Date') &&
-        !line.includes('Received On') &&
-        !line.includes('Registered On') &&
-        !line.includes('Client Req') &&
-        !line.includes('Phone') &&
-        !line.includes('Processing Location') &&
-        !line.includes('Email') &&
-        !line.includes('Address') &&
-        !line.includes('Rd #') &&
-        !line.match(/^(TEST NAME|RESULT|UNITS|BIOLOGICAL REFERENCE|\*\*End Of Report\*\*|Dr\.|Note|Reference|Interpretation)/i) &&
-        !line.match(/^\d+$/) && // Skip pure numbers
-        !line.match(/^[A-Z\s]+$/) && // Skip header lines
-        line.length > 10 // Must have some content
-       ) {
+    // Process all matches found in this line
+    for (const matchData of allMatches) {
+      const { match: testMatch, patternIndex: matchedPatternIndex } = matchData;
+    
+      // IMMEDIATE FIX: More lenient filtering for continuous text
+      const testName = testMatch[1]?.trim();
+      const testValue = testMatch[2] || testMatch[3];
+      
+      // Enhanced validation with better filtering
+      const isValidTest = testName && 
+        testValue && 
+        !isNaN(parseFloat(testValue)) &&
+        testName.length > 2 && 
+        testName.length < 50 &&
+        // More specific exclusions
+        !testName.match(/^(Page|Print|Date|Received|Registered|Client|Phone|Processing|Email|Address|TEST NAME|RESULT|UNITS|BIOLOGICAL|End Of Report|Note|Reference|Interpretation|Normal|Abnormal|High|Low)$/i) &&
+        !testName.match(/^\d+$/) &&
+        // Include common medical test names
+        (testName.match(/^(Uric|Glucose|Hemoglobin|Cholesterol|TSH|Creatinine|Albumin|Bilirubin|Protein|Sodium|Potassium|Chloride|Neutrophil|Lymphocyte|Monocyte|Eosinophil|Basophil)/i) ||
+         testName.match(/^[A-Za-z\s\-]{3,40}$/));
+      
+      if (isValidTest) {
        
       console.log('✅ PROCESSING MATCHED TEST with Pattern', matchedPatternIndex + 1);
       
-      let testName, method, value, unit, range;
+        let testName, method, value, unit, range;
+        
+        // IMMEDIATE FIX: Enhanced value extraction based on pattern
+        if (matchedPatternIndex === 0) {
+          // Method pattern: [full, testName, method, value, unit, range]
+          [, testName, method, value, unit, range] = testMatch;
+        } else if (matchedPatternIndex === 3) {
+          // Percentage pattern: [full, testName, value, range] with unit = '%'
+          [, testName, value, , range] = testMatch;
+          unit = '%';
+        } else if (matchedPatternIndex === 4) {
+          // Simple format pattern: [full, testName, value, unit, range]
+          [, testName, value, unit, range] = testMatch;
+        } else {
+          // Other patterns: [full, testName, value, unit, range] 
+          [, testName, value, unit, range] = testMatch;
+        }
       
-      // Extract values based on which pattern matched
-      if (matchedPatternIndex === 0) {
-        // Method pattern: [full, testName, method, value, unit, range]
-        [, testName, method, value, unit, range] = testMatch;
-      } else if (matchedPatternIndex === 3) {
-        // Percentage pattern: [full, testName, value, range] with unit = '%'
-        [, testName, value, , range] = testMatch;
-        unit = '%';
-      } else {
-        // Other patterns: [full, testName, value, unit, range] 
-        [, testName, value, unit, range] = testMatch;
-      }
-      
-      // Clean and normalize the data
-      testName = testName.trim().replace(/\s*Method\s*:.*$/i, '');
-      unit = unit?.trim().replace(/\s+/g, '').replace(/d\s*L/gi, 'dL').replace(/m\s*L/gi, 'mL') || '';
-      range = range?.trim().replace(/Normal\s*:\s*/i, '').replace(/Desirable\s*:\s*/i, '') || '';
-      
-      console.log('📊 Extracted data:', { testName, method, value, unit, range });
-      
-      // Validate extracted data
-      if (testName && value && !isNaN(parseFloat(value)) && testName.length > 2 && testName.length < 80) {
+        // IMMEDIATE FIX: Enhanced data cleaning and normalization
+        testName = testName.trim()
+          .replace(/\s*Method\s*:.*$/i, '')
+          .replace(/^(Mr\.|Mrs\.|Ms\.)\s*/i, '')
+          .replace(/\s+/g, ' ');
+        
+        unit = unit?.trim()
+          .replace(/\s+/g, '')
+          .replace(/d\s*L/gi, 'dL')
+          .replace(/m\s*L/gi, 'mL')
+          .replace(/μ/g, 'u') || '';
+        
+        range = range?.trim()
+          .replace(/Normal\s*:\s*/i, '')
+          .replace(/Desirable\s*:\s*/i, '')
+          .replace(/Children:\s*/i, '')
+          .replace(/Birth-\d+\s*d:\s*/i, '') || '';
+        
+        console.log('📊 Extracted and cleaned data:', { testName, method, value, unit, range });
+        
+        // More robust validation
         const numericValue = parseFloat(value.replace(/[,<>]/g, ''));
-        const status = determineTestStatusEnhanced(numericValue, range);
-        
-        const extractedTest = {
-          name: testName,
-          value: value.trim(),
-          unit: unit,
-          referenceRange: range,
-          status,
-          section: currentSection,
-          notes: method ? `Method: ${method.trim()}` : ''
-        };
-        
-        tests.push(extractedTest);
-        console.log('🧪 SUCCESSFULLY ADDED TEST:', extractedTest);
-      } else {
-        console.log('❌ Test rejected - invalid data:', { testName, value, nameLength: testName?.length });
+        if (!isNaN(numericValue)) {
+          const status = determineTestStatusEnhanced(numericValue, range);
+          
+          const extractedTest = {
+            name: testName,
+            value: value.trim(),
+            unit: unit,
+            referenceRange: range,
+            status,
+            section: currentSection,
+            notes: method ? `Method: ${method.trim()}` : ''
+          };
+          
+          // Check for duplicates before adding
+          const isDuplicate = tests.some(existing => 
+            existing.name.toLowerCase() === testName.toLowerCase() &&
+            existing.value === value.trim()
+          );
+          
+          if (!isDuplicate) {
+            tests.push(extractedTest);
+            console.log('🧪 SUCCESSFULLY ADDED TEST:', extractedTest);
+          } else {
+            console.log('⚠️ Duplicate test skipped:', testName);
+          }
+        } else {
+          console.log('❌ Test rejected - invalid numeric value:', { testName, value });
+        }
       }
-    }
     }
     
     // Section detection - improved

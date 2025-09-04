@@ -50,34 +50,56 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
   const isMobile = useIsMobile();
   const [openSections, setOpenSections] = useState<Record<number, boolean>>({});
 
-  // Enhanced helper function to parse test results from raw text as fallback
+  // IMMEDIATE FIX: Enhanced helper function to parse test results from continuous OCR text
   const parseTestsFromRawText = (text: string) => {
     if (!text) return [];
     
-    const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+    console.log('🔍 Frontend parsing text length:', text.length);
+    
+    // IMMEDIATE FIX: Intelligent text preprocessing for continuous OCR format
+    let processedText = text
+      // Add line breaks before test patterns
+      .replace(/([a-zA-Z\s]+)\s+(Method\s*:)/gi, '\n$1 $2')
+      .replace(/([a-zA-Z\s]+)\s*:\s*([\d.,]+)/g, '\n$1 : $2')
+      // Add line breaks before common lab test names
+      .replace(/(Uric\s+Acid|Glucose|Hemoglobin|Cholesterol|TSH|Creatinine|Albumin|Bilirubin|Protein|Sodium|Potassium|Chloride|Neutrophils|Lymphocytes|Monocytes|Eosinophils|Basophils)/gi, '\n$1')
+      // Clean up multiple newlines
+      .replace(/\n+/g, '\n')
+      .trim();
+    
+    const lines = processedText.split('\n').map(line => line.trim()).filter(Boolean);
     const tests: any[] = [];
     
-    // Enhanced cascading patterns matching backend logic
+    // IMMEDIATE FIX: Enhanced cascading patterns with continuous text handling
     const testPatterns = [
-      // Pattern 1: Method with complex description
-      /^(.+?)\s+Method\s*:\s*(.+?)\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±]+).*$/i,
-      // Pattern 2: Direct test result  
-      /^(.+?)\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±\w]+).*$/i,
-      // Pattern 3: Test name with units separated
-      /^([a-zA-Z\s\/\-]+?)\s+([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±]+).*$/i,
-      // Pattern 4: Percentage values
-      /^(.+?)\s*:\s*([\d.,]+)\s*%\s*([\d\s\-<>≤≥.,\/():=±]+).*$/i
+      // Pattern 1: Method with complex description - handles continuous format
+      /(?:^|\s)([A-Za-z\s\-\/]{3,40})\s+Method\s*:\s*([^:]+?)\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±Children:Birth\w\-\.]+)/gi,
+      
+      // Pattern 2: Direct test result with embedded text
+      /(?:^|\s)([A-Za-z\s\-\/]{3,40})\s*:\s*([\d.,]+)\s*([a-zA-Z\/\sd%μλ]+)\s*([\d\s\-<>≤≥.,\/():=±Children:Birth\w\-\.]+)/gi,
+      
+      // Pattern 3: Test name with units separated - handles embedded interpretation
+      /(?:^|\s)([A-Za-z\s\-\/]{3,40})\s+([\d.,]+)\s+([a-zA-Z\/\sd%μλ]+)\s+([\d\s\-<>≤≥.,\/():=±]+)/gi,
+      
+      // Pattern 4: Percentage values with interpretation
+      /(?:^|\s)([A-Za-z\s\-\/]{3,40})\s*:\s*([\d.,]+)\s*%\s*([\d\s\-<>≤≥.,\/():=±Normal]+)/gi,
+      
+      // Pattern 5: Simple format without colons
+      /(?:^|\s)(Uric\s+Acid|Glucose|Hemoglobin|Cholesterol|TSH|Creatinine|Albumin|Bilirubin|Protein|Sodium|Potassium|Chloride|Neutrophils|Lymphocytes|Monocytes|Eosinophils|Basophils)\s+([\d.,]+)\s+([a-zA-Z\/\sd%μλ]+)\s+([\d\s\-<>≤≥.,\/():=±]+)/gi
     ];
     
+    // Process each line for multiple matches
     for (const line of lines) {
       // Skip header lines and non-test content
       if (line.match(/^(TEST NAME|RESULT|UNITS|BIOLOGICAL REFERENCE|Page \d+|Print Date|Client Req|Phone|Age|Gender|Patient Name|Received On|Registered On|Collected On|Sample Type|LAB|Ref\.Dr|Processing Location|Report Status|Email|\*\*End Of Report\*\*|Dr\.|Note|Reference|Interpretation)/i)) {
         continue;
       }
       
+      // Try each pattern and collect all matches
       for (let i = 0; i < testPatterns.length; i++) {
-        const match = line.match(testPatterns[i]);
-        if (match) {
+        const matches = Array.from(line.matchAll(testPatterns[i]));
+        
+        for (const match of matches) {
           let testName: string;
           let value: string;
           let unit: string;
@@ -95,6 +117,12 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
             value = match[2];
             unit = '%';
             range = match[3].trim();
+          } else if (i === 4) {
+            // Simple format pattern
+            testName = match[1].trim();
+            value = match[2];
+            unit = match[3].trim();
+            range = match[4].trim();
           } else {
             // Standard patterns
             testName = match[1].trim();
@@ -103,45 +131,87 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
             range = match[4]?.trim() || '';
           }
 
-          // Clean and validate data
-          testName = testName.replace(/\s*Method\s*:.*$/i, '').trim();
-          unit = unit.replace(/\s+/g, '').replace(/d\s*L/gi, 'dL').replace(/m\s*L/gi, 'mL');
-          range = range.replace(/Normal\s*:\s*/i, '').replace(/Desirable\s*:\s*/i, '').trim();
+          // IMMEDIATE FIX: Enhanced data cleaning and validation
+          testName = testName
+            .replace(/\s*Method\s*:.*$/i, '')
+            .replace(/^(Mr\.|Mrs\.|Ms\.)\s*/i, '')
+            .replace(/\s+/g, ' ')
+            .trim();
           
-          if (testName && value && !isNaN(parseFloat(value)) && testName.length > 2) {
+          unit = unit
+            .replace(/\s+/g, '')
+            .replace(/d\s*L/gi, 'dL')
+            .replace(/m\s*L/gi, 'mL')
+            .replace(/μ/g, 'u');
+          
+          range = range
+            .replace(/Normal\s*:\s*/i, '')
+            .replace(/Desirable\s*:\s*/i, '')
+            .replace(/Children:\s*/i, '')
+            .replace(/Birth-\d+\s*d:\s*/i, '')
+            .trim();
+          
+          // Enhanced validation
+          const isValidTest = testName && 
+            value && 
+            !isNaN(parseFloat(value)) &&
+            testName.length > 2 && 
+            testName.length < 50 &&
+            !testName.match(/^(Page|Print|Date|Received|Registered|Client|Phone|Processing|Email|Address|TEST NAME|RESULT|UNITS|BIOLOGICAL|End Of Report|Note|Reference|Interpretation|Normal|Abnormal|High|Low)$/i) &&
+            !testName.match(/^\d+$/);
+          
+          if (isValidTest) {
             const numericValue = parseFloat(value);
             const status = determineTestStatusFrontend(numericValue, range);
             
-            tests.push({
-              name: testName,
-              value: value,
-              unit: unit,
-              referenceRange: range,
-              status: status
-            });
-            break;
+            // Check for duplicates
+            const isDuplicate = tests.some(existing => 
+              existing.name.toLowerCase() === testName.toLowerCase() &&
+              existing.value === value.trim()
+            );
+            
+            if (!isDuplicate) {
+              tests.push({
+                name: testName,
+                value: value,
+                unit: unit,
+                referenceRange: range,
+                status: status
+              });
+              console.log('✅ Frontend parsed test:', { testName, value, unit, range, status });
+            }
           }
         }
       }
     }
     
+    console.log('🎯 Frontend extracted', tests.length, 'tests total');
     return tests;
   };
 
-  // Frontend status determination function
+  // IMMEDIATE FIX: Enhanced frontend status determination function
   const determineTestStatusFrontend = (value: number, range: string): string => {
     if (!range || range.trim() === '') return 'normal';
     
+    // Enhanced range patterns with better parsing
     const rangePatterns = [
+      // Standard range: "3.5-7.2", "13.0-17.0"
       /(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/,
+      // Less than: "< 200", "< 100"
       /<\s*(\d+\.?\d*)/,
+      // Greater than: "> 60", ">= 240"
       />(?:=)?\s*(\d+\.?\d*)/,
+      // Range with descriptors: "70 - 100", "Normal : 70 - 100"
+      /(\d+\.?\d*)\s*-?\s*(\d+\.?\d*)/,
+      // Age-specific ranges: "21-54 y:0.4-4.2"
+      /(\d+\.?\d*)-(\d+\.?\d*)/
     ];
     
     for (const pattern of rangePatterns) {
       const match = range.match(pattern);
       if (match) {
         if (pattern.source.includes('-') && match[2]) {
+          // Range format
           const lower = parseFloat(match[1]);
           const upper = parseFloat(match[2]);
           if (!isNaN(lower) && !isNaN(upper)) {
@@ -150,11 +220,13 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
             return 'normal';
           }
         } else if (pattern.source.includes('<')) {
+          // Less than format
           const threshold = parseFloat(match[1]);
           if (!isNaN(threshold)) {
             return value <= threshold ? 'normal' : 'high';
           }
         } else if (pattern.source.includes('>')) {
+          // Greater than format
           const threshold = parseFloat(match[1]);
           if (!isNaN(threshold)) {
             return value >= threshold ? 'normal' : 'low';
