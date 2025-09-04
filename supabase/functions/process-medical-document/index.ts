@@ -317,54 +317,54 @@ const enhancedMedicalExtractor = (extractedText: string) => {
     }
   }
 
-// Enhanced status determination function for backend
-function determineTestStatusEnhanced(value: number, range: string): string {
-  if (!range || range.trim() === '') return 'normal';
-  
-  // Handle various range formats with improved parsing
-  const rangePatterns = [
-    // Standard range: "3.5-7.2", "13.0-17.0"
-    /(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/,
-    // Less than: "< 200", "< 100"
-    /<\s*(\d+\.?\d*)/,
-    // Greater than: "> 60", ">= 240"  
-    />(?:=)?\s*(\d+\.?\d*)/,
-    // Range with descriptors: "70 - 100", "Normal : 70 - 100"
-    /(\d+\.?\d*)\s*-?\s*(\d+\.?\d*)/,
-    // Age-specific ranges: "21-54 y:0.4-4.2"
-    /(\d+\.?\d*)-(\d+\.?\d*)/
-  ];
-  
-  for (const pattern of rangePatterns) {
-    const match = range.match(pattern);
-    if (match) {
-      if (pattern.source.includes('-') && match[2]) {
-        // Range format
-        const lower = parseFloat(match[1]);
-        const upper = parseFloat(match[2]);
-        if (!isNaN(lower) && !isNaN(upper)) {
-          if (value < lower) return 'low';
-          if (value > upper) return 'high';
-          return 'normal';
-        }
-      } else if (pattern.source.includes('<')) {
-        // Less than format
-        const threshold = parseFloat(match[1]);
-        if (!isNaN(threshold)) {
-          return value <= threshold ? 'normal' : 'high';
-        }
-      } else if (pattern.source.includes('>')) {
-        // Greater than format  
-        const threshold = parseFloat(match[1]);
-        if (!isNaN(threshold)) {
-          return value >= threshold ? 'normal' : 'low';
+  // Enhanced status determination function for backend
+  function determineTestStatusEnhanced(value: number, range: string): string {
+    if (!range || range.trim() === '') return 'normal';
+    
+    // Handle various range formats with improved parsing
+    const rangePatterns = [
+      // Standard range: "3.5-7.2", "13.0-17.0"
+      /(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/,
+      // Less than: "< 200", "< 100"
+      /<\s*(\d+\.?\d*)/,
+      // Greater than: "> 60", ">= 240"  
+      />(?:=)?\s*(\d+\.?\d*)/,
+      // Range with descriptors: "70 - 100", "Normal : 70 - 100"
+      /(\d+\.?\d*)\s*-?\s*(\d+\.?\d*)/,
+      // Age-specific ranges: "21-54 y:0.4-4.2"
+      /(\d+\.?\d*)-(\d+\.?\d*)/
+    ];
+    
+    for (const pattern of rangePatterns) {
+      const match = range.match(pattern);
+      if (match) {
+        if (pattern.source.includes('-') && match[2]) {
+          // Range format
+          const lower = parseFloat(match[1]);
+          const upper = parseFloat(match[2]);
+          if (!isNaN(lower) && !isNaN(upper)) {
+            if (value < lower) return 'low';
+            if (value > upper) return 'high';
+            return 'normal';
+          }
+        } else if (pattern.source.includes('<')) {
+          // Less than format
+          const threshold = parseFloat(match[1]);
+          if (!isNaN(threshold)) {
+            return value <= threshold ? 'normal' : 'high';
+          }
+        } else if (pattern.source.includes('>')) {
+          // Greater than format  
+          const threshold = parseFloat(match[1]);
+          if (!isNaN(threshold)) {
+            return value >= threshold ? 'normal' : 'low';
+          }
         }
       }
     }
+    
+    return 'normal';
   }
-  
-  return 'normal';
-}
   
   return {
     reportType: "lab",
