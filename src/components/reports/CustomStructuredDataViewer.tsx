@@ -173,16 +173,16 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
             
             // Check for duplicates
             const isDuplicate = tests.some(existing => 
-              existing.name.toLowerCase() === testName.toLowerCase() &&
+              existing.testName?.toLowerCase() === testName.toLowerCase() &&
               existing.value === value.trim()
             );
             
             if (!isDuplicate) {
               tests.push({
-                name: testName,
+                testName: testName,
                 value: value,
                 unit: unit,
-                referenceRange: range,
+                range: range,
                 status: status
               });
               console.log('✅ Frontend parsed test:', { testName, value, unit, range, status });
@@ -229,7 +229,7 @@ export function CustomStructuredDataViewer({ parsedData, extractedText }: Custom
         
         // Check for duplicates  
         const isDuplicate = tests.some(existing => 
-          existing.testName.toLowerCase() === testName.toLowerCase()
+          existing.testName?.toLowerCase() === testName.toLowerCase()
         );
         
         if (!isDuplicate) {
