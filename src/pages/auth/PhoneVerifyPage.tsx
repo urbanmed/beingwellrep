@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, TEST_PHONE, TEST_OTP } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,12 +13,13 @@ export const PhoneVerifyPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   
-  const { verifyPhoneOTP, resendPhoneOTP } = useAuth();
+  const { verifyPhoneOTP, resendPhoneOTP, testSignIn } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   
   const phone = location.state?.phone || '';
+  const isTestMode = location.state?.testMode || false;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +36,38 @@ export const PhoneVerifyPage: React.FC = () => {
     setIsLoading(true);
     
     try {
+      // Test phone bypass - accept static OTP
+      if (phone === TEST_PHONE && otp === TEST_OTP) {
+        const { error } = await testSignIn();
+        
+        if (error) {
+          toast({
+            title: "Test Login Failed",
+            description: "Failed to sign in with test credentials",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Test Login Successful!",
+            description: "Signed in with test credentials",
+          });
+          navigate('/');
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // Test mode with wrong OTP
+      if (phone === TEST_PHONE && otp !== TEST_OTP) {
+        toast({
+          title: "Invalid OTP",
+          description: "For test mode, use OTP: 123456",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const { error } = await verifyPhoneOTP(phone, otp);
       
       if (error) {

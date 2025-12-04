@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, TEST_PHONE } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Phone } from 'lucide-react';
 
@@ -63,6 +63,19 @@ const LoginPage: React.FC = () => {
     const fullPhone = countryCode + phoneNumber;
     
     try {
+      // Test phone bypass - skip actual OTP sending
+      if (fullPhone === TEST_PHONE) {
+        toast({
+          title: "Test Mode",
+          description: "Using test credentials. Enter 123456 as OTP.",
+        });
+        navigate('/auth/phone-verify', { 
+          state: { phone: fullPhone, type: 'signin', testMode: true }
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const { error } = await signIn(fullPhone);
       
       if (error) {
