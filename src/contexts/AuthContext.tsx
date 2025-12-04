@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+// Test phone bypass constants
+export const TEST_PHONE = '+917032677070';
+export const TEST_OTP = '123456';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -11,6 +15,7 @@ interface AuthContextType {
   signOut: () => Promise<{ error: any }>;
   verifyPhoneOTP: (phone: string, token: string) => Promise<{ error: any }>;
   resendPhoneOTP: (phone: string) => Promise<{ error: any }>;
+  testSignIn: () => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -91,6 +96,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error };
   };
 
+  // Test sign-in function for development bypass
+  const testSignIn = async () => {
+    // Create a mock user session for testing
+    const mockUser = {
+      id: 'test-user-7032677070',
+      phone: TEST_PHONE,
+      email: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      user_metadata: {
+        first_name: 'Test',
+        last_name: 'User',
+      },
+    } as unknown as User;
+
+    const mockSession = {
+      access_token: 'test-access-token',
+      refresh_token: 'test-refresh-token',
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      token_type: 'bearer',
+      user: mockUser,
+    } as unknown as Session;
+
+    // Set mock session state
+    setUser(mockUser);
+    setSession(mockSession);
+    
+    return { error: null };
+  };
+
   const value = {
     user,
     session,
@@ -100,6 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signOut,
     verifyPhoneOTP,
     resendPhoneOTP,
+    testSignIn,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

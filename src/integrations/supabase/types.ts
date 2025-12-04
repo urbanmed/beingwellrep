@@ -21,7 +21,7 @@ export type Database = {
           created_at: string
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           target_id: string | null
           target_type: string
           user_agent: string | null
@@ -32,7 +32,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           target_id?: string | null
           target_type: string
           user_agent?: string | null
@@ -43,7 +43,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           target_id?: string | null
           target_type?: string
           user_agent?: string | null
@@ -90,7 +90,7 @@ export type Database = {
           event_type: string
           file_processing_size: number | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           page_url: string | null
           processing_time_ms: number | null
           session_id: string | null
@@ -103,7 +103,7 @@ export type Database = {
           event_type: string
           file_processing_size?: number | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           page_url?: string | null
           processing_time_ms?: number | null
           session_id?: string | null
@@ -116,7 +116,7 @@ export type Database = {
           event_type?: string
           file_processing_size?: number | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           page_url?: string | null
           processing_time_ms?: number | null
           session_id?: string | null
@@ -1761,10 +1761,7 @@ export type Database = {
         Args: { report_id_param: string }
         Returns: boolean
       }
-      cleanup_expired_processing_locks: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      cleanup_expired_processing_locks: { Args: never; Returns: undefined }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
